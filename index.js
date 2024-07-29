@@ -29,12 +29,7 @@ app.use(cors());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 
-// Serve login.html as the default landing page
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'login.html'));
-});
-
-// Middleware to serve static files (login.html, index.html, etc.)
+// Middleware to serve static files (index.html, quiz.html, etc.)
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Function to get the lowest child key under 'News' and subtract 1
