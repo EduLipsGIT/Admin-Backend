@@ -29,12 +29,7 @@ app.use(cors());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 
-// Serve login.html as the default landing page
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'login.html'));
-});
-
-// Middleware to serve static files (login.html, index.html, etc.)
+// Middleware to serve static files (index.html, quiz.html, etc.)
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Function to get the lowest child key under 'News' and subtract 1
@@ -54,45 +49,20 @@ async function getNextNewsChildKey() {
   }
 }
 
-const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
-
-// Route to handle news submission
+// Endpoint to submit news
 app.post('/submit-news', async (req, res) => {
-  const { title, desc, newslink, imagelink, category } = req.body;
-
-  if (!category) {
-    return res.status(400).send('Category is required');
-  }
+  const { title, desc, newslink, imagelink } = req.body;
 
   try {
-    const childName = await getNextChildKey(newsRef);
-    const newsData = {
+    // Fetch the next child key and use it
+    const childName = await getNextNewsChildKey();
+    const newNewsRef = newsRef.child(childName.toString());
+    await newNewsRef.set({
       title: title,
       desc: desc,
       newslink: newslink,
       imagelink: imagelink
-    };
-
-    // Upload to "News" reference
-    await newsRef.child(childName.toString()).set(newsData);
-    console.log('News uploaded to News reference');
-
-    // Introduce a delay before uploading to the selected category
-    await delay(1000); // 1 second delay
-
-    // Upload to the selected category reference
-    const categoryPath = category.replace(/\s+/g, '_'); // Sanitize category path
-    console.log(`Attempting to upload to category path: ${categoryPath}`);
-    const categoryRef = db.ref(categoryPath);
-    const result = await categoryRef.child(childName.toString()).set(newsData);
-
-    // Confirm upload to category
-    if (result) {
-      console.log('News uploaded to category reference');
-    } else {
-      console.log('Failed to upload news to category reference');
-    }
-
+    });
     res.send('News added successfully!');
   } catch (error) {
     console.error('Error adding news:', error.message);
