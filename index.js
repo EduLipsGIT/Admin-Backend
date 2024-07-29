@@ -96,9 +96,9 @@ app.post('/submit-news', async (req, res) => {
     await addNewsToGeneral(title, desc, newslink, imagelink, childKey);
     
       // Add news to the Language reference
-       await addNewsToLanguage(title, desc, newslink, imagelink, language, childKey);
+    await addNewsToLanguage(title, desc, newslink, imagelink, language, childKey);
     
-    res.send('News added successfully to both references! Category: ' + category);
+    res.send('News added successfully');
   } catch (error) {
     console.error('Error adding news:', error.message);
     res.status(500).send('Error adding news: ' + error.message);
