@@ -17,7 +17,7 @@ admin.initializeApp({
 
 const db = admin.database();
 const newsRef = db.ref('News');
-const quizzesRef = db.ref('News'); // Assuming 'Quizzes' as the node for quiz submissions
+const quizzesRef = db.ref('News'); 
 
 const app = express();
 const port = process.env.PORT || 3000;

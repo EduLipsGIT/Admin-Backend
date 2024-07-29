@@ -1,121 +1,162 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>EduLips Web Admin</title>
-  <link rel="icon" href="favicon.ico" type="image/png">
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      padding: 20px;
-      background-color: #f0f0f0; /* Light background color */
-      color: #333; /* Dark text color */
-    }
-    form {
-      max-width: 600px;
-      margin: 0 auto;
-      background: #fff; /* White background */
-      padding: 20px;
-      border-radius: 8px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
-    }
-    label, input, textarea, select {
-      display: block;
-      width: 100%;
-      margin-bottom: 10px;
-      color: #333; /* Dark text color */
-    }
-    textarea {
-      height: 100px;
-    }
-    input, textarea, select {
-      padding: 8px;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-      box-sizing: border-box;
-    }
-    button {
-      background-color: #4CAF50;
-      color: white;
-      padding: 12px 20px;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      display: block;
-      width: 100%;
-      margin-top: 20px;
-    }
-    button:hover {
-      background-color: #45a049;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EduLips Web Admin</title>
+    <link rel="icon" href="favicon.ico" type="image/png">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background-color: #f0f0f0;
+            color: #333;
+            position: relative; /* For positioning the logout button */
+        }
+        form {
+            max-width: 600px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            position: relative; /* Ensure form positioning context */
+        }
+        label, input, textarea, select {
+            display: block;
+            width: 100%;
+            margin-bottom: 10px;
+            color: #333;
+        }
+        textarea {
+            height: 100px;
+        }
+        input, textarea, select {
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            display: block;
+            width: 100%;
+            margin-top: 20px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .navigation-button {
+            background-color: #000000;
+            color: white;
+            text-align: center;
+            display: block;
+            margin-top: 20px;
+        }
+        .logout-button {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            padding: 5px 10px; /* Smaller padding */
+            background-color: #ff4d4d;
+            color: white;
+            border: none;
+            border-radius: 3px; /* Slightly rounded corners */
+            cursor: pointer;
+            font-size: 14px; /* Smaller font size */
+            text-align: center;
+        }
+        .logout-button:hover {
+            background-color: #e60000;
+        }
+    </style>
+    <script>
+        // Check if user is logged in
+        function checkLogin() {
+            const isLoggedIn = localStorage.getItem('isLoggedIn');
+            if (!isLoggedIn) {
+                window.location.href = 'login.html';
+            }
+        }
+
+        // Handle logout
+        function handleLogout() {
+            localStorage.removeItem('isLoggedIn');
+            window.location.href = 'login.html';
+        }
+
+        window.onload = checkLogin;
+    </script>
 </head>
 <body>
-  <h1 style="text-align: center;">Upload News</h1>
-  <form id="newsForm">
-    <label for="title">Title:</label>
-    <input type="text" id="title" name="title" required>
+    <button class="logout-button" onclick="handleLogout()">Log Out</button>
+    <h1 style="text-align: center;">Upload News</h1>
+    <form id="newsForm">
+        <label for="title">Title:</label>
+        <input type="text" id="title" name="title" required>
 
-    <label for="desc">Description:</label>
-    <textarea id="desc" name="desc" required></textarea>
+        <label for="desc">Description:</label>
+        <textarea id="desc" name="desc" required></textarea>
 
-    <label for="newslink">News Link:</label>
-    <input type="url" id="newslink" name="newslink" required>
+        <label for="newslink">News Link:</label>
+        <input type="url" id="newslink" name="newslink" required>
 
-    <label for="imagelink">Image Link:</label>
-    <input type="url" id="imagelink" name="imagelink" required>
+        <label for="imagelink">Image Link:</label>
+        <input type="url" id="imagelink" name="imagelink" required>
 
-    <label for="category">Category:</label>
-    <select id="category" name="category" required>
-      <option value="News_Business|Finance">News Business|Finance</option>
-      <option value="News_Sports">News Sports</option>
-      <option value="News_Science|Technology">News Science|Technology</option>
-      <option value="News_Health">News Health</option>
-      <option value="News_Entertainment">News Entertainment</option>
-      <option value="News_Job">News Job</option>
-      <option value="News_Politics">News Politics</option>
-      <option value="News_Motivation">News Motivation</option>
-      <option value="News_International">News International</option>
-      <option value="News_National">News National</option>
-      <option value="News_Others">News Others</option>
-    </select>
+        <label for="category">Category:</label>
+        <select id="category" name="category" required>
+            <option value="News_Business|Finance">News Business|Finance</option>
+            <option value="News_Sports">News Sports</option>
+            <option value="News_Science|Technology">News Science|Technology</option>
+            <option value="News_Health">News Health</option>
+            <option value="News_Entertainment">News Entertainment</option>
+            <option value="News_Job">News Job</option>
+            <option value="News_Politics">News Politics</option>
+            <option value="News_Motivation">News Motivation</option>
+            <option value="News_International">News International</option>
+            <option value="News_National">News National</option>
+            <option value="News_Others">News Others</option>
+        </select>
 
-    <button type="submit">Submit</button>
-    <!-- Button to Quiz Page -->
-    <button onclick="window.location.href='quiz.html'" 
-    style="display: block; text-align: center; margin-top: 20px; background-color: #000000; color: white; padding: 12px 20px; border: none; border-radius: 4px; cursor: pointer; width: 100%;">Go to Quiz Page</button>
-  </form>
+        <button type="submit">Submit</button>
+        <button type="button" class="navigation-button" onclick="window.location.href='quiz.html'">Go to Quiz Page</button>
+    </form>
 
-  <script>
-    document.getElementById('newsForm').addEventListener('submit', function(event) {
-      event.preventDefault();
+    <script>
+        document.getElementById('newsForm').addEventListener('submit', function(event) {
+            event.preventDefault();
 
-      const formData = new FormData(this);
-      const data = Object.fromEntries(formData.entries());
+            const formData = new FormData(this);
+            const data = Object.fromEntries(formData.entries());
 
-      fetch('https://admin-backend-coral.vercel.app/submit-news', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(data)
-      })
-      .then(response => {
-        if (!response.ok) {
-          throw new Error('Network response was not ok ' + response.statusText);
-        }
-        return response.text();
-      })
-      .then(data => {
-        alert(data);  // Show response message from server
-        document.getElementById('newsForm').reset();  // Reset form after successful submission
-      })
-      .catch(error => {
-        console.error('Error:', error);
-        alert('Error submitting news. Please try again later.');
-      });
-    });
-  </script>
+            fetch('https://admin-backend-coral.vercel.app/submit-news', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok ' + response.statusText);
+                }
+                return response.text();
+            })
+            .then(data => {
+                alert(data);  // Show response message from server
+                document.getElementById('newsForm').reset();  // Reset form after successful submission
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error submitting news. Please try again later.');
+            });
+        });
+    </script>
 </body>
 </html>

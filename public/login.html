@@ -20,14 +20,14 @@
             padding: 20px;
             border-radius: 5px;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-            width: 400px; /* Increased width of the container */
+            width: 400px;
         }
         .login-container h2 {
             margin-bottom: 20px;
             text-align: center;
         }
         .login-container input {
-            width: calc(100% - 40px); /* Adjust width to fit container */
+            width: calc(100% - 40px);
             padding: 10px;
             margin: 5px 0;
             border: 1px solid #ddd;
@@ -45,7 +45,7 @@
             cursor: pointer;
         }
         .login-container button {
-            width: calc(100% - 20px); /* Adjust width to fit container */
+            width: calc(100% - 20px);
             padding: 10px;
             background-color: #007bff;
             color: white;
@@ -95,6 +95,9 @@
             const isValid = validCredentials.some(cred => cred.username === username && cred.password === password);
 
             if (isValid) {
+                // Save login state to localStorage
+                localStorage.setItem('isLoggedIn', 'true');
+                // Redirect to index.html
                 window.location.href = 'index.html';
             } else {
                 errorMessage.textContent = 'Invalid username or password';
