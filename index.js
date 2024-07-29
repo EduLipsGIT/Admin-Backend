@@ -17,7 +17,7 @@ admin.initializeApp({
 
 const db = admin.database();
 const newsRef = db.ref('News');
-const quizzesRef = db.ref('News'); 
+const quizzesRef = db.ref('News'); // Assuming 'Quizzes' as the node for quiz submissions
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -33,9 +33,9 @@ app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Function to get the lowest child key under 'News' and subtract 1
-async function getNextNewsChildKey() {
+async function getNextChildKey(ref) {
   try {
-    const snapshot = await newsRef.orderByKey().limitToFirst(1).once('value');
+    const snapshot = await ref.orderByKey().limitToFirst(1).once('value');
     if (snapshot.exists()) {
       const firstKey = Object.keys(snapshot.val())[0];
       const firstChildNumber = parseInt(firstKey);
@@ -44,26 +44,61 @@ async function getNextNewsChildKey() {
       return 999; // Default value if no children exist yet
     }
   } catch (error) {
-    console.error('Error fetching next news child key:', error.message);
+    console.error('Error fetching next child key:', error.message);
     throw error;
   }
 }
 
-// Endpoint to submit news
+// Function to add news to the general 'News' reference
+async function addNewsToGeneral(title, desc, newslink, imagelink, childKey) {
+  const newNewsRef = newsRef.child(childKey.toString());
+  await newNewsRef.set({
+    title: title,
+    desc: desc,
+    newslink: newslink,
+    imagelink: imagelink
+  });
+}
+// Function to add news to the selected category reference
+async function addNewsToCategory(title, desc, newslink, imagelink, category, childKey) {
+  const categoryRef = db.ref(category);
+  const newCategoryRef = categoryRef.child(childKey.toString());
+  await newCategoryRef.set({
+    title: title,
+    desc: desc,
+    newslink: newslink,
+    imagelink: imagelink
+  });
+}
+// Function to add news to the selected language reference
+async function addNewsToLanguage(title, desc, newslink, imagelink, language, childKey) {
+  const languageRef = db.ref(language);
+  const newLanguageRef = languageRef.child(childKey.toString());
+  await newLanguageRef.set({
+    title: title,
+    desc: desc,
+    newslink: newslink,
+    imagelink: imagelink
+  });
+}
+
 app.post('/submit-news', async (req, res) => {
-  const { title, desc, newslink, imagelink } = req.body;
+  const { title, desc, newslink, imagelink, category, language } = req.body;
 
   try {
-    // Fetch the next child key and use it
-    const childName = await getNextNewsChildKey();
-    const newNewsRef = newsRef.child(childName.toString());
-    await newNewsRef.set({
-      title: title,
-      desc: desc,
-      newslink: newslink,
-      imagelink: imagelink
-    });
-    res.send('News added successfully!');
+    // Fetch the next child key
+    const childKey = await getNextChildKey(newsRef);
+    
+    // Add news to the selected category reference
+    await addNewsToCategory(title, desc, newslink, imagelink, category, childKey);
+    
+    // Add news to the general 'News' reference
+    await addNewsToGeneral(title, desc, newslink, imagelink, childKey);
+    
+      // Add news to the Language reference
+       await addNewsToLanguage(title, desc, newslink, imagelink, language, childKey);
+    
+    res.send('News added successfully to both references! Category: ' + category);
   } catch (error) {
     console.error('Error adding news:', error.message);
     res.status(500).send('Error adding news: ' + error.message);

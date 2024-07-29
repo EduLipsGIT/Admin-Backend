@@ -126,39 +126,46 @@
             <option value="News_Others">News Others</option>
         </select>
 
+        <label for="language">Language:</label>
+        <select id="category" name="category" required>
+            <option value="News_Hindi">Hindi News</option>
+            <option value="News_Eng">English News</option>
+        </select>
         <button type="submit">Submit</button>
+        <!-- Button to Quiz Page -->
         <button type="button" class="navigation-button" onclick="window.location.href='quiz.html'">Go to Quiz Page</button>
     </form>
 
     <script>
         document.getElementById('newsForm').addEventListener('submit', function(event) {
-            event.preventDefault();
-
-            const formData = new FormData(this);
-            const data = Object.fromEntries(formData.entries());
-
-            fetch('https://admin-backend-coral.vercel.app/submit-news', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(data)
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Network response was not ok ' + response.statusText);
-                }
-                return response.text();
-            })
-            .then(data => {
-                alert(data);  // Show response message from server
-                document.getElementById('newsForm').reset();  // Reset form after successful submission
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Error submitting news. Please try again later.');
-            });
+          event.preventDefault();
+    
+          const formData = new FormData(this);
+          const data = Object.fromEntries(formData.entries());
+    
+          fetch('https://admin-backend-coral.vercel.app/submit-news', { // Updated URL to local server
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+          })
+          .then(response => {
+            if (!response.ok) {
+              throw new Error('Network response was not ok ' + response.statusText);
+            }
+            return response.text();
+          })
+          .then(data => {
+            alert(data);  // Show response message from server
+            document.getElementById('newsForm').reset();  // Reset form after successful submission
+          })
+          .catch(error => {
+            console.error('Error:', error);
+            alert('Error submitting news. Please try again later.');
+          });
         });
-    </script>
-</body>
-</html>
+      </script>
+    </body>
+    </html>
+    
