@@ -17,8 +17,7 @@ admin.initializeApp({
 
 const db = admin.database();
 const newsRef = db.ref('News');
-const quizzesRef = db.ref('News'); // Assuming 'Quizzes' as the node for quiz submissions
-
+const quizzesRef = db.ref('News');
 const app = express();
 const port = process.env.PORT || 3000;
 
@@ -50,18 +49,19 @@ async function getNextChildKey(ref) {
 }
 
 // Function to add news to the general 'News' reference
-async function addNewsToGeneral(title, desc, newslink, imagelink, childKey, currentDate) {
+async function addNewsToGeneral(title, desc, newslink, imagelink, childKey, currentDate, username) {
   const newNewsRef = newsRef.child(childKey.toString());
   await newNewsRef.set({
     title: title,
     desc: desc,
     newslink: newslink,
     imagelink: imagelink,
-    date: currentDate
+    date: currentDate,
+    'Uploaded By': username
   });
 }
 // Function to add news to the selected category reference
-async function addNewsToCategory(title, desc, newslink, imagelink, category, childKey, currentDate) {
+async function addNewsToCategory(title, desc, newslink, imagelink, category, childKey, currentDate, username) {
   const categoryRef = db.ref(category);
   const newCategoryRef = categoryRef.child(childKey.toString());
   await newCategoryRef.set({
@@ -69,11 +69,12 @@ async function addNewsToCategory(title, desc, newslink, imagelink, category, chi
     desc: desc,
     newslink: newslink,
     imagelink: imagelink,
-    date: currentDate
+    date: currentDate,
+    'Uploaded By': username
   });
 }
 // Function to add news to the selected language reference
-async function addNewsToLanguage(title, desc, newslink, imagelink, language, childKey, currentDate) {
+async function addNewsToLanguage(title, desc, newslink, imagelink, language, childKey, currentDate, username) {
   const languageRef = db.ref(language);
   const newLanguageRef = languageRef.child(childKey.toString());
   await newLanguageRef.set({
@@ -81,7 +82,8 @@ async function addNewsToLanguage(title, desc, newslink, imagelink, language, chi
     desc: desc,
     newslink: newslink,
     imagelink: imagelink,
-    date: currentDate
+    date: currentDate,
+    'Uploaded By': username
   });
 }
 function getCurrentDate() {
@@ -93,7 +95,7 @@ function getCurrentDate() {
 }
 
 app.post('/submit-news', async (req, res) => {
-  const { title, desc, newslink, imagelink, category, language } = req.body;
+  const { title, desc, newslink, imagelink, category, language , username } = req.body;
   const currentDate = getCurrentDate();
 
   try {
@@ -101,13 +103,13 @@ app.post('/submit-news', async (req, res) => {
     const childKey = await getNextChildKey(newsRef);
     
     // Add news to the selected category reference
-    await addNewsToCategory(title, desc, newslink, imagelink, category, childKey, currentDate);
+    await addNewsToCategory(title, desc, newslink, imagelink, category, childKey, currentDate , username);
     
     // Add news to the general 'News' reference
-    await addNewsToGeneral(title, desc, newslink, imagelink, childKey, currentDate);
+    await addNewsToGeneral(title, desc, newslink, imagelink, childKey, currentDate, username);
     
       // Add news to the Language reference
-    await addNewsToLanguage(title, desc, newslink, imagelink, language, childKey, currentDate);
+    await addNewsToLanguage(title, desc, newslink, imagelink, language, childKey, currentDate , username);
     
     res.send('News added successfully');
   } catch (error) {

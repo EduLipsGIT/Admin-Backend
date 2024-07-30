@@ -86,24 +86,25 @@
         ];
 
         document.getElementById('loginForm').addEventListener('submit', function(event) {
-            event.preventDefault();
+    event.preventDefault();
 
-            const username = document.getElementById('username').value;
-            const password = document.getElementById('password').value;
-            const errorMessage = document.getElementById('error-message');
+    const username = document.getElementById('username').value;
+    const password = document.getElementById('password').value;
+    const errorMessage = document.getElementById('error-message');
 
-            const isValid = validCredentials.some(cred => cred.username === username && cred.password === password);
+    const isValid = validCredentials.some(cred => cred.username === username && cred.password === password);
 
-            if (isValid) {
-                // Save login state to localStorage
-                localStorage.setItem('isLoggedIn', 'true');
-                // Redirect to index.html
-                window.location.href = 'index.html';
-            } else {
-                errorMessage.textContent = 'Invalid username or password';
-                errorMessage.style.display = 'block';
-            }
-        });
+    if (isValid) {
+        // Save login state and username to localStorage
+        localStorage.setItem('isLoggedIn', 'true');
+        localStorage.setItem('username', username);
+        // Redirect to index.html
+        window.location.href = 'index.html';
+    } else {
+        errorMessage.textContent = 'Invalid username or password';
+        errorMessage.style.display = 'block';
+    }
+});
 
         // Toggle password visibility
         const togglePassword = document.getElementById('togglePassword');

@@ -135,14 +135,16 @@
         <!-- Button to Quiz Page -->
         <button type="button" class="navigation-button" onclick="window.location.href='quiz.html'">Go to Quiz Page</button>
     </form>
-
     <script>
         document.getElementById('newsForm').addEventListener('submit', function(event) {
           event.preventDefault();
-    
+
+          const username = localStorage.getItem('username');
           const formData = new FormData(this);
           const data = Object.fromEntries(formData.entries());
-    
+          data.username = username;
+          
+          
           fetch('https://admin-backend-coral.vercel.app/submit-news', { // Updated URL to local server
             method: 'POST',
             headers: {
