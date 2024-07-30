@@ -50,53 +50,64 @@ async function getNextChildKey(ref) {
 }
 
 // Function to add news to the general 'News' reference
-async function addNewsToGeneral(title, desc, newslink, imagelink, childKey) {
+async function addNewsToGeneral(title, desc, newslink, imagelink, childKey, currentDate) {
   const newNewsRef = newsRef.child(childKey.toString());
   await newNewsRef.set({
     title: title,
     desc: desc,
     newslink: newslink,
-    imagelink: imagelink
+    imagelink: imagelink,
+    date: currentDate
   });
 }
 // Function to add news to the selected category reference
-async function addNewsToCategory(title, desc, newslink, imagelink, category, childKey) {
+async function addNewsToCategory(title, desc, newslink, imagelink, category, childKey, currentDate) {
   const categoryRef = db.ref(category);
   const newCategoryRef = categoryRef.child(childKey.toString());
   await newCategoryRef.set({
     title: title,
     desc: desc,
     newslink: newslink,
-    imagelink: imagelink
+    imagelink: imagelink,
+    date: currentDate
   });
 }
 // Function to add news to the selected language reference
-async function addNewsToLanguage(title, desc, newslink, imagelink, language, childKey) {
+async function addNewsToLanguage(title, desc, newslink, imagelink, language, childKey, currentDate) {
   const languageRef = db.ref(language);
   const newLanguageRef = languageRef.child(childKey.toString());
   await newLanguageRef.set({
     title: title,
     desc: desc,
     newslink: newslink,
-    imagelink: imagelink
+    imagelink: imagelink,
+    date: currentDate
   });
+}
+function getCurrentDate() {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, '0'); // Months are zero-based
+  const day = String(today.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 app.post('/submit-news', async (req, res) => {
   const { title, desc, newslink, imagelink, category, language } = req.body;
+  const currentDate = getCurrentDate();
 
   try {
     // Fetch the next child key
     const childKey = await getNextChildKey(newsRef);
     
     // Add news to the selected category reference
-    await addNewsToCategory(title, desc, newslink, imagelink, category, childKey);
+    await addNewsToCategory(title, desc, newslink, imagelink, category, childKey, currentDate);
     
     // Add news to the general 'News' reference
-    await addNewsToGeneral(title, desc, newslink, imagelink, childKey);
+    await addNewsToGeneral(title, desc, newslink, imagelink, childKey, currentDate);
     
       // Add news to the Language reference
-    await addNewsToLanguage(title, desc, newslink, imagelink, language, childKey);
+    await addNewsToLanguage(title, desc, newslink, imagelink, language, childKey, currentDate);
     
     res.send('News added successfully');
   } catch (error) {
