@@ -11,9 +11,9 @@
             padding: 20px;
             background-color: #f0f0f0;
             color: #333;
-            position: relative; /* For positioning the logout button */
-            margin: 0; /* Ensure no default margin affecting layout */
-            padding-bottom: 60px; /* Ensure space for the logout button */
+            position: relative;
+            margin: 0;
+            padding-bottom: 60px;
         }
         form {
             max-width: 600px;
@@ -37,6 +37,14 @@
             border: 1px solid #ccc;
             border-radius: 4px;
             box-sizing: border-box;
+        }
+        input.error, textarea.error {
+            border-color: red;
+        }
+        .word-count {
+            font-size: 0.9em;
+            color: #666;
+            margin-bottom: 10px;
         }
         button {
             background-color: #4CAF50;
@@ -64,13 +72,13 @@
             bottom: 0;
             left: 0;
             width: 100%;
-            padding: 10px; /* Adjust padding for better appearance */
+            padding: 10px;
             background-color: #ff4d4d;
             color: white;
             border: none;
-            border-radius: 0; /* Remove border radius for full width */
+            border-radius: 0;
             cursor: pointer;
-            font-size: 16px; /* Adjust font size */
+            font-size: 16px;
             text-align: center;
         }
         .logout-button:hover {
@@ -93,17 +101,53 @@
         }
 
         window.onload = checkLogin;
+
+        // Function to count words
+        function countWords(text) {
+            return text.trim().split(/\s+/).filter(Boolean).length;
+        }
+
+        // Function to update word count display
+        function updateWordCount(element, display, limit) {
+            const wordCount = countWords(element.value);
+            display.textContent = `${wordCount} words`;
+            if (wordCount > limit) {
+                element.classList.add('error');
+                return false;
+            } else {
+                element.classList.remove('error');
+                return true;
+            }
+        }
+
+        // Function to validate form
+        function validateForm() {
+            const title = document.getElementById('title');
+            const desc = document.getElementById('desc');
+
+            const isTitleValid = updateWordCount(title, document.getElementById('titleWordCount'), 20);
+            const isDescValid = updateWordCount(desc, document.getElementById('descWordCount'), 75);
+
+            if (!isTitleValid || !isDescValid) {
+                alert('Please ensure the title is 20 words or less and the description is 75 words or less.');
+                return false;
+            }
+
+            return true;
+        }
     </script>
 </head>
 <body>
     <button class="logout-button" onclick="handleLogout()">Log Out</button>
     <h1 style="text-align: center;">Upload News</h1>
-    <form id="newsForm">
+    <form id="newsForm" onsubmit="return validateForm()">
         <label for="title">Title:</label>
         <input type="text" id="title" name="title" required>
+        <div id="titleWordCount" class="word-count">0 words</div>
 
         <label for="desc">Description:</label>
         <textarea id="desc" name="desc" required></textarea>
+        <div id="descWordCount" class="word-count">0 words</div>
 
         <label for="newslink">News Link:</label>
         <input type="url" id="newslink" name="newslink" required>
@@ -136,38 +180,51 @@
         <button type="button" class="navigation-button" onclick="window.location.href='quiz.html'">Go to Quiz Page</button>
     </form>
     <script>
-        document.getElementById('newsForm').addEventListener('submit', function(event) {
-          event.preventDefault();
-
-          const username = localStorage.getItem('username');
-          const formData = new FormData(this);
-          const data = Object.fromEntries(formData.entries());
-          data.username = username;
-          
-          
-          fetch('https://admin-backend-coral.vercel.app/submit-news', { // Updated URL to local server
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(data)
-          })
-          .then(response => {
-            if (!response.ok) {
-              throw new Error('Network response was not ok ' + response.statusText);
-            }
-            return response.text();
-          })
-          .then(data => {
-            alert(data);  // Show response message from server
-            document.getElementById('newsForm').reset();  // Reset form after successful submission
-          })
-          .catch(error => {
-            console.error('Error:', error);
-            alert('Error submitting news. Please try again later.');
-          });
+        // Update word count on input event
+        document.getElementById('title').addEventListener('input', function() {
+            updateWordCount(this, document.getElementById('titleWordCount'), 20);
         });
-      </script>
-    </body>
-    </html>
-    
+
+        document.getElementById('desc').addEventListener('input', function() {
+            updateWordCount(this, document.getElementById('descWordCount'), 75);
+        });
+
+        document.getElementById('newsForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+
+            if (!validateForm()) {
+                return;
+            }
+
+            const username = localStorage.getItem('username');
+            const formData = new FormData(this);
+            const data = Object.fromEntries(formData.entries());
+            data.username = username;
+
+            fetch('https://admin-backend-coral.vercel.app/submit-news', { // Updated URL to local server
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok ' + response.statusText);
+                }
+                return response.text();
+            })
+            .then(data => {
+                alert(data);  // Show response message from server
+                document.getElementById('newsForm').reset();  // Reset form after successful submission
+                document.getElementById('titleWordCount').textContent = '0 words';  // Reset word counters
+                document.getElementById('descWordCount').textContent = '0 words';
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error submitting news. Please try again later.');
+            });
+        });
+    </script>
+</body>
+</html>
