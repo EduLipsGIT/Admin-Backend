@@ -201,7 +201,7 @@
             const data = Object.fromEntries(formData.entries());
             data.username = username;
 
-            fetch('https://admin-backend-coral.vercel.app/submit-news', { // Updated URL to local server
+            fetch('https://admin-backend-coral.vercel.app/submit-news', {    //SERVER = https://admin-backend-coral.vercel.app/submit-news
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
