@@ -214,7 +214,8 @@ async function addQuizToGeneral(question1, question2, question3, question4, corr
     correctAnswer: correctAnswer,
     description: description,
     date: currentDate,
-    'Uploaded By': username
+    'Uploaded By': username,
+    'Ques_in_News_Enabled' : 'Yes'
   });
 }
 
