@@ -82,8 +82,11 @@
     document.getElementById('quizForm').addEventListener('submit', function(event) {
       event.preventDefault();
 
+      const username = localStorage.getItem('username');
       const formData = new FormData(this);
       const data = Object.fromEntries(formData.entries());
+      data.username = username;
+
 
       fetch('https://admin-backend-coral.vercel.app/submit-quiz', { // Update URL to your server endpoint
         method: 'POST',
@@ -104,7 +107,7 @@
       })
       .catch(error => {
         console.error('Error:', error);
-        alert('Error submitting quiz. Please try again later.');
+        alert('Error submitting quiz. ' + error);
       });
     });
   </script>
