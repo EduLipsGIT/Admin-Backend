@@ -204,9 +204,10 @@ async function getNextQuizChildKey() {
 }
 
 // Function to add quiz to the general 'Quizzes' reference
-async function addQuizToGeneral(question1, question2, question3, question4, correctAnswer, description, childKey, currentDate, username) {
+async function addQuizToGeneral(question , question1, question2, question3, question4, correctAnswer, description, childKey, currentDate, username) {
   const newQuizRef = quizzesRef.child(childKey.toString());
   await newQuizRef.set({
+    ques: question,
     opt1: question1,
     opt2: question2,
     opt3: question3,
@@ -249,7 +250,7 @@ app.get('/count-news', async (req, res) => {
 
 // Route to submit quizzes
 app.post('/submit-quiz', async (req, res) => {
-  const { question1, question2, question3, question4, correctAnswer, description, username } = req.body;
+  const {question, question1, question2, question3, question4, correctAnswer, description, username } = req.body;
   const currentDate = getCurrentDate();
 
   try {
@@ -257,7 +258,7 @@ app.post('/submit-quiz', async (req, res) => {
     const childKey = await getNextQuizChildKey();
 
     // Add quiz to the general 'Quizzes' reference
-    await addQuizToGeneral(question1, question2, question3, question4, correctAnswer, description, childKey, currentDate, username);
+    await addQuizToGeneral(question , question1, question2, question3, question4, correctAnswer, description, childKey, currentDate, username);
     res.send('Quiz added successfully');
   } catch (error) {
     console.error('Error adding quiz:', error.message);
