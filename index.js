@@ -207,17 +207,45 @@ async function getNextQuizChildKey() {
 async function addQuizToGeneral(question1, question2, question3, question4, correctAnswer, description, childKey, currentDate, username) {
   const newQuizRef = quizzesRef.child(childKey.toString());
   await newQuizRef.set({
-    question1: question1,
-    question2: question2,
-    question3: question3,
-    question4: question4,
-    correctAnswer: correctAnswer,
-    description: description,
+    opt1: question1,
+    opt2: question2,
+    opt3: question3,
+    opt4: question4,
+    CorrectAns: correctAnswer,
+    desc_quiz: description,
     date: currentDate,
     'Uploaded By': username,
     'Ques_in_News_Enabled' : 'Yes'
   });
 }
+async function countNewsByUsername(username) {
+  try {
+    // Query the "News" reference to find all nodes where "Uploaded By" equals the username
+    const snapshot = await newsRef.orderByChild('Uploaded By').equalTo(username).once('value');
+
+    // Count the number of matching children
+    const count = snapshot.numChildren();
+
+    console.log(`Number of news items uploaded by ${username}:`, count);
+    return count;
+  } catch (error) {
+    console.error('Error counting news items by username:', error.message);
+    throw error;
+  }
+}
+
+app.get('/count-news', async (req, res) => {
+  const username = req.query.username; // Get the username from query parameters
+
+  try {
+    const newsCount = await countNewsByUsername(username);
+    res.send(`Number of news items uploaded by ${username}: ${newsCount}`);
+  } catch (error) {
+    console.error('Error counting news items by username:', error.message);
+    res.status(500).send('Error counting news items: ' + error.message);
+  }
+});
+
 
 // Route to submit quizzes
 app.post('/submit-quiz', async (req, res) => {
@@ -230,7 +258,6 @@ app.post('/submit-quiz', async (req, res) => {
 
     // Add quiz to the general 'Quizzes' reference
     await addQuizToGeneral(question1, question2, question3, question4, correctAnswer, description, childKey, currentDate, username);
-    
     res.send('Quiz added successfully');
   } catch (error) {
     console.error('Error adding quiz:', error.message);

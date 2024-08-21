@@ -84,6 +84,19 @@
         .logout-button:hover {
             background-color: #e60000;
         }
+        #responseText {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background-color: #333;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            max-width: 300px;
+            display: none; /* Initially hidden */
+            font-size: 14px;
+            z-index: 1000;
+        }
     </style>
     <script>
         // Check if user is logged in
@@ -201,6 +214,7 @@
             const data = Object.fromEntries(formData.entries());
             data.username = username;
 
+    
             fetch('https://admin-backend-coral.vercel.app/submit-news', {    //SERVER = https://admin-backend-coral.vercel.app/submit-news
                 method: 'POST',
                 headers: {
