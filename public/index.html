@@ -135,19 +135,27 @@
 
         // Function to validate form
         function validateForm() {
-            const title = document.getElementById('title');
-            const desc = document.getElementById('desc');
+    const title = document.getElementById('title');
+    const desc = document.getElementById('desc');
+    const category = document.getElementById('category');
+    const language = document.getElementById('language');
 
-            const isTitleValid = updateWordCount(title, document.getElementById('titleWordCount'), 20);
-            const isDescValid = updateWordCount(desc, document.getElementById('descWordCount'), 75);
+    const isTitleValid = updateWordCount(title, document.getElementById('titleWordCount'), 20);
+    const isDescValid = updateWordCount(desc, document.getElementById('descWordCount'), 75);
 
-            if (!isTitleValid || !isDescValid) {
-                alert('Please ensure the title is 20 words or less and the description is 75 words or less.');
-                return false;
-            }
+    if (!isTitleValid || !isDescValid) {
+        alert('Please ensure the title is 20 words or less and the description is 75 words or less.');
+        return false;
+    }
+    
+    if (category.value === "Select Category" || language.value === "Select Language") {
+        alert('Please select a valid Language and Category.');
+        return false;
+    }
 
-            return true;
-        }
+    return true;
+     }
+     
     </script>
 </head>
 <body>
@@ -170,8 +178,11 @@
 
         <label for="category">Category:</label>
         <select id="category" name="category" required>
+            <option value="Select Category">Select Category</option>
             <option value="News_Business|Finance">News_Business|Finance</option>
             <option value="News_Sports">News_Sports</option>
+            <option value="News_State">News_State</option>
+            <option value="News_Environment">News_Environment</option>
             <option value="News_Science|Technology">News_Science|Technology</option>
             <option value="News_Health">News_Health</option>
             <option value="News_Entertainment">News_Entertainment</option>
@@ -185,6 +196,7 @@
 
         <label for="language">Language:</label>
         <select id="language" name="language" required>
+            <option value="Select Language">Select Language</option>
             <option value="News_Hindi">Hindi News</option>
             <option value="News_Eng">English News</option>
         </select>
