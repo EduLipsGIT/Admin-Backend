@@ -15,7 +15,8 @@
     "express": "^4.19.2",
     "express-session": "^1.18.0",
     "firebase-admin": "^12.3.0",
-    "google-auth-library": "^9.13.0"
+    "google-auth-library": "^9.13.0",
+    "uuid": "^10.0.0"
   },
   "engines": {
     "node": "20.x"

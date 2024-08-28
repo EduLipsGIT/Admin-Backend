@@ -22,6 +22,7 @@ const quizzesRef = db.ref('News'); // Corrected to 'Quizzes'
 const app = express();
 const port = process.env.PORT || 3000;
 const fixed_desc = "Click to know more";
+const { v4: uuidv4 } = require('uuid'); 
 
 // Enable CORS with default options
 app.use(cors());
@@ -127,8 +128,11 @@ function getCurrentDate() {
   const day = String(today.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
 }
+function generateUniqueId() {
+  return uuidv4();
+}
 // Function to send FCM
-const sendNotification = async ( title, fixed_desc, childKey , imagelink) => {
+const sendNotification = async ( title, fixed_desc, childKey , imagelink , uniqueId) => {
   const message = {
     topic : "edulips",
     notification: {
@@ -137,10 +141,14 @@ const sendNotification = async ( title, fixed_desc, childKey , imagelink) => {
       image: imagelink
     },
     data: {
-      child_key: childKey.toString() 
+      child_key: childKey.toString(),
+      unique_id: uniqueId.toString()
     },
     android: {
-      priority: "high"
+      priority: "high" , 
+      notification: {
+        tag : uniqueId.toString()  // Ensure no grouping
+      }
     },
     apns: {
       payload: {
@@ -166,6 +174,8 @@ app.post('/submit-news', async (req, res) => {
   try {
     // Fetch the next child key
     const childKey = await getNextChildKey(newsRef);
+
+    const uniqueId = generateUniqueId();
     
     // Add news to the selected category reference
     await addNewsToCategory(title, desc, newslink, imagelink, category, childKey, currentDate, username);
@@ -174,7 +184,7 @@ app.post('/submit-news', async (req, res) => {
     await addNewsToGeneral(title, desc, newslink, imagelink, childKey, currentDate, username);
 
     // Send notification
-    await sendNotification( title, fixed_desc , childKey , imagelink);
+    await sendNotification( title, fixed_desc , childKey , imagelink, uniqueId);
     
     // Add news to the Language reference
     await addNewsToLanguage(title, desc, newslink, imagelink, language, childKey, currentDate, username);
