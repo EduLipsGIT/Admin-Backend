@@ -3,6 +3,7 @@ const bodyParser = require('body-parser');
 const admin = require('firebase-admin');
 const path = require('path');
 const cors = require('cors');
+const axios = require('axios');
 require('dotenv').config();
 const { GoogleAuth } = require('google-auth-library');  
 
@@ -128,42 +129,43 @@ function getCurrentDate() {
   const day = String(today.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
 }
-function generateUniqueId() {
-  return uuidv4();
-}
-// Function to send FCM
-const sendNotification = async ( title, fixed_desc, childKey , imagelink , uniqueId) => {
-  const message = {
-    topic : "edulips",
-    notification: {
-      title: title,
-      body: fixed_desc,
-      image: imagelink
-    },
-    data: {
-      child_key: childKey.toString(),
-      unique_id: uniqueId.toString()
-    },
-    android: {
-      priority: "high" , 
-      notification: {
-        tag : uniqueId.toString()  // Ensure no grouping
-      }
-    },
-    apns: {
-      payload: {
-        aps: {
-          badge: 42
-        }
-      }
-    }
-  };
 
+const generateUniqueId = () => {
+  return uuidv4(); // Generate a unique ID
+};
+
+const sendNotification = async (title, fixed_desc, childKey, imagelink) => {
+  const uniqueNotificationId = generateUniqueId();
+  const groupKey = uuidv4();
+  const message = {
+    app_id: '7627f664-3313-4277-87e6-fe121cdd20aa',
+    included_segments: ['All'],
+    headings: { "en": title },
+    contents: { "en": fixed_desc },
+    big_picture: imagelink,
+    small_icon: imagelink,
+    data: { 
+      child_key: childKey.toString(),
+    },
+    android_group: uniqueNotificationId
+  };
+  
   try {
-    await admin.messaging().send(message);
-    console.log('Notification sent successfully');
+    const response = await axios.post('https://onesignal.com/api/v1/notifications', message, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `NzkzYjkzNDAtOGU1Yi00ZGZkLWEyMWQtMmU1NzY0NjJhZTk1`
+      }
+    });
+    console.log('Notification sent successfully:', response.data);
   } catch (error) {
-    console.error('Error sending notification:', error.message);
+    if (error.response) {
+      console.error('Error response:', error.response.data);
+    } else if (error.request) {
+      console.error('Error request:', error.request);
+    } else {
+      console.error('Error message:', error.message);
+    }
   }
 };
 
@@ -184,7 +186,7 @@ app.post('/submit-news', async (req, res) => {
     await addNewsToGeneral(title, desc, newslink, imagelink, childKey, currentDate, username);
 
     // Send notification
-    await sendNotification( title, fixed_desc , childKey , imagelink, uniqueId);
+    await sendNotification( title, fixed_desc , childKey , imagelink);
     
     // Add news to the Language reference
     await addNewsToLanguage(title, desc, newslink, imagelink, language, childKey, currentDate, username);
