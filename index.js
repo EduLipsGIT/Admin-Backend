@@ -143,7 +143,7 @@ const sendNotification = async (title, fixed_desc, childKey, imagelink) => {
     headings: { "en": title },
     contents: { "en": fixed_desc },
     big_picture: imagelink,
-    small_icon: imagelink,
+    small_icon: 'notification_icon',
     data: { 
       child_key: childKey.toString(),
     },
