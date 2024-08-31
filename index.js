@@ -143,12 +143,14 @@ const sendNotification = async (title, fixed_desc, childKey, imagelink) => {
     headings: { "en": title },
     contents: { "en": fixed_desc },
     big_picture: imagelink,
-    small_icon: imagelink,
     data: { 
       child_key: childKey.toString(),
     },
+    android: {
+      priority: "high",
+    },
     android_group: uniqueNotificationId
-  };
+   };
   
   try {
     const response = await axios.post('https://onesignal.com/api/v1/notifications', message, {
