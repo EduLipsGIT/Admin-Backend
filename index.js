@@ -24,6 +24,7 @@ const app = express();
 const port = process.env.PORT || 3000;
 const fixed_desc = "Click to know more";
 const { v4: uuidv4 } = require('uuid'); 
+const { time } = require('console');
 
 // Enable CORS with default options
 app.use(cors());
@@ -84,12 +85,14 @@ async function getNextChildKey(ref) {
 // Function to add news to the general 'News' reference
 async function addNewsToGeneral(title, desc, newslink, imagelink, childKey, currentDate, username) {
   const newNewsRef = newsRef.child(childKey.toString());
+  const currentTime = getCurrentTime();
   await newNewsRef.set({
     title: title,
     desc: desc,
     newslink: newslink,
     imagelink: imagelink,
     date: currentDate,
+    time: currentTime,
     'Uploaded By': username
   });
 }
@@ -97,6 +100,7 @@ async function addNewsToGeneral(title, desc, newslink, imagelink, childKey, curr
 // Function to add news to the selected category reference
 async function addNewsToCategory(title, desc, newslink, imagelink, category, childKey, currentDate, username) {
   const categoryRef = db.ref(category);
+  const currentTime = getCurrentTime();
   const newCategoryRef = categoryRef.child(childKey.toString());
   await newCategoryRef.set({
     title: title,
@@ -104,6 +108,7 @@ async function addNewsToCategory(title, desc, newslink, imagelink, category, chi
     newslink: newslink,
     imagelink: imagelink,
     date: currentDate,
+    time: currentTime,
     'Uploaded By': username
   });
 }
@@ -112,12 +117,14 @@ async function addNewsToCategory(title, desc, newslink, imagelink, category, chi
 async function addNewsToLanguage(title, desc, newslink, imagelink, language, childKey, currentDate, username) {
   const languageRef = db.ref(language);
   const newLanguageRef = languageRef.child(childKey.toString());
+  const currentTime = getCurrentTime();
   await newLanguageRef.set({
     title: title,
     desc: desc,
     newslink: newslink,
     imagelink: imagelink,
     date: currentDate,
+    time: currentTime,
     'Uploaded By': username
   });
 }
@@ -129,7 +136,15 @@ function getCurrentDate() {
   const day = String(today.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
 }
-
+// Function to get current time
+function getCurrentTime() {
+  const date = new Date();
+  const hours = date.getHours();
+  const minutes = date.getMinutes();
+  const ampm = hours >= 12 ? 'PM' : 'AM';
+  const hours12 = hours % 12 || 12; // convert to 12-hour format
+  return `${hours12}:${minutes.toString().padStart(2, '0')} ${ampm}`;
+}
 const generateUniqueId = () => {
   return uuidv4(); // Generate a unique ID
 };
@@ -183,16 +198,16 @@ app.post('/submit-news', async (req, res) => {
     const uniqueId = generateUniqueId();
     
     // Add news to the selected category reference
-    await addNewsToCategory(title, desc, newslink, imagelink, category, childKey, currentDate, username);
+    await addNewsToCategory(title, desc, newslink, imagelink, category, childKey, currentDate, username,  getCurrentTime());
     
     // Add news to the general 'News' reference
-    await addNewsToGeneral(title, desc, newslink, imagelink, childKey, currentDate, username);
+    await addNewsToGeneral(title, desc, newslink, imagelink, childKey, currentDate, username,  getCurrentTime());
 
     // Send notification
-    await sendNotification( title, fixed_desc , childKey , imagelink);
+    await sendNotification( title, fixed_desc , childKey , imagelink);  
     
     // Add news to the Language reference
-    await addNewsToLanguage(title, desc, newslink, imagelink, language, childKey, currentDate, username);
+    await addNewsToLanguage(title, desc, newslink, imagelink, language, childKey, currentDate, username,  getCurrentTime());
     
     res.send('News added successfully');
   } catch (error) {
