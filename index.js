@@ -81,9 +81,30 @@ async function getNextChildKey(ref) {
     throw error;
   }
 }
+async function checkTitleExists(title) {
+  try {
+    const snapshot = await newsRef.once('value');
+    const newsItems = snapshot.val();
+    for (const key in newsItems) {
+      if (newsItems.hasOwnProperty(key)) {
+        const newsItem = newsItems[key];
+        if (newsItem.title === title) {
+          return true; // Title already exists
+        }
+      }
+    }
+    return false; // Title does not exist
+  } catch (error) {
+    console.error('Error checking title existence:', error.message);
+    throw error;
+  }
+}
 
 // Function to add news to the general 'News' reference
 async function addNewsToGeneral(title, desc, newslink, imagelink, childKey, currentDate, username) {
+  if (await checkTitleExists(title)) {
+    return;
+  }
   const newNewsRef = newsRef.child(childKey.toString());
   const currentTime = getCurrentTime();
   await newNewsRef.set({
@@ -97,8 +118,30 @@ async function addNewsToGeneral(title, desc, newslink, imagelink, childKey, curr
   });
 }
 
+async function checkTitleExistsCATEGORY(title ,category) {
+  try {
+    const categoryRef = db.ref(category);
+    const snapshot = await categoryRef.once('value');
+    const newsItems = snapshot.val();
+    for (const key in newsItems) {
+      if (newsItems.hasOwnProperty(key)) {
+        const newsItem = newsItems[key];
+        if (newsItem.title === title) {
+          return true; // Title already exists
+        }
+      }
+    }
+    return false; // Title does not exist
+  } catch (error) {
+    console.error('Error checking title existence:', error.message);
+    throw error;
+  }
+}
 // Function to add news to the selected category reference
 async function addNewsToCategory(title, desc, newslink, imagelink, category, childKey, currentDate, username) {
+  if (await checkTitleExistsCATEGORY(title , category)) {
+      return;
+  }
   const categoryRef = db.ref(category);
   const currentTime = getCurrentTime();
   const newCategoryRef = categoryRef.child(childKey.toString());
@@ -112,9 +155,30 @@ async function addNewsToCategory(title, desc, newslink, imagelink, category, chi
     'Uploaded By': username
   });
 }
-
+async function checkTitleExistsLang(title , language) {
+  try {
+    const languageRef = db.ref(language);
+    const snapshot = await languageRef.once('value');
+    const newsItems = snapshot.val();
+    for (const key in newsItems) {
+      if (newsItems.hasOwnProperty(key)) {
+        const newsItem = newsItems[key];
+        if (newsItem.title === title) {
+          return true; // Title already exists
+        }
+      }
+    }
+    return false; // Title does not exist
+  } catch (error) {
+    console.error('Error checking title existence:', error.message);
+    throw error;
+  }
+}
 // Function to add news to the selected language reference
 async function addNewsToLanguage(title, desc, newslink, imagelink, language, childKey, currentDate, username) {
+  if (await checkTitleExistsLang(title, language)) {
+    return;
+  }
   const languageRef = db.ref(language);
   const newLanguageRef = languageRef.child(childKey.toString());
   const currentTime = getCurrentTime();
@@ -196,20 +260,23 @@ app.post('/submit-news', async (req, res) => {
     const childKey = await getNextChildKey(newsRef);
 
     const uniqueId = generateUniqueId();
-    
+
     // Add news to the selected category reference
     await addNewsToCategory(title, desc, newslink, imagelink, category, childKey, currentDate, username,  getCurrentTime());
-    
-    // Add news to the general 'News' reference
-    await addNewsToGeneral(title, desc, newslink, imagelink, childKey, currentDate, username,  getCurrentTime());
-
-    // Send notification
-    await sendNotification( title, fixed_desc , childKey , imagelink);  
     
     // Add news to the Language reference
     await addNewsToLanguage(title, desc, newslink, imagelink, language, childKey, currentDate, username,  getCurrentTime());
     
-    res.send('News added successfully');
+    const titleExists = await checkTitleExists(title);
+    if (titleExists) {
+      res.send('News Already Exists!');
+      return;
+    }
+    // Add news to the general 'News' reference
+    await addNewsToGeneral(title, desc, newslink, imagelink, childKey, currentDate, username,  getCurrentTime());
+    // Send notification
+    await sendNotification( title, fixed_desc , childKey , imagelink);  
+    res.send('News added Successfully!');
   } catch (error) {
     console.error('Error adding news:', error.message);
     res.status(500).send('Error adding news: ' + error.message);
