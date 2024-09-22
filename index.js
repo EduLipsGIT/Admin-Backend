@@ -99,10 +99,18 @@ async function checkTitleExists(title) {
     throw error;
   }
 }
-
+////CHECK RESTRICTION////
+async function checkRestricted(username) {
+  if (username == "Admin_1" || username == "Admin_2" || username == "Uploader05" || username == "Admin_3" || username == "Editor01" ||username == "Admin_6"){
+    return true;
+  }
+}
 // Function to add news to the general 'News' reference
 async function addNewsToGeneral(title, desc, newslink, imagelink, childKey, currentDate, username) {
   if (await checkTitleExists(title)) {
+    return;
+  }
+  if (await checkRestricted(username)){
     return;
   }
   const newNewsRef = newsRef.child(childKey.toString());
@@ -142,6 +150,9 @@ async function addNewsToCategory(title, desc, newslink, imagelink, category, chi
   if (await checkTitleExistsCATEGORY(title , category)) {
       return;
   }
+  if (await checkRestricted(username)){
+    return;
+  }
   const categoryRef = db.ref(category);
   const currentTime = getCurrentTime();
   const newCategoryRef = categoryRef.child(childKey.toString());
@@ -177,6 +188,9 @@ async function checkTitleExistsLang(title , language) {
 // Function to add news to the selected language reference
 async function addNewsToLanguage(title, desc, newslink, imagelink, language, childKey, currentDate, username) {
   if (await checkTitleExistsLang(title, language)) {
+    return;
+  }
+  if (await checkRestricted(username)){
     return;
   }
   const languageRef = db.ref(language);
@@ -254,7 +268,7 @@ const sendNotification = async (title, fixed_desc, childKey, imagelink) => {
 app.post('/submit-news', async (req, res) => {
   const { title, desc, newslink, imagelink, category, language, username } = req.body;
   const currentDate = getCurrentDate();
-
+  
   try {
     // Fetch the next child key
     const childKey = await getNextChildKey(newsRef);
@@ -270,6 +284,11 @@ app.post('/submit-news', async (req, res) => {
     const titleExists = await checkTitleExists(title);
     if (titleExists) {
       res.send('News Already Exists!');
+      return;
+    }
+    const Admin_Restricted = await checkRestricted(username);
+    if(Admin_Restricted){
+      res.send('Kindly Login again')
       return;
     }
     // Add news to the general 'News' reference
