@@ -99,22 +99,7 @@
         }
     </style>
     <script>
-        // Check if user is logged in
-        function checkLogin() {
-            const isLoggedIn = localStorage.getItem('isLoggedIn');
-            if (!isLoggedIn) {
-                window.location.href = 'login.html';
-            }
-        }
-
-        // Handle logout
-        function handleLogout() {
-            localStorage.removeItem('isLoggedIn');
-            window.location.href = 'login.html';
-        }
-
-        window.onload = checkLogin;
-
+        
         // Function to count words
         function countWords(text) {
             return text.trim().split(/\s+/).filter(Boolean).length;
