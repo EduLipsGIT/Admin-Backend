@@ -102,9 +102,9 @@ app.get('/', (req, res) => {
 });
 
 // Redirect to Google login page
-app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
+app.get('https://admin-backend-coral.vercel.app/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
 
-app.get('/auth/google/callback', passport.authenticate('google', { failureRedirect: '/' }),
+app.get('https://admin-backend-coral.vercel.app/auth/google/callback', passport.authenticate('google', { failureRedirect: '/' }),
   async (req, res) => {
     try {
       // Access Firebase UID here
