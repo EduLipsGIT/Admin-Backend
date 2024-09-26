@@ -32,7 +32,7 @@ app.use(passport.session());
 passport.use(new GoogleStrategy({
   clientID: process.env.GOOGLE_CLIENT_ID,
   clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-  callbackURL: 'https://author.edulips.com/'
+  callbackURL: '/auth/google/callback'
 }, 
 async (accessToken, refreshToken, profile, done) => {
   try {
@@ -102,9 +102,9 @@ app.get('/', (req, res) => {
 });
 
 // Redirect to Google login page
-app.get('https://admin-backend-coral.vercel.app/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
+app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
 
-app.get('https://admin-backend-coral.vercel.app/auth/google/callback', passport.authenticate('google', { failureRedirect: '/' }),
+app.get('/auth/google/callback', passport.authenticate('google', { failureRedirect: '/' }),
   async (req, res) => {
     try {
       // Access Firebase UID here
