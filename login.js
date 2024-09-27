@@ -4,7 +4,7 @@ const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const admin = require('firebase-admin');
 require('dotenv').config();
-const cors = require('cors');
+
 const app = express();
 const port = process.env.PORT || 3000;
 
@@ -24,10 +24,10 @@ app.use(session({
   resave: false,
   saveUninitialized: true,
 }));
-app.use(cors());
+
 // Initialize Passport
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(passport.initialize());
+app.use(passport.session());
 
 passport.use(new GoogleStrategy({
   clientID: process.env.GOOGLE_CLIENT_ID,
@@ -85,6 +85,7 @@ async (accessToken, refreshToken, profile, done) => {
   }
 }));
 
+
 // Serialize user information into session
 passport.serializeUser((user, done) => {
   done(null, user);
@@ -100,9 +101,8 @@ app.get('/', (req, res) => {
   res.sendFile(__dirname + '/public/authorization.html'); // Serve the HTML file
 });
 
-app.get('/auth/google', 
-  passport.authenticate('google', { scope: ['profile', 'email'] })
-);
+// Redirect to Google login page
+app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
 
 app.get('/auth/google/callback', passport.authenticate('google', { failureRedirect: '/' }),
   async (req, res) => {
