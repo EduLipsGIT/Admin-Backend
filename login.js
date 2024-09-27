@@ -85,7 +85,6 @@ async (accessToken, refreshToken, profile, done) => {
   }
 }));
 
-
 // Serialize user information into session
 passport.serializeUser((user, done) => {
   done(null, user);
