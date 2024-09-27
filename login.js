@@ -4,7 +4,7 @@ const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const admin = require('firebase-admin');
 require('dotenv').config();
-
+const cors = require('cors');
 const app = express();
 const port = process.env.PORT || 3000;
 
@@ -24,10 +24,10 @@ app.use(session({
   resave: false,
   saveUninitialized: true,
 }));
-
+app.use(cors());
 // Initialize Passport
-app.use(passport.initialize());
-app.use(passport.session());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 passport.use(new GoogleStrategy({
   clientID: process.env.GOOGLE_CLIENT_ID,
