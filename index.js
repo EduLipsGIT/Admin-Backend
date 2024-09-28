@@ -121,7 +121,7 @@ app.get('/', (req, res) => {
 
 app.get('/auth/google', passport.authenticate('google', { 
   scope: ['profile', 'email'], 
-  callbackURL: 'http://localhost:3000/auth/google/callback' 
+  callbackURL: 'https://author.edulips.com/auth/google/callback' 
 }));
 
 app.get('/auth/google/callback', passport.authenticate('google', { 
