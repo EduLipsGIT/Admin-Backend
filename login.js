@@ -30,12 +30,10 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 passport.use(new GoogleStrategy({
-  clientID: process.env.GOOGLE_CLIENT_ID,
-  clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-  callbackURL: process.env.NODE_ENV === 'production'
-  ? 'http://author.edulips.com/auth/google/callback'
-  : 'http://localhost:3000/auth/google/callback'
-},
+  clientID: "48614142153-6ucpoq9ncb0rnjuesk5rhgc3ee1omkml.apps.googleusercontent.com",
+  clientSecret: "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",
+  callbackURL: '/auth/google/callback'
+}, 
 async (accessToken, refreshToken, profile, done) => {
   try {
     // Use Google profile.id as UID (this is a string)
