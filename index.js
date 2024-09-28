@@ -48,10 +48,6 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 
-
-// Redirect to Google login page
-app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
-
 passport.use(new GoogleStrategy({
   clientID: process.env.GOOGLE_CLIENT_ID,
   clientSecret: process.env.GOOGLE_CLIENT_SECRET,
@@ -123,13 +119,15 @@ app.get('/', (req, res) => {
   res.sendFile(__dirname + '/public/authorization.html'); // Serve the HTML file
 });
 
-// Google Callback Route
-app.get('/auth/google/callback', passport.authenticate('google', { failureRedirect: '/' }),
-  (req, res) => {
-    // Successful authentication
-    res.redirect('/index.html');
-  }
-);
+app.get('/auth/google', passport.authenticate('google', { 
+  scope: ['profile', 'email'], 
+  callbackURL: 'http://localhost:3000/auth/google/callback' 
+}));
+
+app.get('/auth/google/callback', passport.authenticate('google', { 
+  failureRedirect: '/', 
+  successRedirect: '/index.html' 
+}));
 
 // Logout route
 app.get('/logout', (req, res) => {
