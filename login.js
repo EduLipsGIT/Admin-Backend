@@ -30,6 +30,9 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 
+// Redirect to Google login page
+app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
+
 passport.use(new GoogleStrategy({
   clientID: process.env.GOOGLE_CLIENT_ID,
   clientSecret: process.env.GOOGLE_CLIENT_SECRET,
@@ -101,16 +104,13 @@ app.get('/', (req, res) => {
   res.sendFile(__dirname + '/public/authorization.html'); // Serve the HTML file
 });
 
-// Redirect to Google login page
-app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
-
-// Callback route for Google to redirect to after authentication
+// Google Callback Route
 app.get('/auth/google/callback', passport.authenticate('google', { failureRedirect: '/' }),
   (req, res) => {
-    // Successful authentication, redirect to profile page
+    // Successful authentication
     res.redirect('/profile');
   }
-);
+);  
 
 // Profile route (protected)
 app.get('/profile', (req, res) => {
