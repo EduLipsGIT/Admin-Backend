@@ -50,9 +50,7 @@ app.use(passport.session());
 
 passport.use(new GoogleStrategy({
   clientID: process.env.GOOGLE_CLIENT_ID,
-  clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-  callbackURL: 'https://author.edulips.com/auth/google/callback'
-  
+  clientSecret: process.env.GOOGLE_CLIENT_SECRET
 }, async (accessToken, refreshToken, profile, done) => {
   try {
     // Use Google profile.id as UID (this is a string)
@@ -120,7 +118,8 @@ app.get('/', (req, res) => {
 });
 
 app.get('/auth/google', passport.authenticate('google', { 
-  scope: ['profile', 'email'] 
+  scope: ['profile', 'email'], 
+  callbackURL: 'https://author.edulips.com/auth/google/callback' 
 }));
 
 app.get('/auth/google/callback', passport.authenticate('google', { 
