@@ -26,6 +26,16 @@ app.use(session({
   saveUninitialized: true,
 }));
 
+// Enable CORS with default options
+app.use(cors());
+
+// Middleware to parse incoming request bodies
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.json());
+
+// Middleware to serve static files (index.html, quiz.html, etc.)
+app.use(express.static(path.join(__dirname, 'public')));
+
 // Initialize Passport
 app.use(passport.initialize());
 app.use(passport.session());

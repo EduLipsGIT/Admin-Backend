@@ -26,15 +26,15 @@ const fixed_desc = "Click to know more";
 const { v4: uuidv4 } = require('uuid'); 
 const { time } = require('console');
 
-// // Enable CORS with default options
-// app.use(cors());
+// Enable CORS with default options
+app.use(cors());
 
-// // Middleware to parse incoming request bodies
-// app.use(bodyParser.urlencoded({ extended: true }));
-// app.use(bodyParser.json());
+// Middleware to parse incoming request bodies
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.json());
 
-// // Middleware to serve static files (index.html, quiz.html, etc.)
-// app.use(express.static(path.join(__dirname, 'public')));
+// Middleware to serve static files (index.html, quiz.html, etc.)
+app.use(express.static(path.join(__dirname, 'public')));
 
 async function getAccessToken() {
   const serviceAccount = {
