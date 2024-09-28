@@ -33,56 +33,58 @@ app.use(passport.session());
 passport.use(new GoogleStrategy({
   clientID: process.env.GOOGLE_CLIENT_ID,
   clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-  callbackURL: 'https://author.edulips.com/'
+  callbackURL: 'https://author.edulips.com/auth/google/callback'
+  
 }, async (accessToken, refreshToken, profile, done) => {
   try {
-    // Extract Google user details
-    const googleId = profile.id;
+    // Use Google profile.id as UID (this is a string)
+    const googleId = profile.id; // This is the Google ID (string)
     const email = profile.emails[0].value;
     const displayName = profile.displayName;
-   // Create or update user in Firebase Auth
-   let userRecord;
-   try {
-    // Check if the user already exists in Firebase Auth
-    userRecord = await admin.auth().getUserByEmail(email);
-    console.log('User already exists:', userRecord.uid);
-  } catch (error) {
-    if (error.code === 'auth/user-not-found') {
-      // If user doesn't exist, create a new user
-      userRecord = await admin.auth().createUser({
-        uid: googleId,
-        email: email,
-        displayName: displayName,
-      });
-      console.log('New Firebase user created with UID:', userRecord.uid);
-    } else {
-      throw error;
+
+    // Try to get the user by email
+    let userRecord;
+    try {
+      userRecord = await admin.auth().getUserByEmail(email);
+      console.log('User already exists:', userRecord.uid);
+    } catch (error) {
+      if (error.code === 'auth/user-not-found') {
+        // If the user doesn't exist, create a new Firebase user with the Google ID as UID
+        userRecord = await admin.auth().createUser({
+          uid: googleId,  // Manually set the UID to Google's profile ID (string)
+          email: email,
+          displayName: displayName,
+        });
+        console.log('New Firebase user created with UID:', userRecord.uid);
+      } else {
+        throw error;
+      }
     }
+
+    // Continue to save in Firebase Realtime Database if needed
+    const db = admin.database();
+    const userRef = db.ref('Admin_Data/' + userRecord.uid);
+
+    // Check if the user exists in the database
+    const snapshot = await userRef.once('value');
+    if (!snapshot.exists()) {
+      // If user doesn't exist, create a new entry
+      await userRef.set({
+        ADMIN_NAME: displayName,
+        ADMIN_EMAIL: email,
+        ADMIN_STATUS: "PENDING"
+      });
+      console.log(`User with Firebase UID ${userRecord.uid} created in the database.`);
+    } else {
+      console.log(`User with Firebase UID ${userRecord.uid} already exists in the database.`);
+    }
+
+    return done(null, userRecord);
+  } catch (error) {
+    console.error('Error during authentication:', error);
+    return done(error, null);
   }
-       // Continue to save in Firebase Database if needed
-       const db = admin.database();
-       const userRef = db.ref('Admin_Data/' + userRecord.uid);
-   
-       // Check if the user exists in the database
-       const snapshot = await userRef.once('value');
-       if (!snapshot.exists()) {
-         // If user doesn't exist, create a new entry
-         await userRef.set({
-           ADMIN_NAME: displayName,
-           ADMIN_EMAIL: email,
-           ADMIN_STATUS: "PENDING"
-         });
-         console.log('User with Firebase UID ${userRecord.uid} created in the database.');
-       } else {
-         console.log('User with Firebase UID ${userRecord.uid} already exists in the database.');
-       }
-   
-       return done(null, userRecord);
-     } catch (error) {
-       console.error('Error during authentication:', error);
-       return done(error, null);
-     }
-   }));
+}));
 
 // Serialize user information into session
 passport.serializeUser((user, done) => {
