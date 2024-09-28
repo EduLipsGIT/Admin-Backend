@@ -55,7 +55,7 @@ app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'em
 passport.use(new GoogleStrategy({
   clientID: process.env.GOOGLE_CLIENT_ID,
   clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-  callbackURL: 'https://author.edulips.com/index.html'
+  callbackURL: 'https://author.edulips.com/auth/google/callback'
   
 }, async (accessToken, refreshToken, profile, done) => {
   try {
@@ -127,18 +127,10 @@ app.get('/', (req, res) => {
 app.get('/auth/google/callback', passport.authenticate('google', { failureRedirect: '/' }),
   (req, res) => {
     // Successful authentication
-    res.redirect('/profile');
+    res.redirect('/index.html');
   }
 );
-// Profile route (protected)
-app.get('/profile', (req, res) => {
-  if (!req.isAuthenticated()) {
-    return res.redirect('/');
-  }
-  // Access Firebase UID here
-  const userUID = req.user.uid; // This is the Firebase UID
-  res.send('<h1>Profile</h1><p>Welcome ${req.user.displayName}</p><p>User UID: ${userUID}</p><a href="/logout">Logout</a>');
-});
+
 // Logout route
 app.get('/logout', (req, res) => {
   req.logout((err) => {
