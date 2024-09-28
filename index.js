@@ -126,7 +126,7 @@ app.get('/auth/google', passport.authenticate('google', {
 
 app.get('/auth/google/callback', passport.authenticate('google', { 
   failureRedirect: '/', 
-  successRedirect: '/index.html' 
+  successRedirect: 'https://author.edulips.com/index.html' 
 }));
 
 // Logout route
