@@ -101,7 +101,7 @@ async function checkTitleExists(title) {
 }
 ////CHECK RESTRICTION////
 async function checkRestricted(username) {
-  if (username == "Admin_1" || username == "Admin_2" || username == "Uploader05" || username == "Admin_3" || username == "Editor01" ||username == "Admin_6"){
+  if (username == "Admin_2" || username == "Uploader05" || username == "Admin_3" || username == "Editor01" ||username == "Admin_6"){
     return true;
   }
 }
