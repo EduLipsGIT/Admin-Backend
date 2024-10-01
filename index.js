@@ -1,15 +1,11 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const admin = require('firebase-admin');
-const passport = require('passport');
-const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const path = require('path');
 const cors = require('cors');
 const axios = require('axios');
-const session = require('express-session');
 require('dotenv').config();
 const { GoogleAuth } = require('google-auth-library');  
-const { getAuth } = require('firebase-admin/auth');
 
 // Initialize Firebase Admin SDK
 admin.initializeApp({
@@ -37,107 +33,6 @@ app.use(cors());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 
-// Session middleware (place this before initializing passport)
-app.use(session({
-  secret: '2008',
-  resave: false,
-  saveUninitialized: true,
-}));
-
-// Initialize Passport (after express-session middleware)
-app.use(passport.initialize());
-app.use(passport.session());
-
-passport.use(new GoogleStrategy({
-  clientID: process.env.GOOGLE_CLIENT_ID,
-  clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-  callbackURL: 'https://author.edulips.com/auth/google/callback'
-  
-}, async (accessToken, refreshToken, profile, done) => {
-  try {
-    // Use Google profile.id as UID (this is a string)
-    const googleId = profile.id; // This is the Google ID (string)
-    const email = profile.emails[0].value;
-    const displayName = profile.displayName;
-
-    // Try to get the user by email
-    let userRecord;
-    try {
-      userRecord = await admin.auth().getUserByEmail(email);
-      console.log('User already exists:', userRecord.uid);
-    } catch (error) {
-      if (error.code === 'auth/user-not-found') {
-        // If the user doesn't exist, create a new Firebase user with the Google ID as UID
-        userRecord = await admin.auth().createUser({
-          uid: googleId,  // Manually set the UID to Google's profile ID (string)
-          email: email,
-          displayName: displayName,
-        });
-        console.log('New Firebase user created with UID:', userRecord.uid);
-      } else {
-        throw error;
-      }
-    }
-
-    // Continue to save in Firebase Realtime Database if needed
-    const db = admin.database();
-    const userRef = db.ref('Admin_Data/' + userRecord.uid);
-
-    // Check if the user exists in the database
-    const snapshot = await userRef.once('value');
-    if (!snapshot.exists()) {
-      // If user doesn't exist, create a new entry
-      await userRef.set({
-        ADMIN_NAME: displayName,
-        ADMIN_EMAIL: email,
-        ADMIN_STATUS: "PENDING"
-      });
-      console.log(`User with Firebase UID ${userRecord.uid} created in the database.`);
-    } else {
-      console.log(`User with Firebase UID ${userRecord.uid} already exists in the database.`);
-    }
-
-    return done(null, userRecord);
-  } catch (error) {
-    console.error('Error during authentication:', error);
-    return done(error, null);
-  }
-}));
-
-// Serialize user information into session
-passport.serializeUser((user, done) => {
-  done(null, user);
-});
-
-// Deserialize user information from session
-passport.deserializeUser((user, done) => {
-  done(null, user);
-});
-
-// Routes
-app.get('/', (req, res) => {
-  res.sendFile(__dirname + '/public/authorization.html'); // Serve the HTML file
-});
-
-app.get('/auth/google', passport.authenticate('google', { 
-  scope: ['profile', 'email'], 
-  callbackURL: 'https://author.edulips.com/auth/google/callback' 
-}));
-
-app.get('/auth/google/callback', passport.authenticate('google', { 
-  failureRedirect: '/', 
-  successRedirect: 'https://author.edulips.com/index.html' 
-}));
-
-// Logout route
-app.get('/logout', (req, res) => {
-  req.logout((err) => {
-    if (err) {
-      return next(err);
-    }
-    res.redirect('/');
-  });
-});
 // Middleware to serve static files (index.html, quiz.html, etc.)
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -204,70 +99,9 @@ async function checkTitleExists(title) {
     throw error;
   }
 }
-
-// Function to fetch news uploaded by same ID in last 2 hours
-async function countNewsByUsernameInLastTwoHours(username) {
-  try {
-    // Retrieve all news items from the 'News' reference
-    const snapshot = await newsRef.limitToFirst(100).once('value');
-    const allNewsItems = snapshot.val();
-    
-    let count = 0;
-    const currentDate = new Date(); // Get current date
-
-    if (allNewsItems) {
-      // Filter the news items by 'Uploaded By' field and time (within the last 2 hours) and date (current date)
-      for (const key in allNewsItems) {
-        if (allNewsItems.hasOwnProperty(key)) {
-          const newsItem = allNewsItems[key];
-          const newsUploader = newsItem['Uploaded By']; // Ensure the 'Uploaded By' field exists
-          const newsTime = newsItem.time; // Ensure 'time' exists
-          const newsDate = newsItem.date; // Ensure 'date' exists
-
-          // Check if 'newsUploader' matches the username and validate 'newsTime' and 'newsDate'
-          if (newsUploader && newsUploader === username && newsTime && newsDate) {
-            // Parse 'newsDate' and 'newsTime' into a valid Date object
-            const newsDateTime = new Date(`${newsDate} ${newsTime}`);
-
-            // Ensure that the newsDate matches the current date and the news was uploaded within the last 2 hours
-            if (isSameDate(newsDateTime, currentDate) && isWithinLastTwoHours(newsDateTime)) {
-              count++;
-            }
-          }
-        }
-      }
-    }
-
-    console.log(`Number of news items uploaded by ${username} in the last 2 hours:`, count);
-    return count;
-  } catch (error) {
-    console.error('Error counting news items by username in last 2 hours:', error.message);
-    throw error;
-  }
-}
-
-// Helper function to check if two dates are the same (ignoring the time)
-function isSameDate(date1, date2) {
-  return (
-    date1.getFullYear() === date2.getFullYear() &&
-    date1.getMonth() === date2.getMonth() &&
-    date1.getDate() === date2.getDate()
-  );
-}
-
-// Function to check if the news item was uploaded within the last 2 hours
-function isWithinLastTwoHours(newsDateTime) {
-  const currentTime = new Date();
-  const diffInMilliseconds = currentTime - newsDateTime;
-  const diffInHours = diffInMilliseconds / (1000 * 60 * 60);
-
-  return diffInHours <= 1;
-}
-
-
 ////CHECK RESTRICTION////
 async function checkRestricted(username) {
-  if (username == "Admin_2" || username == "Uploader05" || username == "Admin_3" || username == "Editor01" ||username == "Admin_6"){
+  if (username == "Admin_1" || username == "Admin_2" || username == "Uploader05" || username == "Admin_3" || username == "Editor01" ||username == "Admin_6"){
     return true;
   }
 }
@@ -416,7 +250,7 @@ const sendNotification = async (title, fixed_desc, childKey, imagelink) => {
     const response = await axios.post('https://onesignal.com/api/v1/notifications', message, {
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': NzkzYjkzNDAtOGU1Yi00ZGZkLWEyMWQtMmU1NzY0NjJhZTk1
+        'Authorization': `NzkzYjkzNDAtOGU1Yi00ZGZkLWEyMWQtMmU1NzY0NjJhZTk1`
       }
     });
     console.log('Notification sent successfully:', response.data);
@@ -431,19 +265,11 @@ const sendNotification = async (title, fixed_desc, childKey, imagelink) => {
   }
 };
 
-
 app.post('/submit-news', async (req, res) => {
   const { title, desc, newslink, imagelink, category, language, username } = req.body;
   const currentDate = getCurrentDate();
   
   try {
-    // Count the number of news items uploaded by this user in the last 2 hours
-    const newsCount = await countNewsByUsernameInLastTwoHours(username);
-    
-    if (newsCount >= 10) {
-      res.send('Upload limit reached');
-      return;
-    }
     // Fetch the next child key
     const childKey = await getNextChildKey(newsRef);
 

@@ -99,7 +99,22 @@
         }
     </style>
     <script>
-        
+        // Check if user is logged in
+        function checkLogin() {
+            const isLoggedIn = localStorage.getItem('isLoggedIn');
+            if (!isLoggedIn) {
+                window.location.href = 'login.html';
+            }
+        }
+
+        // Handle logout
+        function handleLogout() {
+            localStorage.removeItem('isLoggedIn');
+            window.location.href = 'login.html';
+        }
+
+        window.onload = checkLogin;
+
         // Function to count words
         function countWords(text) {
             return text.trim().split(/\s+/).filter(Boolean).length;
@@ -148,7 +163,7 @@
     <h1 style="text-align: center;">Upload News</h1>
     <form id="newsForm" onsubmit="return validateForm()">
         <label for="title">Title:</label>
-        <textarea type="text" id="title" name="title" required></textarea>
+        <input type="text" id="title" name="title" required>
         <div id="titleWordCount" class="word-count">0 words</div>
 
         <label for="desc">Description:</label>
@@ -189,7 +204,7 @@
         </select>
         <button type="submit">Submit</button>
         <!-- Button to Quiz Page -->
-        <button type="button" href="/logout">Go to Quiz Page</button>
+        <button type="button" class="navigation-button" onclick="window.location.href='quiz.html'">Go to Quiz Page</button>
     </form>
     <script>
         // Update word count on input event
@@ -214,7 +229,7 @@
             data.username = username;
 
     
-            fetch('https://admin-backend-coral.vercel.app/submit-news', {
+            fetch('/submit-news', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'

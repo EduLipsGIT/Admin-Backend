@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login</title>
+    <link rel="icon" href="favicon.ico" type="image/png">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f0f0f0;
+        }
+        .login-container {
+            background: white;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            width: 400px;
+        }
+        .login-container h2 {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .login-container input {
+            width: calc(100% - 40px);
+            padding: 10px;
+            margin: 5px 0;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            box-sizing: border-box;
+        }
+        .login-container .password-container {
+            position: relative;
+        }
+        .login-container .password-container i {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: pointer;
+        }
+        .login-container button {
+            width: calc(100% - 20px);
+            padding: 10px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .login-container button:hover {
+            background-color: #0056b3;
+        }
+        .login-container p {
+            color: red;
+            display: none;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <h2>Login</h2>
+        <form id="loginForm">
+            <input type="text" id="username" placeholder="Username" required>
+            <div class="password-container">
+                <input type="password" id="password" placeholder="Password" required>
+                <i id="togglePassword" class="fas fa-eye"></i>
+            </div>
+            <button type="submit">Login</button>
+            <p id="error-message">Invalid username or password</p>
+        </form>
+    </div>
+    <script>
+        const validCredentials = [
+            { username: 'Kirtiman_1', password: 'Kirtiman_Pass' },
+        ];
+
+        document.getElementById('loginForm').addEventListener('submit', function(event) {
+    event.preventDefault();
+
+    const username = document.getElementById('username').value;
+    const password = document.getElementById('password').value;
+    const errorMessage = document.getElementById('error-message');
+
+    const isValid = validCredentials.some(cred => cred.username === username && cred.password === password);
+
+    if (isValid) {
+        // Save login state and username to localStorage
+        localStorage.setItem('isLoggedIn', 'true');
+        localStorage.setItem('username', username);
+        // Redirect to index.html
+        window.location.href = 'index.html';
+    } else {
+        errorMessage.textContent = 'Invalid username or password';
+        errorMessage.style.display = 'block';
+    }
+});
+
+        // Toggle password visibility
+        const togglePassword = document.getElementById('togglePassword');
+        const passwordInput = document.getElementById('password');
+
+        togglePassword.addEventListener('click', () => {
+            const type = passwordInput.type === 'password' ? 'text' : 'password';
+            passwordInput.type = type;
+            togglePassword.classList.toggle('fa-eye', type === 'password');
+            togglePassword.classList.toggle('fa-eye-slash', type === 'text');
+        });
+    </script>
+</body>
+</html>
