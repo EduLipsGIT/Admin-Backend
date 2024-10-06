@@ -337,6 +337,40 @@ async function addQuizToGeneral(question , question1, question2, question3, ques
     'Ques_in_News_Enabled' : 'Yes'
   });
 }
+// Function to add quiz to the general 'Quizzes' reference
+async function addQuizToLang_HINDI(question , question1, question2, question3, question4, correctAnswer, description, childKey, currentDate, username) {
+  const quizzesRef_Hindi = db.ref('News_Hindi'); // Corrected to 'Quizzes'
+  const newQuizRef = quizzesRef_Hindi.child(childKey.toString());
+  await newQuizRef.set({
+    ques: question,
+    opt1: question1,
+    opt2: question2,
+    opt3: question3,
+    opt4: question4,
+    CorrectAns: correctAnswer,
+    desc_quiz: description,
+    date: currentDate,
+    'Uploaded By': username,
+    'Ques_in_News_Enabled' : 'Yes'
+  });
+}
+// Function to add quiz to the general 'Quizzes' reference
+async function addQuizToLang_ENG(question , question1, question2, question3, question4, correctAnswer, description, childKey, currentDate, username) {
+  const quizzesRef_Eng = db.ref('News_Eng'); // Corrected to 'Quizzes'
+  const newQuizRef = quizzesRef_Eng.child(childKey.toString());
+  await newQuizRef.set({
+    ques: question,
+    opt1: question1,
+    opt2: question2,
+    opt3: question3,
+    opt4: question4,
+    CorrectAns: correctAnswer,
+    desc_quiz: description,
+    date: currentDate,
+    'Uploaded By': username,
+    'Ques_in_News_Enabled' : 'Yes'
+  });
+}
 async function countNewsByUsername(username) {
   try {
     // Query the "News" reference to find all nodes where "Uploaded By" equals the username
@@ -374,9 +408,12 @@ app.post('/submit-quiz', async (req, res) => {
   try {
     // Fetch the next child key for quizzes
     const childKey = await getNextQuizChildKey();
-
-    // Add quiz to the general 'Quizzes' reference
+    // Add quiz to the GENERAL 
     await addQuizToGeneral(question , question1, question2, question3, question4, correctAnswer, description, childKey, currentDate, username);
+    // Add quiz to the Hindi
+    await addQuizToLang_HINDI(question , question1, question2, question3, question4, correctAnswer, description, childKey, currentDate, username);
+    // Add quiz to the ENG
+    await addQuizToLang_ENG(question , question1, question2, question3, question4, correctAnswer, description, childKey, currentDate, username);
     res.send('Quiz added successfully');
   } catch (error) {
     console.error('Error adding quiz:', error.message);
