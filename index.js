@@ -6,6 +6,7 @@ const cors = require('cors');
 const axios = require('axios');
 require('dotenv').config();
 const { GoogleAuth } = require('google-auth-library');  
+const session = require('express-session');
 
 // Initialize Firebase Admin SDK
 admin.initializeApp({
@@ -16,6 +17,7 @@ admin.initializeApp({
   }),
   databaseURL: `https://${process.env.FIREBASE_PROJECT_ID}-default-rtdb.firebaseio.com/`
 });
+
 let accessToken = '';
 const db = admin.database();
 const newsRef = db.ref('News');
@@ -35,6 +37,7 @@ app.use(bodyParser.json());
 
 // Middleware to serve static files (index.html, quiz.html, etc.)
 app.use(express.static(path.join(__dirname, 'public')));
+
 
 async function getAccessToken() {
   const serviceAccount = {
@@ -63,7 +66,6 @@ async function getAccessToken() {
   console.log('Access Token:', accessToken);
   accessToken = accessTokenResponse.token;
 }
-
 
 // Function to get the lowest child key under 'News' and subtract 1
 async function getNextChildKey(ref) {
