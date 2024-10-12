@@ -108,7 +108,7 @@ async function checkRestricted(username) {
   }
 }
 // Function to add news to the general 'News' reference
-async function addNewsToGeneral(title, desc, newslink, imagelink, childKey, currentDate, username) {
+async function addNewsToGeneral(title, desc, newslink, imagelink, childKey, currentDate, username , language) {
   if (await checkTitleExists(title)) {
     return;
   }
@@ -149,7 +149,7 @@ async function checkTitleExistsCATEGORY(title ,category) {
   }
 }
 // Function to add news to the selected category reference
-async function addNewsToCategory(title, desc, newslink, imagelink, category, childKey, currentDate, username, language) {
+async function addNewsToCategory(title, desc, newslink, imagelink, category, childKey, currentDate, username , language) {
   if (await checkTitleExistsCATEGORY(title , category)) {
       return;
   }
@@ -166,8 +166,8 @@ async function addNewsToCategory(title, desc, newslink, imagelink, category, chi
     imagelink: imagelink,
     date: currentDate,
     time: currentTime,
-    'Uploaded By': username,
-    'lang': language
+    'Uploaded By': username ,
+    'lang' : language
   });
 }
 async function checkTitleExistsLang(title , language) {
@@ -273,7 +273,6 @@ const sendNotification = async (title, fixed_desc, childKey, imagelink) => {
 app.post('/submit-news', async (req, res) => {
   const { title, desc, newslink, imagelink, category, language, username } = req.body;
   const currentDate = getCurrentDate();
-  
   try {
     // Fetch the next child key
     const childKey = await getNextChildKey(newsRef);
@@ -281,7 +280,7 @@ app.post('/submit-news', async (req, res) => {
     const uniqueId = generateUniqueId();
 
     // Add news to the selected category reference
-    await addNewsToCategory(title, desc, newslink, imagelink, category, childKey, currentDate, username,  getCurrentTime(), language);
+    await addNewsToCategory(title, desc, newslink, imagelink, language, category, childKey, currentDate, username,  getCurrentTime());
     
     // Add news to the Language reference
     await addNewsToLanguage(title, desc, newslink, imagelink, language, childKey, currentDate, username,  getCurrentTime());
@@ -297,7 +296,7 @@ app.post('/submit-news', async (req, res) => {
       return;
     }
     // Add news to the general 'News' reference
-    await addNewsToGeneral(title, desc, newslink, imagelink, childKey, currentDate, username,  getCurrentTime(), language);
+    await addNewsToGeneral(title, desc, newslink, imagelink, childKey, currentDate, username, language , getCurrentTime());
     // Send notification
     await sendNotification( title, fixed_desc , childKey , imagelink);  
     res.send('News added Successfully!');
