@@ -124,7 +124,8 @@ async function addNewsToGeneral(title, desc, newslink, imagelink, childKey, curr
     imagelink: imagelink,
     date: currentDate,
     time: currentTime,
-    'Uploaded By': username
+    'Uploaded By': username,
+    'lang': language
   });
 }
 
@@ -148,7 +149,7 @@ async function checkTitleExistsCATEGORY(title ,category) {
   }
 }
 // Function to add news to the selected category reference
-async function addNewsToCategory(title, desc, newslink, imagelink, category, childKey, currentDate, username) {
+async function addNewsToCategory(title, desc, newslink, imagelink, category, childKey, currentDate, username, language) {
   if (await checkTitleExistsCATEGORY(title , category)) {
       return;
   }
@@ -165,7 +166,8 @@ async function addNewsToCategory(title, desc, newslink, imagelink, category, chi
     imagelink: imagelink,
     date: currentDate,
     time: currentTime,
-    'Uploaded By': username
+    'Uploaded By': username,
+    'lang': language
   });
 }
 async function checkTitleExistsLang(title , language) {
@@ -205,7 +207,8 @@ async function addNewsToLanguage(title, desc, newslink, imagelink, language, chi
     imagelink: imagelink,
     date: currentDate,
     time: currentTime,
-    'Uploaded By': username
+    'Uploaded By': username,
+    'lang': language
   });
 }
 // Function to get current date
