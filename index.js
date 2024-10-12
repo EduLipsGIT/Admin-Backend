@@ -281,7 +281,7 @@ app.post('/submit-news', async (req, res) => {
     const uniqueId = generateUniqueId();
 
     // Add news to the selected category reference
-    await addNewsToCategory(title, desc, newslink, imagelink, category, childKey, currentDate, username,  getCurrentTime());
+    await addNewsToCategory(title, desc, newslink, imagelink, category, childKey, currentDate, username,  getCurrentTime(), language);
     
     // Add news to the Language reference
     await addNewsToLanguage(title, desc, newslink, imagelink, language, childKey, currentDate, username,  getCurrentTime());
@@ -297,7 +297,7 @@ app.post('/submit-news', async (req, res) => {
       return;
     }
     // Add news to the general 'News' reference
-    await addNewsToGeneral(title, desc, newslink, imagelink, childKey, currentDate, username,  getCurrentTime());
+    await addNewsToGeneral(title, desc, newslink, imagelink, childKey, currentDate, username,  getCurrentTime(), language);
     // Send notification
     await sendNotification( title, fixed_desc , childKey , imagelink);  
     res.send('News added Successfully!');
