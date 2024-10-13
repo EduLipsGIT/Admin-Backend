@@ -149,7 +149,7 @@ async function checkTitleExistsCATEGORY(title ,category) {
   }
 }
 // Function to add news to the selected category reference
-async function addNewsToCategory(title, desc, newslink, imagelink, category, childKey, currentDate, username , language) {
+async function addNewsToCategory(title, desc, newslink, imagelink, category, childKey, currentDate, username) {
   if (await checkTitleExistsCATEGORY(title , category)) {
       return;
   }
@@ -166,8 +166,7 @@ async function addNewsToCategory(title, desc, newslink, imagelink, category, chi
     imagelink: imagelink,
     date: currentDate,
     time: currentTime,
-    'Uploaded By': username ,
-    'lang' : language
+    'Uploaded By': username
   });
 }
 async function checkTitleExistsLang(title , language) {
@@ -280,7 +279,7 @@ app.post('/submit-news', async (req, res) => {
     const uniqueId = generateUniqueId();
 
     // Add news to the selected category reference
-    await addNewsToCategory(title, desc, newslink, imagelink, language, category, childKey, currentDate, username,  getCurrentTime());
+    await addNewsToCategory(title, desc, newslink, imagelink, category, childKey, currentDate, username,  getCurrentTime());
     
     // Add news to the Language reference
     await addNewsToLanguage(title, desc, newslink, imagelink, language, childKey, currentDate, username,  getCurrentTime());
