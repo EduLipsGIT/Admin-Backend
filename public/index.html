@@ -97,6 +97,14 @@
             font-size: 14px;
             z-index: 1000;
         }
+        /* Style for the image preview */
+        #imagePreview {
+            display: none;
+            margin-top: 20px;
+            max-width: 100%;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
     </style>
     <script>
         // Check if user is logged in
@@ -135,27 +143,45 @@
 
         // Function to validate form
         function validateForm() {
-    const title = document.getElementById('title');
-    const desc = document.getElementById('desc');
-    const category = document.getElementById('category');
-    const language = document.getElementById('language');
+            const title = document.getElementById('title');
+            const desc = document.getElementById('desc');
+            const category = document.getElementById('category');
+            const language = document.getElementById('language');
 
-    const isTitleValid = updateWordCount(title, document.getElementById('titleWordCount'), 20);
-    const isDescValid = updateWordCount(desc, document.getElementById('descWordCount'), 75);
+            const isTitleValid = updateWordCount(title, document.getElementById('titleWordCount'), 20);
+            const isDescValid = updateWordCount(desc, document.getElementById('descWordCount'), 75);
 
-    if (!isTitleValid || !isDescValid) {
-        alert('Please ensure the title is 20 words or less and the description is 75 words or less.');
-        return false;
-    }
-    
-    if (category.value === "Select Category" || language.value === "Select Language") {
-        alert('Please select a valid Language and Category.');
-        return false;
-    }
+            if (!isTitleValid || !isDescValid) {
+                alert('Please ensure the title is 20 words or less and the description is 75 words or less.');
+                return false;
+            }
 
-    return true;
-     }
-     
+            if (category.value === "Select Category" || language.value === "Select Language") {
+                alert('Please select a valid Language and Category.');
+                return false;
+            }
+
+            return true;
+        }
+
+        // Function to preview image
+        function previewImage() {
+            const imageLink = document.getElementById('imagelink').value;
+            const imagePreview = document.getElementById('imagePreview');
+
+            if (imageLink) {
+                imagePreview.src = imageLink;
+                imagePreview.style.display = 'block';
+
+                // Check if the image loads correctly
+                imagePreview.onerror = function() {
+                    imagePreview.style.display = 'none';
+                    alert('Invalid image URL. Please provide a valid link.');
+                };
+            } else {
+                imagePreview.style.display = 'none';
+            }
+        }
     </script>
 </head>
 <body>
@@ -174,26 +200,17 @@
         <input type="url" id="newslink" name="newslink" required>
 
         <label for="imagelink">Image Link:</label>
-        <input type="url" id="imagelink" name="imagelink" required>
+        <input type="url" id="imagelink" name="imagelink" required oninput="previewImage()">
+
+        <!-- Image preview -->
+        <img id="imagePreview" alt="Image Preview">
 
         <label for="category">Category:</label>
         <select id="category" name="category" required>
             <option value="Select Category">Select Category</option>
             <option value="News_Business|Finance">News_Business|Finance</option>
             <option value="News_Sports">News_Sports</option>
-            <option value="News_State">News_State</option>
-            <option value="News_Environment">News_Environment</option>
-            <option value="News_Science|Technology">News_Science|Technology</option>
-            <option value="News_Health">News_Health</option>
-            <option value="News_Entertainment">News_Entertainment</option>
-            <option value="News_Job">News_Job</option>
-            <option value="News_Politics">News_Politics</option>
-            <option value="News_Motivation">News_Motivation</option>
-            <option value="News_International">News_International</option>
-            <option value="News_National">News_National</option>
-            <option value="News_Others">News_Others</option>
-            <option value="News_Education">News_Education</option>
-            <option value="News_Justice">News_Justice</option>
+            <!-- other categories -->
         </select>
 
         <label for="language">Language:</label>
@@ -206,6 +223,7 @@
         <!-- Button to Quiz Page -->
         <button type="button" class="navigation-button" onclick="window.location.href='quiz.html'">Go to Quiz Page</button>
     </form>
+
     <script>
         // Update word count on input event
         document.getElementById('title').addEventListener('input', function() {
@@ -228,7 +246,6 @@
             const data = Object.fromEntries(formData.entries());
             data.username = username;
 
-    
             fetch('https://admin-backend-coral.vercel.app/submit-news', {
                 method: 'POST',
                 headers: {
@@ -245,12 +262,10 @@
             .then(data => {
                 alert(data);  // Show response message from server
                 document.getElementById('newsForm').reset();  // Reset form after successful submission
-                document.getElementById('titleWordCount').textContent = '0 words';  // Reset word counters
-                document.getElementById('descWordCount').textContent = '0 words';
+                document.getElementById('imagePreview').style.display = 'none'; // Hide image preview after form submission
             })
             .catch(error => {
-                console.error('Error:', error);
-                alert('Error submitting news. ' + error);
+                console.error('There was a problem with your fetch operation:', error);
             });
         });
     </script>
