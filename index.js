@@ -20,7 +20,7 @@ admin.initializeApp({
 
 let accessToken = '';
 const db = admin.database();
-const newsRef = db.ref('News');
+const newsRef = db.ref('News_UnApproved');
 const quizzesRef = db.ref('News'); // Corrected to 'Quizzes'
 const app = express();
 const port = process.env.PORT || 3000;
@@ -108,7 +108,7 @@ async function checkRestricted(username) {
   }
 }
 // Function to add news to the general 'News' reference
-async function addNewsToGeneral(title, desc, newslink, imagelink, childKey, currentDate, username , language) {
+async function addNewsToGeneral(title, desc, newslink, imagelink, childKey, currentDate, username , language , category) {
   if (await checkTitleExists(title)) {
     return;
   }
@@ -124,8 +124,9 @@ async function addNewsToGeneral(title, desc, newslink, imagelink, childKey, curr
     imagelink: imagelink,
     date: currentDate,
     time: currentTime,
+    'lang' : category  , 
     'Uploaded By': username,
-    'lang': language
+    'cat': language
   });
 }
 
@@ -279,10 +280,10 @@ app.post('/submit-news', async (req, res) => {
     const uniqueId = generateUniqueId();
 
     // Add news to the selected category reference
-    await addNewsToCategory(title, desc, newslink, imagelink, category, childKey, currentDate, username,  getCurrentTime());
+  //  await addNewsToCategory(title, desc, newslink, imagelink, category, childKey, currentDate, username,  getCurrentTime());
     
     // Add news to the Language reference
-    await addNewsToLanguage(title, desc, newslink, imagelink, language, childKey, currentDate, username,  getCurrentTime());
+  //  await addNewsToLanguage(title, desc, newslink, imagelink, language, childKey, currentDate, username,  getCurrentTime());
     
     const titleExists = await checkTitleExists(title);
     if (titleExists) {
@@ -295,9 +296,9 @@ app.post('/submit-news', async (req, res) => {
       return;
     }
     // Add news to the general 'News' reference
-    await addNewsToGeneral(title, desc, newslink, imagelink, childKey, currentDate, username, language , getCurrentTime());
+    await addNewsToGeneral(title, desc, newslink, imagelink, childKey, currentDate, username, category , language , getCurrentTime());
     // Send notification
-    await sendNotification( title, fixed_desc , childKey , imagelink);  
+  //  await sendNotification( title, fixed_desc , childKey , imagelink);  
     res.send('News added Successfully!');
   } catch (error) {
     console.error('Error adding news:', error.message);
