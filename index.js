@@ -280,7 +280,7 @@ app.post('/submit-news', async (req, res) => {
     const uniqueId = generateUniqueId();
 
     // Add news to the selected category reference
-  //  await addNewsToCategory(title, desc, newslink, imagelink, category, childKey, currentDate, username,  getCurrentTime());
+   /// await addNewsToCategory(title, desc, newslink, imagelink, category, childKey, currentDate, username,  getCurrentTime());
     
     // Add news to the Language reference
   //  await addNewsToLanguage(title, desc, newslink, imagelink, language, childKey, currentDate, username,  getCurrentTime());
@@ -422,6 +422,23 @@ app.post('/submit-quiz', async (req, res) => {
     res.status(500).send('Error adding quiz: ' + error.message);
   }
 });
+
+// Route to submit quizzes
+app.post('/notify', async (req, res) => {
+  const { title, fixed_desc, childKey, imagelink } = req.body;
+
+  if (!title || !fixed_desc || !childKey || !imagelink) {
+      return res.status(400).json({ error: 'Missing required fields' });
+  }
+
+  try {
+      const result = await sendNotification(title, fixed_desc, childKey, imagelink);
+      res.status(200).json({ message: 'Notification sent successfully', result });
+  } catch (error) {
+      res.status(500).json({ error: error.message });
+  }
+});
+
 
 // Start the server
 app.listen(port, () => {
