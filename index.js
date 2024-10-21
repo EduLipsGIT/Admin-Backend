@@ -382,6 +382,22 @@ app.post('/submit-quiz', async (req, res) => {
   }
 });
 
+// Route to submit quizzes
+app.post('/notify', async (req, res) => {
+  const { title, fixed_desc, childKey, imagelink } = req.body;
+
+  if (!title || !fixed_desc || !childKey || !imagelink) {
+      return res.status(400).json({ error: 'Missing required fields' });
+  }
+
+  try {
+      const result = await sendNotification(title, fixed_desc, childKey, imagelink);
+      res.status(200).json({ message: 'Notification sent successfully', result });
+  } catch (error) {
+      res.status(500).json({ error: error.message });
+  }
+});
+
 // Start the server
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
