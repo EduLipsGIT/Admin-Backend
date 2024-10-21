@@ -20,7 +20,7 @@ admin.initializeApp({
 
 let accessToken = '';
 const db = admin.database();
-const newsRef = db.ref('News_UnApproved');
+const newsRef = db.ref('News');
 const quizzesRef = db.ref('News'); // Corrected to 'Quizzes'
 const app = express();
 const port = process.env.PORT || 3000;
