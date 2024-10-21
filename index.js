@@ -236,7 +236,7 @@ const sendNotification = async (title, fixed_desc, childKey, imagelink) => {
   const uniqueNotificationId = generateUniqueId();
   const groupKey = uuidv4();
   const message = {
-    app_id: '7627f664-3313-4277-87e6-fe121cdd20aa',
+    app_id: 'b184d4f9-341c-46d8-8c8f-f5863faaf3f0',
     included_segments: ['All'],
     headings: { "en": title },
     contents: { "en": fixed_desc },
@@ -255,7 +255,7 @@ const sendNotification = async (title, fixed_desc, childKey, imagelink) => {
     const response = await axios.post('https://onesignal.com/api/v1/notifications', message, {
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `NzkzYjkzNDAtOGU1Yi00ZGZkLWEyMWQtMmU1NzY0NjJhZTk1`
+        'Authorization': `ZjY3ZDExNjAtOGVkZC00NjFiLThmOTEtODU5YWIxY2I0NDUy`
       }
     });
     console.log('Notification sent successfully:', response.data);
@@ -422,6 +422,23 @@ app.post('/submit-quiz', async (req, res) => {
     res.status(500).send('Error adding quiz: ' + error.message);
   }
 });
+
+// Route to submit quizzes
+app.post('/notify', async (req, res) => {
+  const { title, fixed_desc, childKey, imagelink } = req.body;
+
+  if (!title || !fixed_desc || !childKey || !imagelink) {
+      return res.status(400).json({ error: 'Missing required fields' });
+  }
+
+  try {
+      const result = await sendNotification(title, fixed_desc, childKey, imagelink);
+      res.status(200).json({ message: 'Notification sent successfully', result });
+  } catch (error) {
+      res.status(500).json({ error: error.message });
+  }
+});
+
 
 // Start the server
 app.listen(port, () => {
