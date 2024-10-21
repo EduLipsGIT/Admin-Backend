@@ -6,7 +6,6 @@ const cors = require('cors');
 const axios = require('axios');
 require('dotenv').config();
 const { GoogleAuth } = require('google-auth-library');  
-const session = require('express-session');
 
 // Initialize Firebase Admin SDK
 admin.initializeApp({
@@ -17,7 +16,6 @@ admin.initializeApp({
   }),
   databaseURL: `https://${process.env.FIREBASE_PROJECT_ID}-default-rtdb.firebaseio.com/`
 });
-
 let accessToken = '';
 const db = admin.database();
 const newsRef = db.ref('News_UnApproved');
@@ -37,7 +35,6 @@ app.use(bodyParser.json());
 
 // Middleware to serve static files (index.html, quiz.html, etc.)
 app.use(express.static(path.join(__dirname, 'public')));
-
 
 async function getAccessToken() {
   const serviceAccount = {
@@ -66,6 +63,7 @@ async function getAccessToken() {
   console.log('Access Token:', accessToken);
   accessToken = accessTokenResponse.token;
 }
+
 
 // Function to get the lowest child key under 'News' and subtract 1
 async function getNextChildKey(ref) {
@@ -103,12 +101,12 @@ async function checkTitleExists(title) {
 }
 ////CHECK RESTRICTION////
 async function checkRestricted(username) {
-  if (username == "Admin_2" || username == "Uploader05" || username == "Admin_3" || username == "Editor01" ||username == "Admin_6"){
+  if (username == "Admin_1" || username == "Admin_2" || username == "Uploader05" || username == "Admin_3" || username == "Editor01" ||username == "Admin_6"){
     return true;
   }
 }
 // Function to add news to the general 'News' reference
-async function addNewsToGeneral(title, desc, newslink, imagelink, childKey, currentDate, username , language , category) {
+async function addNewsToGeneral(title, desc, newslink, imagelink, childKey, currentDate, username) {
   if (await checkTitleExists(title)) {
     return;
   }
@@ -124,9 +122,7 @@ async function addNewsToGeneral(title, desc, newslink, imagelink, childKey, curr
     imagelink: imagelink,
     date: currentDate,
     time: currentTime,
-    'lang' : category  , 
-    'Uploaded By': username,
-    'cat': language
+    'Uploaded By': username
   });
 }
 
@@ -207,8 +203,7 @@ async function addNewsToLanguage(title, desc, newslink, imagelink, language, chi
     imagelink: imagelink,
     date: currentDate,
     time: currentTime,
-    'Uploaded By': username,
-    'lang': language
+    'Uploaded By': username
   });
 }
 // Function to get current date
@@ -236,7 +231,7 @@ const sendNotification = async (title, fixed_desc, childKey, imagelink) => {
   const uniqueNotificationId = generateUniqueId();
   const groupKey = uuidv4();
   const message = {
-    app_id: 'b184d4f9-341c-46d8-8c8f-f5863faaf3f0',
+    app_id: '7627f664-3313-4277-87e6-fe121cdd20aa',
     included_segments: ['All'],
     headings: { "en": title },
     contents: { "en": fixed_desc },
@@ -255,7 +250,7 @@ const sendNotification = async (title, fixed_desc, childKey, imagelink) => {
     const response = await axios.post('https://onesignal.com/api/v1/notifications', message, {
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `ZjY3ZDExNjAtOGVkZC00NjFiLThmOTEtODU5YWIxY2I0NDUy`
+        'Authorization': `NzkzYjkzNDAtOGU1Yi00ZGZkLWEyMWQtMmU1NzY0NjJhZTk1`
       }
     });
     console.log('Notification sent successfully:', response.data);
@@ -273,6 +268,7 @@ const sendNotification = async (title, fixed_desc, childKey, imagelink) => {
 app.post('/submit-news', async (req, res) => {
   const { title, desc, newslink, imagelink, category, language, username } = req.body;
   const currentDate = getCurrentDate();
+  
   try {
     // Fetch the next child key
     const childKey = await getNextChildKey(newsRef);
@@ -280,10 +276,10 @@ app.post('/submit-news', async (req, res) => {
     const uniqueId = generateUniqueId();
 
     // Add news to the selected category reference
-   /// await addNewsToCategory(title, desc, newslink, imagelink, category, childKey, currentDate, username,  getCurrentTime());
+   //  await addNewsToCategory(title, desc, newslink, imagelink, category, childKey, currentDate, username,  getCurrentTime());
     
     // Add news to the Language reference
-  //  await addNewsToLanguage(title, desc, newslink, imagelink, language, childKey, currentDate, username,  getCurrentTime());
+   // await addNewsToLanguage(title, desc, newslink, imagelink, language, childKey, currentDate, username,  getCurrentTime());
     
     const titleExists = await checkTitleExists(title);
     if (titleExists) {
@@ -296,7 +292,7 @@ app.post('/submit-news', async (req, res) => {
       return;
     }
     // Add news to the general 'News' reference
-    await addNewsToGeneral(title, desc, newslink, imagelink, childKey, currentDate, username, category , language , getCurrentTime());
+    await addNewsToGeneral(title, desc, newslink, imagelink, childKey, currentDate, username,  getCurrentTime());
     // Send notification
   //  await sendNotification( title, fixed_desc , childKey , imagelink);  
     res.send('News added Successfully!');
@@ -326,40 +322,6 @@ async function getNextQuizChildKey() {
 // Function to add quiz to the general 'Quizzes' reference
 async function addQuizToGeneral(question , question1, question2, question3, question4, correctAnswer, description, childKey, currentDate, username) {
   const newQuizRef = quizzesRef.child(childKey.toString());
-  await newQuizRef.set({
-    ques: question,
-    opt1: question1,
-    opt2: question2,
-    opt3: question3,
-    opt4: question4,
-    CorrectAns: correctAnswer,
-    desc_quiz: description,
-    date: currentDate,
-    'Uploaded By': username,
-    'Ques_in_News_Enabled' : 'Yes'
-  });
-}
-// Function to add quiz to the general 'Quizzes' reference
-async function addQuizToLang_HINDI(question , question1, question2, question3, question4, correctAnswer, description, childKey, currentDate, username) {
-  const quizzesRef_Hindi = db.ref('News_Hindi'); // Corrected to 'Quizzes'
-  const newQuizRef = quizzesRef_Hindi.child(childKey.toString());
-  await newQuizRef.set({
-    ques: question,
-    opt1: question1,
-    opt2: question2,
-    opt3: question3,
-    opt4: question4,
-    CorrectAns: correctAnswer,
-    desc_quiz: description,
-    date: currentDate,
-    'Uploaded By': username,
-    'Ques_in_News_Enabled' : 'Yes'
-  });
-}
-// Function to add quiz to the general 'Quizzes' reference
-async function addQuizToLang_ENG(question , question1, question2, question3, question4, correctAnswer, description, childKey, currentDate, username) {
-  const quizzesRef_Eng = db.ref('News_Eng'); // Corrected to 'Quizzes'
-  const newQuizRef = quizzesRef_Eng.child(childKey.toString());
   await newQuizRef.set({
     ques: question,
     opt1: question1,
@@ -410,32 +372,13 @@ app.post('/submit-quiz', async (req, res) => {
   try {
     // Fetch the next child key for quizzes
     const childKey = await getNextQuizChildKey();
-    // Add quiz to the GENERAL 
+
+    // Add quiz to the general 'Quizzes' reference
     await addQuizToGeneral(question , question1, question2, question3, question4, correctAnswer, description, childKey, currentDate, username);
-    // Add quiz to the Hindi
-    await addQuizToLang_HINDI(question , question1, question2, question3, question4, correctAnswer, description, childKey, currentDate, username);
-    // Add quiz to the ENG
-    await addQuizToLang_ENG(question , question1, question2, question3, question4, correctAnswer, description, childKey, currentDate, username);
     res.send('Quiz added successfully');
   } catch (error) {
     console.error('Error adding quiz:', error.message);
     res.status(500).send('Error adding quiz: ' + error.message);
-  }
-});
-
-// Route to submit quizzes
-app.post('/notify', async (req, res) => {
-  const { title, fixed_desc, childKey, imagelink } = req.body;
-
-  if (!title || !fixed_desc || !childKey || !imagelink) {
-      return res.status(400).json({ error: 'Missing required fields' });
-  }
-
-  try {
-      const result = await sendNotification(title, fixed_desc, childKey, imagelink);
-      res.status(200).json({ message: 'Notification sent successfully', result });
-  } catch (error) {
-      res.status(500).json({ error: error.message });
   }
 });
 
