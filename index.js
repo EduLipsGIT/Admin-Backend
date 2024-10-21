@@ -8,7 +8,7 @@ require('dotenv').config();
 const { GoogleAuth } = require('google-auth-library');  
 const session = require('express-session');
 
-// Initialize Firebase Admin SDK toto
+// Initialize Firebase Admin SDK 
 admin.initializeApp({
   credential: admin.credential.cert({
     projectId: process.env.FIREBASE_PROJECT_ID,
