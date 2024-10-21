@@ -20,7 +20,7 @@ admin.initializeApp({
 
 let accessToken = '';
 const db = admin.database();
-const newsRef = db.ref('News');
+const newsRef = db.ref('News_UnApproved');
 const quizzesRef = db.ref('News'); // Corrected to 'Quizzes'
 const app = express();
 const port = process.env.PORT || 3000;
@@ -297,8 +297,9 @@ app.post('/submit-news', async (req, res) => {
     }
     // Add news to the general 'News' reference
     await addNewsToGeneral(title, desc, newslink, imagelink, childKey, currentDate, username, category , language , getCurrentTime());
+    
     // Send notification
-  //  await sendNotification( title, fixed_desc , childKey , imagelink);  
+   //await sendNotification( title, fixed_desc , childKey , imagelink);  
     res.send('News added Successfully!');
   } catch (error) {
     console.error('Error adding news:', error.message);
