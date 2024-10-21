@@ -231,7 +231,7 @@ const sendNotification = async (title, fixed_desc, childKey, imagelink) => {
   const uniqueNotificationId = generateUniqueId();
   const groupKey = uuidv4();
   const message = {
-    app_id: '7627f664-3313-4277-87e6-fe121cdd20aa',
+    app_id: 'b184d4f9-341c-46d8-8c8f-f5863faaf3f0',
     included_segments: ['All'],
     headings: { "en": title },
     contents: { "en": fixed_desc },
@@ -250,7 +250,7 @@ const sendNotification = async (title, fixed_desc, childKey, imagelink) => {
     const response = await axios.post('https://onesignal.com/api/v1/notifications', message, {
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `NzkzYjkzNDAtOGU1Yi00ZGZkLWEyMWQtMmU1NzY0NjJhZTk1`
+        'Authorization': `ZjY3ZDExNjAtOGVkZC00NjFiLThmOTEtODU5YWIxY2I0NDUy`
       }
     });
     console.log('Notification sent successfully:', response.data);
