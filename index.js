@@ -105,8 +105,9 @@ async function checkRestricted(username) {
     return true;
   }
 }
+
 // Function to add news to the general 'News' reference
-async function addNewsToGeneral(title, desc, newslink, imagelink, childKey, currentDate, username) {
+async function addNewsToGeneral(title, desc, newslink, imagelink, childKey, currentDate, username , language , category) {
   if (await checkTitleExists(title)) {
     return;
   }
@@ -122,7 +123,9 @@ async function addNewsToGeneral(title, desc, newslink, imagelink, childKey, curr
     imagelink: imagelink,
     date: currentDate,
     time: currentTime,
-    'Uploaded By': username
+    'lang' : category  , 
+    'Uploaded By': username,
+    'cat': language
   });
 }
 
@@ -292,7 +295,7 @@ app.post('/submit-news', async (req, res) => {
       return;
     }
     // Add news to the general 'News' reference
-    await addNewsToGeneral(title, desc, newslink, imagelink, childKey, currentDate, username,  getCurrentTime());
+    await addNewsToGeneral(title, desc, newslink, imagelink, childKey, currentDate, username, category , language , getCurrentTime());
     // Send notification
   //  await sendNotification( title, fixed_desc , childKey , imagelink);  
     res.send('News added Successfully!');
