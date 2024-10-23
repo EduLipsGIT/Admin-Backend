@@ -19,7 +19,7 @@ admin.initializeApp({
 let accessToken = '';
 const db = admin.database();
 const newsRef = db.ref('News_UnApproved');
-const quizzesRef = db.ref('News'); // Corrected to 'Quizzes'
+const quizzesRef = db.ref('News_UnApproved');
 const app = express();
 const port = process.env.PORT || 3000;
 const fixed_desc = "Click to know more";
@@ -207,6 +207,7 @@ async function addQuizToGeneral(question , question1, question2, question3, ques
     CorrectAns: correctAnswer,
     desc_quiz: description,
     date: currentDate,
+    'quizId': childKey.toString(),
     'Uploaded By': username,
     'Ques_in_News_Enabled' : 'Yes'
   });
