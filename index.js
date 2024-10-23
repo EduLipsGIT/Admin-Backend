@@ -207,7 +207,6 @@ async function addQuizToGeneral(question , question1, question2, question3, ques
     CorrectAns: correctAnswer,
     desc_quiz: description,
     date: currentDate,
-    'quizId': childKey.toString(),
     'Uploaded By': username,
     'Ques_in_News_Enabled' : 'Yes'
   });
