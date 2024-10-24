@@ -310,9 +310,9 @@ app.post('/upload', async (req, res) => {
 
 async function uploadToFirebase(data) {
   for (const item of data) {
-    const childKey = item.CHILD;
+    const childKey = await getNextChildKey(bulkRef);
     if (childKey) {
-      const itemRef = bulkRef.child(childKey);
+      const itemRef = bulkRef.child(childKey.toString());
       await itemRef.set(item);
     } else {
       console.warn('Invalid child key for item:', item);
@@ -324,6 +324,8 @@ async function uploadToFirebase(data) {
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
 });
+
+
 /////////NON REQUIRED CODE///////////////
 //// 1.CAT DIRECT UPLOAD ////
 // async function checkTitleExistsCATEGORY(title ,category) {
