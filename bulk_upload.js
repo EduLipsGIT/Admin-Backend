@@ -40,35 +40,35 @@ const newsRef = db.ref('Bulk_Upload');
 
 // Endpoint to upload the Excel file and convert it to JSON
 app.post('/upload', async (req, res) => {
-  // Check if the file is uploaded
-  if (!req.files || !req.files.file) {
-    return res.status(400).send('No file uploaded.');
-  }
-
-  const file = req.files.file;
-
-  try {
-    // Load the Excel file
-    const workbook = xlsx.read(file.data, { type: 'buffer' });
-
-    // Get the first sheet
-    const sheetName = workbook.SheetNames[0];
-    const sheet = workbook.Sheets[sheetName];
-
-    // Convert the sheet to JSON
-    const jsonData = xlsx.utils.sheet_to_json(sheet);
-    console.log('Converted JSON Data:', jsonData);
-
-    // Upload to Firebase
-    await uploadToFirebase(jsonData);
-
-    res.send(jsonData); // Send the JSON data back as the response
-  } catch (error) {
-    console.error('Error processing file:', error);
-    res.status(500).send('Error processing file.');
-  }
-});
-
+    // Check if the file is uploaded
+    if (!req.files || !req.files.file) {
+      return res.status(400).send('No file uploaded.');
+    }
+  
+    const file = req.files.file;
+  
+    try {
+      // Load the Excel file
+      const workbook = xlsx.read(file.data, { type: 'buffer' });
+  
+      // Get the first sheet
+      const sheetName = workbook.SheetNames[0];
+      const sheet = workbook.Sheets[sheetName];
+  
+      // Convert the sheet to JSON
+      const jsonData = xlsx.utils.sheet_to_json(sheet);
+      console.log('Converted JSON Data:', jsonData);
+  
+      // Upload to Firebase
+      await uploadToFirebase(jsonData);
+  
+      res.json(jsonData); // Send the JSON data back as a JSON response
+    } catch (error) {
+      console.error('Error processing file:', error);
+      res.status(500).json({ error: 'Error processing file.', details: error.message });
+    }
+  });
+  
 // Function to upload data to Firebase using the CHILD value as the key
 async function uploadToFirebase(data) {
     for (const item of data) {
