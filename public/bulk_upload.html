@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Excel</title>
+    <style>
+        body {
+            background-color: #f8f9fa; /* Light gray background */
+            color: #212529; /* Dark gray text */
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column; /* Stack elements vertically */
+            height: 100vh;
+            margin: 0;
+            text-align: center;
+        }
+        h1 {
+            margin-bottom: 20px;
+            font-size: 2.5rem; /* Larger heading */
+            color: #333; /* Darker gray for the heading */
+        }
+        form {
+            background-color: white; /* White background for the form */
+            padding: 20px;
+            border-radius: 8px; /* Rounded corners */
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); /* Soft shadow */
+            width: 300px; /* Fixed width for the form */
+        }
+        input[type="file"] {
+            margin: 10px 0;
+            padding: 10px;
+            border: 1px solid #ccc; /* Light border */
+            border-radius: 4px; /* Rounded corners */
+            width: 100%; /* Full width */
+            box-sizing: border-box; /* Include padding in width */
+        }
+        button {
+            margin-top: 10px;
+            padding: 10px;
+            border: none; /* No border */
+            border-radius: 4px; /* Rounded corners */
+            background-color: #007bff; /* Bootstrap primary color */
+            color: white; /* White text */
+            font-size: 1rem; /* Font size for the button */
+            cursor: pointer; /* Pointer cursor */
+            transition: background-color 0.3s; /* Smooth transition for hover */
+            width: 100%; /* Full width */
+        }
+        button:hover {
+            background-color: #0056b3; /* Darker blue on hover */
+        }
+        #output {
+            margin-top: 20px;
+            white-space: pre-wrap; /* Preserve whitespace */
+            background-color: #e9ecef; /* Light gray background for output */
+            padding: 10px;
+            border-radius: 4px; /* Rounded corners */
+            text-align: left; /* Left align text */
+            max-height: 300px; /* Maximum height for output */
+            overflow-y: auto; /* Scroll if needed */
+            width: 300px; /* Fixed width for output */
+        }
+        table {
+            margin-top: 20px;
+            border-collapse: collapse;
+            width: 300px; /* Fixed width for table */
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); /* Soft shadow */
+        }
+        th, td {
+            border: 1px solid #ccc; /* Light border for cells */
+            padding: 8px; /* Padding for cells */
+            text-align: left; /* Align text to left */
+        }
+        th {
+            background-color: #007bff; /* Blue background for header */
+            color: white; /* White text for header */
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.5/xlsx.full.min.js"></script> <!-- Include SheetJS -->
+</head>
+<body>
+    <form id="uploadForm" enctype="multipart/form-data">
+        <h1>Upload Excel File</h1>
+        <input type="file" name="file" accept=".xlsx" required />
+        <button type="submit">Upload</button>
+    </form>
+    <div id="output"></div>
+    <table id="excelData" style="display: none;"></table> <!-- Hidden table initially -->
+
+    <script>
+        document.getElementById('uploadForm').onsubmit = async function (e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            const response = await fetch('https://author.edulips.com/upload', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                document.getElementById('output').innerText = JSON.stringify(data, null, 2);
+                const file = document.querySelector('input[type="file"]').files[0];
+                const reader = new FileReader();
+
+                reader.onload = function (event) {
+                    const data = new Uint8Array(event.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+
+                    // Clear existing table
+                    const table = document.getElementById('excelData');
+                    table.innerHTML = '';
+                    table.style.display = 'table'; // Show the table
+
+                    // Create table header
+                    const headerRow = document.createElement('tr');
+                    jsonData[0].forEach((header) => {
+                        const th = document.createElement('th');
+                        th.innerText = header;
+                        headerRow.appendChild(th);
+                    });
+                    table.appendChild(headerRow);
+
+                    // Create table rows
+                    for (let i = 1; i < jsonData.length; i++) {
+                        const row = document.createElement('tr');
+                        jsonData[i].forEach((cell) => {
+                            const td = document.createElement('td');
+                            td.innerText = cell;
+                            row.appendChild(td);
+                        });
+                        table.appendChild(row);
+                    }
+                };
+
+                reader.readAsArrayBuffer(file); // Read the uploaded file
+            } else {
+                document.getElementById('output').innerText = 'Error uploading file.';
+            }
+        };
+    </script>
+</body>
+</html>
