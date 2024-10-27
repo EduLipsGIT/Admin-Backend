@@ -6,6 +6,8 @@ const cors = require('cors');
 const axios = require('axios');
 require('dotenv').config();
 const { GoogleAuth } = require('google-auth-library');  
+const moment = require('moment-timezone');
+
 //
 const xlsx = require('xlsx');
 const fileUpload = require('express-fileupload'); 
@@ -29,7 +31,6 @@ const port = process.env.PORT || 3000;
 const fixed_desc = "Click to know more";
 const { v4: uuidv4 } = require('uuid'); 
 const { time } = require('console');
-
 // Enable CORS with default options
 app.use(cors());
 
@@ -146,12 +147,8 @@ function getCurrentDate() {
 
 // Function to get current time
 function getCurrentTime() {
-  const date = new Date();
-  const hours = date.getHours();
-  const minutes = date.getMinutes();
-  const ampm = hours >= 12 ? 'PM' : 'AM';
-  const hours12 = hours % 12 || 12; // convert to 12-hour format
-  return `${hours12}:${minutes.toString().padStart(2, '0')} ${ampm}`;
+const indiaTime = moment.tz("Asia/Kolkata").format("h:mm A");
+return indiaTime;
 }
 
 app.post('/submit-news', async (req, res) => {
