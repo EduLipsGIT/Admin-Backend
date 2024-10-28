@@ -69,8 +69,15 @@
     <label for="question4">Option 4:</label>
     <input type="text" id="question4" name="question4" required>
 
-    <label for="correctAnswer">Paste the Correct Answer:</label>
-    <input type="text" id="correctAnswer" name="correctAnswer" required>
+    
+    <label for="correctAnswer">Select Answer</label>
+    <select id="correctAnswer" name="correctAnswer" required>
+        <option value="Select Answer">Select Answer</option>
+        <option value="Option 1">Option 1</option>
+        <option value="Option 2">Option 2</option>
+        <option value="Option 3">Option 3</option>
+        <option value="Option 4">Option 4</option>
+    </select>
 
     <label for="description">Description:</label>
     <textarea id="description" name="description" required></textarea>
@@ -79,15 +86,20 @@
     <button onclick="window.location.href='index.html'" 
     style="display: block; text-align: center; margin-top: 20px; background-color: #000000; color: white; padding: 12px 20px; border: none; border-radius: 4px; cursor: pointer; width: 100%;">Go to News Page</button>
   </form>
+
   <script>
     document.getElementById('quizForm').addEventListener('submit', function(event) {
       event.preventDefault();
-
       const username = localStorage.getItem('username');
+      const correct_ans = document.getElementById('correctAnswer');
       const formData = new FormData(this);
       const data = Object.fromEntries(formData.entries());
       data.username = username;
 
+      if (correct_ans.value === "Select Answer") {
+                alert('Please select a valid Answer');
+                return false;
+      }
 
       fetch('https://author.edulips.com/submit-quiz', { // Update URL to your server endpoint
         method: 'POST',

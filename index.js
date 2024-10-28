@@ -199,6 +199,15 @@ async function getNextQuizChildKey() {
 // Function to add quiz to the general 'Quizzes' reference
 async function addQuizToGeneral(question , question1, question2, question3, question4, correctAnswer, description, childKey, currentDate, username) {
   const newQuizRef = quizzesRef.child(childKey.toString());
+  if(correctAnswer == "Option 1 "){
+    correctAnswer = question1
+  }else if (correctAnswer == "Option 2"){
+    correctAnswer = question2
+  }else if (correctAnswer == "Option 3"){
+    correctAnswer = question3
+  }else if (correctAnswer == "Option 4"){
+    correctAnswer = question4
+  };
   await newQuizRef.set({
     ques: question,
     opt1: question1,
