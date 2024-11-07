@@ -23,8 +23,6 @@ admin.initializeApp({
 });
 let accessToken = '';
 const db = admin.database();
-const newsRef = db.ref('News_UnApproved');
-const quizzesRef = db.ref('News_UnApproved');
 const bulkRef = db.ref('News_UnApproved');
 const app = express();
 const port = process.env.PORT || 3000;
@@ -70,8 +68,14 @@ async function getAccessToken() {
 }
 
 ///CHILD CALCULATION///
-async function getNextChildKey(ref) {
+async function getNextChildKey(username) {
   try {
+    let ref;
+    if(username == "Admin_1"){
+     ref = db.ref('News');
+    }else{
+     ref = db.ref('News_UnApproved');
+    }
     const snapshot = await ref.orderByKey().limitToFirst(1).once('value');
     if (snapshot.exists()) {
       const firstKey = Object.keys(snapshot.val())[0];
@@ -87,8 +91,14 @@ async function getNextChildKey(ref) {
 }
 
 ///// CHECK DUPLICATION ////////
-async function checkTitleExists(title) {
+async function checkTitleExists(title , username) {
   try {
+    let newsRef;
+    if(username == "Admin_1"){
+     newsRef = db.ref('News');
+    }else{
+     newsRef = db.ref('News_UnApproved');
+    }
     const snapshot = await newsRef.once('value');
     const newsItems = snapshot.val();
     for (const key in newsItems) {
@@ -120,6 +130,12 @@ async function addNewsToGeneral(title, desc, newslink, imagelink, childKey, curr
   }
   if (await checkRestricted(username)){
     return;
+  }
+  let newsRef;
+  if(username == "Admin_1"){
+   newsRef = db.ref('News');
+  }else{
+   newsRef = db.ref('News_UnApproved');
   }
   const newNewsRef = newsRef.child(childKey.toString());
   const currentTime = getCurrentTime();
@@ -155,12 +171,9 @@ app.post('/submit-news', async (req, res) => {
   const { title, desc, newslink, imagelink, category, language, username } = req.body;
   const currentDate = getCurrentDate();
   try {
-    const childKey = await getNextChildKey(newsRef);
+    const childKey = await getNextChildKey(username);
     const uniqueId = generateUniqueId();
-   //  await addNewsToCategory(title, desc, newslink, imagelink, category, childKey, currentDate, username,  getCurrentTime());
-  // await addNewsToLanguage(title, desc, newslink, imagelink, language, childKey, currentDate, username,  getCurrentTime());
-    
-  const titleExists = await checkTitleExists(title);
+    const titleExists = await checkTitleExists(title , username);
     if (titleExists) {
       res.send('News Already Exists!');
       return;
@@ -170,8 +183,15 @@ app.post('/submit-news', async (req, res) => {
       res.send('Kindly Login again')
       return;
     }
-    await addNewsToGeneral(title, desc, newslink, imagelink, childKey, currentDate, username, category , language , getCurrentTime());
-    //await sendNotification( title, fixed_desc , childKey , imagelink);  
+    if(username == "Admin_1"){
+      await addNewsToCategory(title, desc, newslink, imagelink, category, childKey, currentDate, username,  getCurrentTime());
+      await addNewsToLanguage(title, desc, newslink, imagelink, language, childKey, currentDate, username,  getCurrentTime());
+      await addNewsToGeneral(title, desc, newslink, imagelink, childKey, currentDate, username, category , language , getCurrentTime());
+      await sendNotification( title, fixed_desc , childKey , imagelink);  
+    
+    }else{ 
+      await addNewsToGeneral(title, desc, newslink, imagelink, childKey, currentDate, username, category , language , getCurrentTime());
+    } 
     res.send('News added Successfully!');
   } catch (error) {
     console.error('Error adding news:', error.message);
@@ -179,11 +199,16 @@ app.post('/submit-news', async (req, res) => {
   }
 });
 
-////QUESTIONS UPLOAD 
-
-async function getNextQuizChildKey() {
+////SPECIFIC ADMIN 
+async function getNextQuizChildKey(username) {
   try {
-    const snapshot = await quizzesRef.orderByKey().limitToFirst(1).once('value');
+    let ref;
+    if(username == "Admin_1"){
+     ref = db.ref('News');
+    }else{
+     ref = db.ref('News_UnApproved');
+    }
+    const snapshot = await ref.orderByKey().limitToFirst(1).once('value');
     if (snapshot.exists()) {
       const firstKey = Object.keys(snapshot.val())[0];
       const firstChildNumber = parseInt(firstKey);
@@ -198,6 +223,12 @@ async function getNextQuizChildKey() {
 }
 // Function to add quiz to the general 'Quizzes' reference
 async function addQuizToGeneral(question , question1, question2, question3, question4, correctAnswer, description, childKey, currentDate, username) {
+  let quizzesRef;
+  if(username == "Admin_1"){
+     quizzesRef = db.ref('News');
+  }else{
+     quizzesRef = db.ref('News_UnApproved');
+  }
   const newQuizRef = quizzesRef.child(childKey.toString());
   if(correctAnswer == "Option 1 "){
     correctAnswer = question1
@@ -326,91 +357,100 @@ async function uploadToFirebase(data) {
   }
   console.log('Data uploaded to Firebase successfully.');
 }
+app.get("/", async (req, res) => {
+  try {
+    const db = admin.database();
+    const snapshot = await db.ref("Questions_Data").once("value");
+    const options = snapshot.val();
+    res.render("index", { options });
+  } catch (error) {
+    console.error("Error fetching data:", error);
+    res.status(500).send("Error fetching data");
+  }
+});
 
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
 });
 
+// 1.CAT DIRECT UPLOAD ////
+async function checkTitleExistsCATEGORY(title ,category) {
+  try {
+    const categoryRef = db.ref(category);
+    const snapshot = await categoryRef.once('value');
+    const newsItems = snapshot.val();
+    for (const key in newsItems) {
+      if (newsItems.hasOwnProperty(key)) {
+        const newsItem = newsItems[key];
+        if (newsItem.title === title) {
+          return true; // Title already exists
+        }
+      }
+    }
+    return false; // Title does not exist
+  } catch (error) {
+    console.error('Error checking title existence:', error.message);
+    throw error;
+  }
+}
+async function addNewsToCategory(title, desc, newslink, imagelink, category, childKey, currentDate, username) {
+  if (await checkTitleExistsCATEGORY(title , category)) {
+      return;
+  }
+  if (await checkRestricted(username)){
+    return;
+  }
+  const categoryRef = db.ref(category);
+  const currentTime = getCurrentTime();
+  const newCategoryRef = categoryRef.child(childKey.toString());
+  await newCategoryRef.set({
+    title: title,
+    desc: desc,
+    newslink: newslink,
+    imagelink: imagelink,
+    date: currentDate,
+    time: currentTime,
+    'Uploaded By': username
+  });
+}
 
-/////////NON REQUIRED CODE///////////////
-//// 1.CAT DIRECT UPLOAD ////
-// async function checkTitleExistsCATEGORY(title ,category) {
-//   try {
-//     const categoryRef = db.ref(category);
-//     const snapshot = await categoryRef.once('value');
-//     const newsItems = snapshot.val();
-//     for (const key in newsItems) {
-//       if (newsItems.hasOwnProperty(key)) {
-//         const newsItem = newsItems[key];
-//         if (newsItem.title === title) {
-//           return true; // Title already exists
-//         }
-//       }
-//     }
-//     return false; // Title does not exist
-//   } catch (error) {
-//     console.error('Error checking title existence:', error.message);
-//     throw error;
-//   }
-// }
-// async function addNewsToCategory(title, desc, newslink, imagelink, category, childKey, currentDate, username) {
-//   if (await checkTitleExistsCATEGORY(title , category)) {
-//       return;
-//   }
-//   if (await checkRestricted(username)){
-//     return;
-//   }
-//   const categoryRef = db.ref(category);
-//   const currentTime = getCurrentTime();
-//   const newCategoryRef = categoryRef.child(childKey.toString());
-//   await newCategoryRef.set({
-//     title: title,
-//     desc: desc,
-//     newslink: newslink,
-//     imagelink: imagelink,
-//     date: currentDate,
-//     time: currentTime,
-//     'Uploaded By': username
-//   });
-// }
-
-// ////2. LANG DIRECT UPLOAD///
-// async function checkTitleExistsLang(title , language) {
-//   try {
-//     const languageRef = db.ref(language);
-//     const snapshot = await languageRef.once('value');
-//     const newsItems = snapshot.val();
-//     for (const key in newsItems) {
-//       if (newsItems.hasOwnProperty(key)) {
-//         const newsItem = newsItems[key];
-//         if (newsItem.title === title) {
-//           return true; // Title already exists
-//         }
-//       }
-//     }
-//     return false; // Title does not exist
-//   } catch (error) {
-//     console.error('Error checking title existence:', error.message);
-//     throw error;
-//   }
-// }
-// async function addNewsToLanguage(title, desc, newslink, imagelink, language, childKey, currentDate, username) {
-//   if (await checkTitleExistsLang(title, language)) {
-//     return;
-//   }
-//   if (await checkRestricted(username)){
-//     return;
-//   }
-//   const languageRef = db.ref(language);
-//   const newLanguageRef = languageRef.child(childKey.toString());
-//   const currentTime = getCurrentTime();
-//   await newLanguageRef.set({
-//     title: title,
-//     desc: desc,
-//     newslink: newslink,
-//     imagelink: imagelink,
-//     date: currentDate,
-//     time: currentTime,
-//     'Uploaded By': username
-//   });
-// }
+////2. LANG DIRECT UPLOAD///
+async function checkTitleExistsLang(title , language) {
+  try {
+    const languageRef = db.ref(language);
+    const snapshot = await languageRef.once('value');
+    const newsItems = snapshot.val();
+    for (const key in newsItems) {
+      if (newsItems.hasOwnProperty(key)) {
+        const newsItem = newsItems[key];
+        if (newsItem.title === title) {
+          return true; // Title already exists
+        }
+      }
+    }
+    return false; // Title does not exist
+  } catch (error) {
+    console.error('Error checking title existence:', error.message);
+    throw error;
+  }
+}
+async function addNewsToLanguage(title, desc, newslink, imagelink, language, childKey, currentDate, username) {
+  if (await checkTitleExistsLang(title, language)) {
+    return;
+  }
+  if (await checkRestricted(username)){
+    return;
+  }
+  const languageRef = db.ref(language);
+  const newLanguageRef = languageRef.child(childKey.toString());
+  const currentTime = getCurrentTime();
+  await newLanguageRef.set({
+    title: title,
+    desc: desc,
+    newslink: newslink,
+    imagelink: imagelink,
+    date: currentDate,
+    time: currentTime,
+    'Uploaded By': username
+  });
+}
