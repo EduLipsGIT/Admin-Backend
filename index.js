@@ -11,7 +11,6 @@ const moment = require('moment-timezone');
 //
 const xlsx = require('xlsx');
 const fileUpload = require('express-fileupload'); 
-
 // Initialize Firebase Admin SDK
 admin.initializeApp({
   credential: admin.credential.cert({
@@ -326,6 +325,39 @@ const sendNotification = async (title, fixed_desc, childKey, imagelink) => {
 };
 
 app.use(fileUpload());
+/////////BULK QUIZ UPLOAD//////////
+// app.post('/upload', async (req, res) => {
+//   if (!req.files || !req.files.file) {
+//     return res.status(400).send('No file uploaded.');
+//   }
+//   const file = req.files.file;
+//   try {
+//     const workbook = xlsx.read(file.data, { type: 'buffer' });
+//     const sheetName = workbook.SheetNames[0];
+//     const sheet = workbook.Sheets[sheetName];
+//     const jsonData = xlsx.utils.sheet_to_json(sheet);
+//     console.log('Converted JSON Data:', jsonData);
+//     await uploadToFirebase(jsonData);
+//     res.json(jsonData);
+//   } catch (error) {
+//     console.error('Error processing file:', error);
+//     res.status(500).json({ error: 'Error processing file.', details: error.message });
+//   }
+// });
+
+// async function uploadToFirebase(data) {
+//   for (const item of data) {
+//     const childKey = await getNextChildKey(bulkRef);
+//     if (childKey) {
+//       const itemRef = bulkRef.child(childKey.toString());
+//       await itemRef.set(item);
+//     } else {
+//       console.warn('Invalid child key for item:', item);
+//     }
+//   }
+//   console.log('Data uploaded to Firebase successfully.');
+// }
+////////////BULK DATA///////////
 app.post('/upload', async (req, res) => {
   if (!req.files || !req.files.file) {
     return res.status(400).send('No file uploaded.');
@@ -336,8 +368,26 @@ app.post('/upload', async (req, res) => {
     const sheetName = workbook.SheetNames[0];
     const sheet = workbook.Sheets[sheetName];
     const jsonData = xlsx.utils.sheet_to_json(sheet);
-    console.log('Converted JSON Data:', jsonData);
-    await uploadToFirebase(jsonData);
+
+    // Process and upload each row
+    for (const row of jsonData) {
+      const category_bk = row['Exam/Category'];
+      const subject_bk = row['Subject'];
+      const section_bk = row['Section'];
+      const chapter_bk = row['Chapter'];
+
+      console.log('Category:', category_bk);
+      console.log('Subject:', subject_bk);
+      console.log('Section:', section_bk);
+      console.log('Chapter:', chapter_bk);
+
+      // Sanitize row before uploading
+      const sanitizedRow = sanitizeKeys(row);
+
+      // Upload each row to Firebase using these category values
+      await uploadToFirebase(sanitizedRow, category_bk, subject_bk, section_bk, chapter_bk);
+    }
+
     res.json(jsonData);
   } catch (error) {
     console.error('Error processing file:', error);
@@ -345,29 +395,36 @@ app.post('/upload', async (req, res) => {
   }
 });
 
-async function uploadToFirebase(data) {
-  for (const item of data) {
-    const childKey = await getNextChildKey(bulkRef);
-    if (childKey) {
-      const itemRef = bulkRef.child(childKey.toString());
-      await itemRef.set(item);
-    } else {
-      console.warn('Invalid child key for item:', item);
-    }
+// Function to replace invalid characters in keys
+function sanitizeKeys(obj) {
+  const sanitizedObj = {};
+  for (const key in obj) {
+    // Replace invalid characters with an underscore or remove them
+    const sanitizedKey = key.replace(/[.#$/\[\]]/g, '_');
+    sanitizedObj[sanitizedKey] = obj[key];
   }
+  return sanitizedObj;
+}
+
+async function uploadToFirebase(item, category_bk, subject_bk, section_bk, chapter_bk) {
+  const bulkRef = db.ref('Questions_Data')
+    .child(category_bk)
+    .child(subject_bk)
+    .child(section_bk)
+    .child(chapter_bk);
+
+  const childKey = await getNextChildKey(bulkRef);
+
+  if (childKey) {
+    const itemRef = bulkRef.child(childKey.toString());
+    item.uploadedAt = new Date().toISOString();
+    await itemRef.set(item);
+  } else {
+    console.warn('Invalid child key for item:', item);
+  }
+
   console.log('Data uploaded to Firebase successfully.');
 }
-app.get("/", async (req, res) => {
-  try {
-    const db = admin.database();
-    const snapshot = await db.ref("Questions_Data").once("value");
-    const options = snapshot.val();
-    res.render("index", { options });
-  } catch (error) {
-    console.error("Error fetching data:", error);
-    res.status(500).send("Error fetching data");
-  }
-});
 
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
