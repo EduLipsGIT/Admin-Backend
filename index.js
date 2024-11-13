@@ -88,6 +88,27 @@ async function getNextChildKey(username) {
     throw error;
   }
 }
+async function getNextStudyChildKey(username , category_bk , subject_bk , section_bk , chapter_bk ) {
+  try {
+    let ref;
+    ref = db.ref('Questions_Data')
+     .child(category_bk)
+     .child(subject_bk)
+     .child(section_bk)
+     .child(chapter_bk);
+    const snapshot = await ref.orderByKey().limitToFirst(1).once('value');
+    if (snapshot.exists()) {
+      const firstKey = Object.keys(snapshot.val())[0];
+      const firstChildNumber = parseInt(firstKey);
+      return firstChildNumber - 1; // Subtract 1 from the first child number
+    } else {
+      return 999; // Default value if no children exist yet
+    }
+  } catch (error) {
+    console.error('Error fetching next child key:', error.message);
+    throw error;
+  }
+}
 
 ///// CHECK DUPLICATION ////////
 async function checkTitleExists(title , username) {
@@ -413,7 +434,7 @@ async function uploadToFirebase(item, category_bk, subject_bk, section_bk, chapt
     .child(section_bk)
     .child(chapter_bk);
 
-  const childKey = await getNextChildKey(bulkRef);
+  const childKey = await getNextStudyChildKey(bulkRef, category_bk, subject_bk, section_bk, chapter_bk);
 
   if (childKey) {
     const itemRef = bulkRef.child(childKey.toString());
