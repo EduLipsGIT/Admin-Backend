@@ -116,6 +116,11 @@ td[contenteditable="true"]:focus {
         <input type="file" name="file" accept=".xlsx" required onchange="displayExcelData()" />
         <button type="submit">Study Questions for Institute</button>
         <button id="quizUploadButton" type="button">Daily Quiz in News</button>
+        <div id="progressContainer" style="display: none; margin-top: 20px; text-align: center;">
+            <div style="margin-bottom: 10px; font-size: 1.1rem;">Uploading...</div>
+            <progress id="progressBar" value="0" max="100" style="width: 100%; height: 30px;"></progress>
+            <div id="progressText" style="margin-top: 5px; font-size: 1rem; color: #007bff;">0%</div>
+        </div>
     </form>
     <div id="output"></div>
     <table id="excelData" style="display: none;"></table>
@@ -131,35 +136,92 @@ td[contenteditable="true"]:focus {
         window.onload = checkLogin;
 
         async function Upload_StudyQuiz() {
-            const formData = new FormData();
-        formData.append('file', convertTableToExcel(), 'editedFile.xlsx');
-        const response = await fetch('https://author.edulips.com/uploadStudyQues', {
-        method: 'POST',
-        body: formData
-    });
-    if (response.ok) {
-        // If the upload is successful, just display a success message
-        document.getElementById('output').innerText = 'File uploaded successfully!';
-    } else {
-        // If there's an error, display a failure message
-        document.getElementById('output').innerText = 'Error uploading file.';
-    }
+            const files = document.querySelector('input[type="file"]').files;
+            const totalFiles = files.length; // Get total number of files
+            let filesUploaded = 0; // Counter for files uploaded
+
+            const progressContainer = document.getElementById('progressContainer');
+            const progressBar = document.getElementById('progressBar');
+            const progressText = document.getElementById('progressText');
+            progressContainer.style.display = 'block';
+            progressBar.value = 0;
+            progressText.innerText = '0%';
+
+            // Iterate over files and upload one by one
+            Array.from(files).forEach((file, index) => {
+                const formData = new FormData();
+                formData.append('file', file);
+
+                const xhr = new XMLHttpRequest();
+                xhr.open('POST', 'https://author.edulips.com/uploadStudyQues', true);
+
+                xhr.upload.onprogress = function (event) {
+                    if (event.lengthComputable) {
+                        const percent = (event.loaded / event.total) * 100;
+                        progressBar.value = (filesUploaded + (percent / 100)) * 100 / totalFiles;
+                        progressText.innerText = `${Math.round((filesUploaded + (percent / 100)) * 100 / totalFiles)}%`;
+                    }
+                };
+
+                xhr.onload = function () {
+                    filesUploaded++;
+                    if (filesUploaded === totalFiles) {
+                        document.getElementById('output').innerText = 'All files uploaded successfully!';
+                        progressText.innerText = 'Upload Complete!';
+                    }
+                };
+
+                xhr.onerror = function () {
+                    document.getElementById('output').innerText = 'Error uploading file.';
+                };
+
+                xhr.send(formData);
+            });
         }
+
         async function Upload_DailyQuiz() {
-        const formData = new FormData();
-        formData.append('file', convertTableToExcel(), 'editedFile.xlsx');
-        const response = await fetch('https://author.edulips.com/uploadDailyQues', {
-        method: 'POST',
-        body: formData
-    });
-    if (response.ok) {
-        // If the upload is successful, just display a success message
-        document.getElementById('output').innerText = 'File uploaded successfully!';
-    } else {
-        // If there's an error, display a failure message
-        document.getElementById('output').innerText = 'Error uploading file.';
-    }
-}
+            const files = document.querySelector('input[type="file"]').files;
+            const totalFiles = files.length; // Get total number of files
+            let filesUploaded = 0; // Counter for files uploaded
+
+            const progressContainer = document.getElementById('progressContainer');
+            const progressBar = document.getElementById('progressBar');
+            const progressText = document.getElementById('progressText');
+            progressContainer.style.display = 'block';
+            progressBar.value = 0;
+            progressText.innerText = '0%';
+
+            Array.from(files).forEach((file, index) => {
+                const formData = new FormData();
+                formData.append('file', file);
+
+                const xhr = new XMLHttpRequest();
+                xhr.open('POST', 'https://author.edulips.com/uploadDailyQues', true);
+
+                xhr.upload.onprogress = function (event) {
+                    if (event.lengthComputable) {
+                        const percent = (event.loaded / event.total) * 100;
+                        progressBar.value = (filesUploaded + (percent / 100)) * 100 / totalFiles;
+                        progressText.innerText = `${Math.round((filesUploaded + (percent / 100)) * 100 / totalFiles)}%`;
+                    }
+                };
+
+                xhr.onload = function () {
+                    filesUploaded++;
+                    if (filesUploaded === totalFiles) {
+                        document.getElementById('output').innerText = 'All files uploaded successfully!';
+                        progressText.innerText = 'Upload Complete!';
+                    }
+                };
+
+                xhr.onerror = function () {
+                    document.getElementById('output').innerText = 'Error uploading file.';
+                };
+
+                xhr.send(formData);
+            });
+        }
+
         function displayExcelData() {
             const file = document.querySelector('input[type="file"]').files[0];
             const reader = new FileReader();
@@ -215,7 +277,7 @@ td[contenteditable="true"]:focus {
             const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
             return new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
         }
-    
+
         document.getElementById('uploadForm').onsubmit = async function (e) {
             e.preventDefault();
             await Upload_StudyQuiz();
@@ -225,5 +287,5 @@ td[contenteditable="true"]:focus {
             await Upload_DailyQuiz();
         };
     </script>
-</body>
+    </body>
 </html>
