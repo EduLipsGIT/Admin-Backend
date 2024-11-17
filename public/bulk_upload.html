@@ -221,17 +221,18 @@ td[contenteditable="true"]:focus {
                 xhr.send(formData);
             });
         }
-
+        
         function displayExcelData() {
-            const file = document.querySelector('input[type="file"]').files[0];
-            const reader = new FileReader();
+        const file = document.querySelector('input[type="file"]').files[0];
+        const reader = new FileReader();
 
-            reader.onload = function (event) {
-                const data = new Uint8Array(event.target.result);
-                const workbook = XLSX.read(data, { type: 'array' });
-                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-                const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+        reader.onload = function (event) {
+            const data = new Uint8Array(event.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+            const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
 
+            if (validateExcelData(jsonData)) {
                 const table = document.getElementById('excelData');
                 table.innerHTML = '';
                 table.style.display = 'table';
@@ -248,16 +249,43 @@ td[contenteditable="true"]:focus {
                     const row = document.createElement('tr');
                     jsonData[i].forEach((cell) => {
                         const td = document.createElement('td');
-                        td.innerText = cell;
+                        td.innerText = cell || ''; // Ensure empty cells are rendered
                         td.contentEditable = 'true';
                         row.appendChild(td);
                     });
                     table.appendChild(row);
                 }
-            };
+            } else {
+                alert('The uploaded file contains empty rows or columns. Please correct it and try again.');
+            }
+        };
 
-            reader.readAsArrayBuffer(file);
+        reader.readAsArrayBuffer(file);
+    }
+
+    function validateExcelData(jsonData) {
+        // Check if the sheet is empty
+        if (!jsonData || jsonData.length === 0) return false;
+
+        // Check for empty rows or columns
+        for (let i = 0; i < jsonData.length; i++) {
+            const row = jsonData[i];
+            // Check if the row is empty or contains empty cells
+            if (!row || row.every((cell) => cell === undefined || cell === null || cell === '')) {
+                console.error(`Empty row found at index ${i}`);
+                return false;
+            }
         }
+
+        // Check if columns in the header row are empty
+        const headerRow = jsonData[0];
+        if (!headerRow || headerRow.some((header) => header === undefined || header === null || header === '')) {
+            console.error('Empty column header found');
+            return false;
+        }
+
+        return true;
+    }
 
         function convertTableToExcel() {
             const table = document.getElementById('excelData');
