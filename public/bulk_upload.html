@@ -221,9 +221,16 @@ td[contenteditable="true"]:focus {
                 xhr.send(formData);
             });
         }
-        
+
         function displayExcelData() {
-        const file = document.querySelector('input[type="file"]').files[0];
+        const fileInput = document.querySelector('input[type="file"]');
+        const file = fileInput.files[0];
+
+        if (!file) {
+            alert('No file selected. Please select a valid file.');
+            return;
+        }
+
         const reader = new FileReader();
 
         reader.onload = function (event) {
@@ -231,8 +238,7 @@ td[contenteditable="true"]:focus {
             const workbook = XLSX.read(data, { type: 'array' });
             const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
             const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
-
-            if (validateExcelData(jsonData)) {
+        
                 const table = document.getElementById('excelData');
                 table.innerHTML = '';
                 table.style.display = 'table';
@@ -255,38 +261,10 @@ td[contenteditable="true"]:focus {
                     });
                     table.appendChild(row);
                 }
-            } else {
-                alert('The uploaded file contains empty rows or columns. Please correct it and try again.');
             }
         };
 
         reader.readAsArrayBuffer(file);
-    }
-
-    function validateExcelData(jsonData) {
-        // Check if the sheet is empty
-        if (!jsonData || jsonData.length === 0) return false;
-
-        // Check for empty rows or columns
-        for (let i = 0; i < jsonData.length; i++) {
-            const row = jsonData[i];
-            // Check if the row is empty or contains empty cells
-            if (!row || row.every((cell) => cell === undefined || cell === null || cell === '')) {
-                console.error(`Empty row found at index ${i}`);
-                return false;
-            }
-        }
-
-        // Check if columns in the header row are empty
-        const headerRow = jsonData[0];
-        if (!headerRow || headerRow.some((header) => header === undefined || header === null || header === '')) {
-            console.error('Empty column header found');
-            return false;
-        }
-
-        return true;
-    }
-
         function convertTableToExcel() {
             const table = document.getElementById('excelData');
             const data = [];
