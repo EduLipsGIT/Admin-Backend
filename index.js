@@ -372,7 +372,7 @@ async function uploadQuizToFirebase(data) {
     if (childKey) {
       const itemRef = bulkRef.child(childKey.toString());
       item.Ques_in_News_Enabled = 'Yes'; 
-      item.Uploaded By = 'Bulk_Upload'; 
+      item['Uploaded By']  = 'Bulk_Upload'; 
       await itemRef.set(item);
     } else {
       console.warn('Invalid child key for item:', item);
