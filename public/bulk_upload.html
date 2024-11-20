@@ -239,6 +239,7 @@ td[contenteditable="true"]:focus {
             const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
             const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
         
+            if (validateExcelDataRowWise(jsonData)) {
                 const table = document.getElementById('excelData');
                 table.innerHTML = '';
                 table.style.display = 'table';
@@ -261,10 +262,69 @@ td[contenteditable="true"]:focus {
                     });
                     table.appendChild(row);
                 }
+            } else {
+                alert('The uploaded file contains empty rows or columns. Please correct it and try again.');
+                fileInput.value = ''; // Clear the file input
             }
         };
 
         reader.readAsArrayBuffer(file);
+    }
+
+ function validateExcelDataRowWise(jsonData) {
+    // Log the JSON data for debugging
+    console.log("JSON Data:", jsonData);
+
+    // // Check if the sheet is empty
+    // if (!jsonData || jsonData.length === 0) {
+    //     console.error('The sheet is empty.');
+    //     return false;
+    // }
+
+    // // Identify the first row (header row)
+    // const headerRow = jsonData[0];
+
+    // if (!headerRow || headerRow.every((header) => header === undefined || header === null || header === '')) {
+    //     console.error('Empty or invalid header row.');
+    //     return false;
+    // }
+
+    // // Find the first and last non-empty columns in the header row
+    // const firstNonEmptyIndex = headerRow.findIndex((header) => header !== undefined && header !== null && header !== '');
+    // const lastNonEmptyIndex = headerRow.length - 1 - headerRow.slice().reverse().findIndex((header) => header !== undefined && header !== null && header !== '');
+
+    // // if (firstNonEmptyIndex === -1 || lastNonEmptyIndex === -1 || firstNonEmptyIndex > lastNonEmptyIndex) {
+    // //     console.error('Invalid column range in the header row.');
+    // //     return false;
+    // // }
+
+    // console.log(`Valid column range: ${firstNonEmptyIndex} to ${lastNonEmptyIndex}`);
+
+    // // Validate each row starting from the second row
+    // for (let rowIndex = 1; rowIndex < jsonData.length; rowIndex++) {
+    //     const row = jsonData[rowIndex];
+
+    //     // Extract the relevant row data (columns within the valid header range)
+    //     const relevantRow = row.slice(firstNonEmptyIndex, lastNonEmptyIndex + 1);
+
+    //     console.log(`Row ${rowIndex}:`, relevantRow);
+
+    //     // Check if the row is completely empty
+    //     if (relevantRow.every((cell) => cell === undefined || cell === null || cell === '')) {
+    //         console.error(`Empty row found at index ${rowIndex}.`);
+    //         return false;
+    //     }
+
+    //     // Check for duplicate values in the row
+    //     const uniqueValues = new Set(relevantRow.filter((cell) => cell !== undefined && cell !== null && cell !== ''));
+    //     if (uniqueValues.size !== relevantRow.length) {
+    //         console.error(`Duplicate values found in row ${rowIndex}.`, relevantRow);
+    //         return false;
+    //     }
+    // }
+
+    return true;
+}
         function convertTableToExcel() {
             const table = document.getElementById('excelData');
             const data = [];
