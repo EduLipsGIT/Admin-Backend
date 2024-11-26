@@ -2,7 +2,7 @@ name: Trigger News Data Rearrange
 
 on:
   schedule:
-    - cron: '*/5 * * * *'  # Every 30 minutes
+    - cron: '*/30 * * * *'  # Every 30 minutes
 
 jobs:
   trigger:
