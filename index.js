@@ -7,6 +7,7 @@ const axios = require('axios');
 require('dotenv').config();
 const { GoogleAuth } = require('google-auth-library');  
 const moment = require('moment-timezone');
+const cron = require("node-cron");
 
 //
 const xlsx = require('xlsx');
@@ -639,8 +640,8 @@ function rearrangeAndUploadNewsData() {
       console.error("Error fetching data:", error.message);
   });
 }
-setInterval(() => {
+cron.schedule("*/5 * * * *", () => { // Every 5 minutes
   console.log("Running rearrangeAndUploadNewsData...");
   rearrangeAndUploadNewsData();
-},30 * 10 * 1000); 
+});
 
