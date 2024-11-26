@@ -7,7 +7,6 @@ const axios = require('axios');
 require('dotenv').config();
 const { GoogleAuth } = require('google-auth-library');  
 const moment = require('moment-timezone');
-const cron = require("node-cron");
 
 //
 const xlsx = require('xlsx');
@@ -535,113 +534,84 @@ async function addNewsToLanguage(title, desc, newslink, imagelink, language, chi
     'Uploaded By': username
   });
 }
-
-function rearrangeAndUploadNewsData() {
- 
+// Function to Rearrange and Upload News Data
+function rearrangeAndUploadNewsData(res) {
   // Fetch all children
   reorderedNewsRef.once("value", (snapshot) => {
-      const keysList = []; // List to hold keys
-      const engList = []; // For "News_Eng"
-      const hindiList = []; // For "News_Hindi"
-      const yesList = []; // For items with "Ques_in_News_Enabled" == "Yes"
-      const defaultNewsList = []; // Default list for missing news
+    const keysList = [];
+    const engList = [];
+    const hindiList = [];
+    const yesList = [];
+    const defaultNewsList = [];
 
-      // Step 1: Separate the news items based on "Ques_in_News_Enabled" and "lang"
-      snapshot.forEach((childSnapshot) => {
-          const quizEnabled = childSnapshot.child("Ques_in_News_Enabled").val();
-          const itemData = childSnapshot.val();
-          const key = childSnapshot.key;
+    snapshot.forEach((childSnapshot) => {
+      const quizEnabled = childSnapshot.child("Ques_in_News_Enabled").val();
+      const itemData = childSnapshot.val();
+      const key = childSnapshot.key;
 
-          if (itemData) {
-              keysList.push(key);
+      if (itemData) {
+        keysList.push(key);
 
-              if (quizEnabled === "Yes") {
-                  // Add to the "Yes" list
-                  yesList.push(itemData);
-              } else {
-                  // Fetch the "lang" value for the items that don't have "Ques_in_News_Enabled" == "Yes"
-                  const lang = childSnapshot.child("lang").val();
+        if (quizEnabled === "Yes") {
+          yesList.push(itemData);
+        } else {
+          const lang = childSnapshot.child("lang").val();
 
-                  if (lang === "News_Eng") {
-                      engList.push(itemData); // Add to the English list
-                  } else if (lang === "News_Hindi") {
-                      hindiList.push(itemData); // Add to the Hindi list
-                  } else {
-                      // In case of unknown or missing lang, add to default list
-                      defaultNewsList.push(itemData);
-                  }
-              }
+          if (lang === "News_Eng") {
+            engList.push(itemData);
+          } else if (lang === "News_Hindi") {
+            hindiList.push(itemData);
           } else {
-              console.error("ItemData is null for snapshot:", key);
+            defaultNewsList.push(itemData);
           }
-      });
-
-      // Step 2: Shuffle and arrange in the required order
-      const finalList = [];
-      let engIndex = 0,
-          hindiIndex = 0,
-          yesIndex = 0;
-
-      // Alternate Hindi, English, Hindi, English, and one from the quiz (yesList)
-      while (
-          engIndex < engList.length ||
-          hindiIndex < hindiList.length ||
-          yesIndex < yesList.length
-      ) {
-          // Add one from the Hindi list
-          if (hindiIndex < hindiList.length) {
-              finalList.push(hindiList[hindiIndex++]);
-          } else if (defaultNewsList.length > 0) {
-              finalList.push(defaultNewsList.shift());
-          }
-
-          // Add one from the English list
-          if (engIndex < engList.length) {
-              finalList.push(engList[engIndex++]);
-          } else if (defaultNewsList.length > 0) {
-              finalList.push(defaultNewsList.shift());
-          }
-
-          // Add another from the Hindi list
-          if (hindiIndex < hindiList.length) {
-              finalList.push(hindiList[hindiIndex++]);
-          } else if (defaultNewsList.length > 0) {
-              finalList.push(defaultNewsList.shift());
-          }
-
-          // Add another from the English list
-          if (engIndex < engList.length) {
-              finalList.push(engList[engIndex++]);
-          } else if (defaultNewsList.length > 0) {
-              finalList.push(defaultNewsList.shift());
-          }
-
-          // Add one from the quiz (yesList)
-          if (yesIndex < yesList.length) {
-              finalList.push(yesList[yesIndex++]);
-          }
+        }
+      } else {
+        console.error("ItemData is null for snapshot:", key);
       }
+    });
 
-      const totalItems = finalList.length;
+    const finalList = [];
+    let engIndex = 0, hindiIndex = 0, yesIndex = 0;
 
-      finalList.forEach((itemData, index) => {
-          const key = index < keysList.length ? keysList[index] : reorderedNewsRef.push().key;
+    // Arrange items in the final order
+    while (engIndex < engList.length || hindiIndex < hindiList.length || yesIndex < yesList.length) {
+      if (hindiIndex < hindiList.length) finalList.push(hindiList[hindiIndex++]);
+      else if (defaultNewsList.length > 0) finalList.push(defaultNewsList.shift());
 
-          reorderedNewsRef.child(key).set(itemData).then(() => {
-              // Success handler
-              if (index === totalItems - 1) {
-                  console.log("Upload Complete");
-              }
-          }).catch((error) => {
-              console.error("Failed to upload item:", itemData, "-", error);
-          });
+      if (engIndex < engList.length) finalList.push(engList[engIndex++]);
+      else if (defaultNewsList.length > 0) finalList.push(defaultNewsList.shift());
+
+      if (hindiIndex < hindiList.length) finalList.push(hindiList[hindiIndex++]);
+      else if (defaultNewsList.length > 0) finalList.push(defaultNewsList.shift());
+
+      if (engIndex < engList.length) finalList.push(engList[engIndex++]);
+      else if (defaultNewsList.length > 0) finalList.push(defaultNewsList.shift());
+
+      if (yesIndex < yesList.length) finalList.push(yesList[yesIndex++]);
+    }
+
+    const totalItems = finalList.length;
+
+    finalList.forEach((itemData, index) => {
+      const key = index < keysList.length ? keysList[index] : reorderedNewsRef.push().key;
+      reorderedNewsRef.child(key).set(itemData, (error) => {
+        if (error) {
+          console.error("Failed to upload item:", itemData, "-", error);
+        } else {
+          if (index === totalItems - 1) {
+            console.log("Upload Complete");
+            res.status(200).send("Rearranged and uploaded news data.");
+          }
+        }
       });
-  }).catch((error) => {
-      console.error("Error fetching data:", error.message);
+    });
+  }, (error) => {
+    console.error("Error fetching data:", error.message);
+    res.status(500).send("Error fetching data.");
   });
 }
-cron.schedule("*/5 * * * *", () => { // Every 5 minutes
-  console.log("Running rearrangeAndUploadNewsData...");
-  rearrangeAndUploadNewsData();
-});
 
+app.get('/rearrange', (req, res) => {
+  console.log("Running rearrangeAndUploadNewsData...");
+  rearrangeAndUploadNewsData(res);
+});
