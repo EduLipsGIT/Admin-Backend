@@ -89,14 +89,10 @@ async function getNextChildKey(username) {
     throw error;
   }
 }
-async function getNextStudyChildKey(username , category_bk , subject_bk , section_bk , chapter_bk ) {
+async function getNextStudyChildKey() {
   try {
     let ref;
-    ref = db.ref('Questions_Data')
-     .child(category_bk)
-     .child(subject_bk)
-     .child(section_bk)
-     .child(chapter_bk);
+    ref = db.ref('Ques_Data');
     const snapshot = await ref.orderByKey().limitToFirst(1).once('value');
     if (snapshot.exists()) {
       const firstKey = Object.keys(snapshot.val())[0];
@@ -429,26 +425,38 @@ function sanitizeKeys(obj) {
   }
   return sanitizedObj;
 }
-
+//BULK UPLOAD//
 async function uploadToFirebase(item, category_bk, subject_bk, section_bk, chapter_bk) {
-  const bulkRef = db.ref('Questions_Data')
-    .child(category_bk)
-    .child(subject_bk)
-    .child(section_bk)
-    .child(chapter_bk);
+  const bulkRef = db.ref('Ques_Data');
 
-  const childKey = await getNextStudyChildKey(bulkRef, category_bk, subject_bk, section_bk, chapter_bk);
+  const childKey = await getNextStudyChildKey(bulkRef);
 
   if (childKey) {
     const itemRef = bulkRef.child(childKey.toString());
     await itemRef.set(item);
+    await RegisterKeys(category_bk, subject_bk, section_bk, chapter_bk , childKey.toString());
   } else {
     console.warn('Invalid child key for item:', item);
   }
-
   console.log('Data uploaded to Firebase successfully.');
 }
 
+async function RegisterKeys(item, category_bk, subject_bk, section_bk, chapter_bk , child_key) {
+  const bulkRef = db.ref('Questions_Data').child(category_bk).child(subject_bk).child(section_bk).child(chapter_bk).child(section_bk);
+
+  const childKey = await getNextStudyChildKey(bulkRef);
+  if (childKey) {
+    await bulkRef.set({
+      'ques_id' : childKey  , 
+      'subject': subject_bk,
+      'section': section_bk,
+      'chapter': chapter_bk,
+      'category': category_bk
+    });
+    } else {
+    console.warn('Invalid child key for item:', item);
+  }
+}
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
 });

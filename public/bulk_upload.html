@@ -153,7 +153,7 @@ td[contenteditable="true"]:focus {
                 formData.append('file', file);
 
                 const xhr = new XMLHttpRequest();
-                xhr.open('POST', 'https://author.edulips.com/uploadStudyQues', true);
+                xhr.open('POST', '/uploadStudyQues', true);
 
                 xhr.upload.onprogress = function (event) {
                     if (event.lengthComputable) {
