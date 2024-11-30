@@ -434,7 +434,7 @@ async function uploadToFirebase(item, category_bk, subject_bk, section_bk, chapt
   if (childKey) {
     const itemRef = bulkRef.child(childKey.toString());
     await itemRef.set(item);
-    await RegisterKeys(category_bk, subject_bk, section_bk, chapter_bk , childKey.toString());
+    await RegisterKeys(item ,category_bk, subject_bk, section_bk, chapter_bk , childKey.toString());
   } else {
     console.warn('Invalid child key for item:', item);
   }
@@ -442,12 +442,10 @@ async function uploadToFirebase(item, category_bk, subject_bk, section_bk, chapt
 }
 
 async function RegisterKeys(item, category_bk, subject_bk, section_bk, chapter_bk , child_key) {
-  const bulkRef = db.ref('Questions_Data').child(category_bk).child(subject_bk).child(section_bk).child(chapter_bk).child(section_bk);
-
-  const childKey = await getNextStudyChildKey(bulkRef);
-  if (childKey) {
+  const bulkRef = db.ref('Questions_Data').child(category_bk).child(subject_bk).child(section_bk).child(chapter_bk).child(child_key);
+  if (child_key) {
     await bulkRef.set({
-      'ques_id' : childKey  , 
+      'ques_id' : child_key  , 
       'subject': subject_bk,
       'section': section_bk,
       'chapter': chapter_bk,
