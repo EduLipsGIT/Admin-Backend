@@ -618,6 +618,38 @@ function rearrangeAndUploadNewsData(res) {
 }
 
 app.get('/rearrange', (req, res) => {
-  console.log("Running rearrangeAndUploadNewsData...");
   rearrangeAndUploadNewsData(res);
 });
+ 
+/////
+const resetLeaderboard = async (req, res) => {
+  try {
+    const db = admin.database();
+    const leaderboardRef = db.ref("Live_Leaderboard");
+
+    // Fetch data once
+    const snapshot = await leaderboardRef.once("value");
+
+    if (snapshot.exists()) {
+      // Iterate through each child
+      const updates = {};
+      snapshot.forEach((childSnapshot) => {
+        const key = childSnapshot.key;
+        updates[`${key}/points`] = 0;
+        updates[`${key}/attempts`] = 0;
+      });
+
+      // Update all children at once
+      await leaderboardRef.update(updates);
+
+      // Respond with success
+      res.status(200).send("Reset complete successfully");
+    } else {
+      res.status(404).send("No data found under Live_Leaderboard");
+    }
+  } catch (error) {
+    console.error("Error resetting leaderboard:", error);
+    res.status(500).send("Failed to reset leaderboard");
+  }
+};
+app.get('/reset-leaderboard', resetLeaderboard);  
