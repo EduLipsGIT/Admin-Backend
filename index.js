@@ -659,68 +659,84 @@
 
   app.post('/generate-content', async (req, res) => {
     const { url } = req.body;
+    let image;
 
     if (!url) {
+        console.error('URL is missing in the request');
         return res.status(400).send('URL is missing.');
     }
 
     try {
-        // Fetch the news page HTML to get the image URL
-        const newsResponse = await axios.get(url);
-        const $ = cheerio.load(newsResponse.data);
+        console.log('Received URL:', url);
 
-        // Extract the image URL from Open Graph meta tag
-        const image = $('meta[property="og:image"]').attr('content') || '';
+        // Step 1: Fetch the news page HTML to get the image URL
+        try {
+            const newsResponse = await axios.get(url);
+            console.log('Successfully fetched news page HTML');
 
-        // Communicate with the Google Gemini API to get title and description
-        const response = await axios.post(
-            GOOGLE_GEMINI_URL + `?key=${GOOGLE_API_KEY}`,
-            {
-                contents: [
-                    {
-                        parts: [
-                            {
-                                text: `Separately give a 15-word title and a 60-word description from: ${url}`
-                            }
-                        ]
-                    }
-                ]
-            },
-            {
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            }
-        );
-
-        const apiText = response.data.candidates?.[0]?.content?.parts?.map(part => part.text).join(' ') || '';
-
-        // Automatically extract the title and description
-        const titleStart = '**15-word title:**';
-        const descStart = '**60-word description:**';
-
-        const titleIndex = apiText.indexOf(titleStart);
-        const descIndex = apiText.indexOf(descStart);
-
-        if (titleIndex !== -1 && descIndex !== -1) {
-            const title = apiText.substring(titleIndex + titleStart.length, descIndex).trim();
-            const description = apiText.substring(descIndex + descStart.length).trim();
-
-            console.log('Extracted Title:', title);
-            console.log('Extracted Description:', description);
+            const $ = cheerio.load(newsResponse.data);
+            image = $('meta[property="og:image"]').attr('content') || '';
             console.log('Extracted Image URL:', image);
-
-            res.status(200).json({
-                title,
-                description,
-                image
-            });
-        } else {
-            res.status(500).send('Title or description could not be found in the response.');
+        } catch (newsErr) {
+            console.error('Failed to fetch news page HTML or extract image:', newsErr.message);
+            return res.status(500).send('Error fetching news content or extracting image URL.');
         }
-        
+
+        // Step 2: Communicate with the Google Gemini API to get title and description
+        try {
+            const response = await axios.post(
+                GOOGLE_GEMINI_URL + `?key=${GOOGLE_API_KEY}`,
+                {
+                    contents: [
+                        {
+                            parts: [
+                                {
+                                    text: `Separately give a 15-word title and a 60-word description from: ${url} , start title with T: and start descritpion with D:`
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                }
+            );
+
+            console.log('Google Gemini API Response:', JSON.stringify(response.data));
+
+            const apiText = response.data.candidates?.[0]?.content?.parts?.map(part => part.text).join(' ') || '';
+            console.log('API Text Received:', apiText);
+
+            const titleStart = '**Title:**';
+            const descStart = '**Description:**';
+            
+            const titleIndex = apiText.indexOf(titleStart);
+            const descIndex = apiText.indexOf(descStart);
+            
+            if (titleIndex !== -1 && descIndex !== -1) {
+                const title = apiText.substring(titleIndex + titleStart.length, descIndex).trim();
+                const description = apiText.substring(descIndex + descStart.length).trim();
+            
+                // console.log('Extracted Title:', title);
+                // console.log('Extracted Description:', description);
+                // console.log('Extracted Image URL:', image);
+            
+                return res.status(200).json({
+                    title,
+                    description,
+                    image
+                });
+            } else {
+                return res.status(500).send('Title or description could not be found in the response.');
+            }            
+        } catch (apiErr) {
+            // console.error('Failed to communicate with Google Gemini API:', apiErr.message);
+            return res.status(500).send('Failed to communicate with the Google Gemini API.');
+        }
     } catch (err) {
-        console.error('API Error:', err.message);
-        res.status(500).send('Failed to communicate with the Google Gemini API or fetch news content.');
+        // console.error('Unexpected error:', err.message);
+        return res.status(500).send('An unexpected error occurred.');
     }
 });
