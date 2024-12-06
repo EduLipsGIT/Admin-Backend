@@ -691,7 +691,7 @@
                         {
                             parts: [
                                 {
-                                    text: `Separately give a 15-word title and a 60-word description from: ${url} , start title with T: and start descritpion with D: in respective language`
+                                    text: `Separately give a 15-word title and a 60-word description from: ${url} ,in respective language and do not write anything else like hindi etc`
                                 }
                             ]
                         }
