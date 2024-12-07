@@ -657,7 +657,7 @@
   };
   app.get('/reset-leaderboard', resetLeaderboard);  
 
-  app.post('/generate-content', async (req, res) => {
+  app.post('/generate-content_eng', async (req, res) => {
     const { url } = req.body;
     let image;
 
@@ -691,7 +691,7 @@
                         {
                             parts: [
                                 {
-                                    text: `Separately give a 15-word title and a 60-word description from: ${url} ,in respective language and do not write anything else like hindi etc`
+                                    text: `Rewrite the news with facts for title more than 30 words and between 70 and 90 words description from: ${url} in english , start the title part with T: and the description part with D:`
                                 }
                             ]
                         }
@@ -709,8 +709,8 @@
             const apiText = response.data.candidates?.[0]?.content?.parts?.map(part => part.text).join(' ') || '';
             console.log('API Text Received:', apiText);
 
-            const titleStart = '**Title:**';
-            const descStart = '**Description:**';
+            const titleStart = '**T:';
+            const descStart = '**D:**';
             
             const titleIndex = apiText.indexOf(titleStart);
             const descIndex = apiText.indexOf(descStart);
@@ -739,4 +739,87 @@
         // console.error('Unexpected error:', err.message);
         return res.status(500).send('An unexpected error occurred.');
     }
+});
+app.post('/generate-content_hin', async (req, res) => {
+  const { url } = req.body;
+  let image;
+
+  if (!url) {
+      console.error('URL is missing in the request');
+      return res.status(400).send('URL is missing.');
+  }
+
+  try {
+      console.log('Received URL:', url);
+
+      // Step 1: Fetch the news page HTML to get the image URL
+      try {
+          const newsResponse = await axios.get(url);
+          console.log('Successfully fetched news page HTML');
+
+          const $ = cheerio.load(newsResponse.data);
+          image = $('meta[property="og:image"]').attr('content') || '';
+          console.log('Extracted Image URL:', image);
+      } catch (newsErr) {
+          console.error('Failed to fetch news page HTML or extract image:', newsErr.message);
+          return res.status(500).send('Error fetching news content or extracting image URL.');
+      }
+
+      // Step 2: Communicate with the Google Gemini API to get title and description
+      try {
+          const response = await axios.post(
+              GOOGLE_GEMINI_URL + `?key=${GOOGLE_API_KEY}`,
+              {
+                  contents: [
+                      {
+                          parts: [
+                              {
+                                  text: `Rewrite the news with facts for title more than 30 words and between 70 and 90 words description from: ${url} in hindi , start the title part with T: and the description part with D:`
+                              }
+                          ]
+                      }
+                  ]
+              },
+              {
+                  headers: {
+                      'Content-Type': 'application/json'
+                  }
+              }
+          );
+
+          console.log('Google Gemini API Response:', JSON.stringify(response.data));
+
+          const apiText = response.data.candidates?.[0]?.content?.parts?.map(part => part.text).join(' ') || '';
+          console.log('API Text Received:', apiText);
+
+          const titleStart = '**T:';
+          const descStart = '**D:**';
+         
+          const titleIndex = apiText.indexOf(titleStart);
+          const descIndex = apiText.indexOf(descStart);
+          
+          if (titleIndex !== -1 && descIndex !== -1) {
+              const title = apiText.substring(titleIndex + titleStart.length, descIndex).trim();
+              const description = apiText.substring(descIndex + descStart.length).trim();
+          
+              // console.log('Extracted Title:', title);
+              // console.log('Extracted Description:', description);
+              // console.log('Extracted Image URL:', image);
+          
+              return res.status(200).json({
+                  title,
+                  description,
+                  image
+              });
+          } else {
+              return res.status(500).send('Title or description could not be found in the response.');
+          }            
+      } catch (apiErr) {
+          // console.error('Failed to communicate with Google Gemini API:', apiErr.message);
+          return res.status(500).send('Failed to communicate with the Google Gemini API.');
+      }
+  } catch (err) {
+      // console.error('Unexpected error:', err.message);
+      return res.status(500).send('An unexpected error occurred.');
+  }
 });

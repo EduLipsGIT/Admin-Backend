@@ -188,11 +188,16 @@
     <button class="logout-button" onclick="handleLogout()">Log Out</button>
     <h1 style="text-align: center;">Upload News</h1>
 
-    <div style="margin-bottom: 20px;">
-        <label for="newsUrl">Use AI</label>
-        <input type="url" id="newsUrl" placeholder="Enter URL" style="width: 100%; margin-right: 10px; display: block; margin-left: auto; margin-right: auto;">
-        <button type="button" onclick="fetchContent()">Generate Data</button>
+    <div style="margin-bottom: 10px;">
+        <label for="newsUrl" style="display: block; margin-bottom: 5px;">Use AI</label>
+        <input type="url" id="newsUrl" placeholder="Enter URL" style="width: 100%; margin: 10px auto; display: block;">
+        <div style="display: flex; justify-content: space-between; gap: 10px;">
+            <button type="button" style="flex: 1; background-color: black; color: white; padding: 10px; border: none; border-radius: 5px;" onclick="fetchContentHindi()">Generate Data in Hindi</button>
+            <button type="button" style="flex: 1; background-color: black; color: white; padding: 10px; border: none; border-radius: 5px;" onclick="fetchContentEnglish()">Generate Data in English</button>
+        </div>
     </div>
+    
+    
     
     <form id="newsForm" onsubmit="return validateForm()">
         <label for="title">Title:</label>
@@ -244,12 +249,48 @@
     </form>
 
     <script>
-async function fetchContent() {
+async function fetchContentHindi() {
     const url = document.getElementById('newsUrl').value;
 
     if (url) {
         try {
-            const response = await fetch('https://author.edulips.com/generate-content', {
+            const response = await fetch('https://author.edulips.com/generate-content_hin', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ url })
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                // Populate the received title and description into form fields
+                document.getElementById('title').value = result.title;
+                document.getElementById('desc').value = result.description;
+                document.getElementById('imagelink').value = result.image;
+                document.getElementById('newslink').value = document.getElementById('newsUrl').value;
+                previewImage();
+                // Update the word count display
+                updateWordCount(document.getElementById('title'), document.getElementById('titleWordCount'), 20);
+                updateWordCount(document.getElementById('desc'), document.getElementById('descWordCount'), 75);
+                
+                alert('Content populated successfully');
+            } else {
+                alert(result.message);
+            }
+        } catch (error) {
+            console.error('Request Error:', error);
+        }
+    }
+}
+
+async function fetchContentEnglish() {
+    const url = document.getElementById('newsUrl').value;
+
+    if (url) {
+        try {
+            const response = await fetch('https://author.edulips.com/generate-content_eng', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
