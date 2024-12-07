@@ -691,7 +691,7 @@
                         {
                             parts: [
                                 {
-                                    text: `Rewrite the news with facts for title in more than 20 and less than 40 words and in more than 70 and less than 90 words description from: ${url} in english , start the title part with T: and the description part with D:`
+                                    text: `Rewrite the news with facts for title in more than 20 and less than 40 words and description in more than 70 and less than 90 words from: ${url} in english , start the title part with T: and the description part with D:`
                                 }
                             ]
                         }
@@ -774,7 +774,7 @@ app.post('/generate-content_hin', async (req, res) => {
                       {
                           parts: [
                               {
-                                  text: `Rewrite the news with facts for title in more than 20 and less than 40 words and in more than 70 and less than 90 words description from: ${url} in hindi , start the title part with T: and the description part with D:`
+                                  text: `Rewrite the news with facts for title in more than 20 words and less than 40 words and description in more than 70 and less than 90 words from: ${url} in hindi , start the title part with T: and the description part with D:`
                               }
                           ]
                       }
