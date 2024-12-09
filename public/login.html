@@ -77,44 +77,54 @@
         </form>
     </div>
     <script>
-        const validCredentials = [
-        { username: 'Kirtiman Nanda', password: 'Kirtiman_Pass' },
-        { username: 'Admin_1', password: 'AdminPass_1' },
-        { username: 'Sonam Kumari', password: 'Sonam_Pass2024' },
-        { username: 'rahishai868', password: 'rahishai_Pass2024' }
-        ];
-
-        document.getElementById('loginForm').addEventListener('submit', function(event) {
+     
+    document.getElementById('loginForm').addEventListener('submit', async function(event) {
     event.preventDefault();
 
     const username = document.getElementById('username').value;
     const password = document.getElementById('password').value;
     const errorMessage = document.getElementById('error-message');
 
-    const isValid = validCredentials.some(cred => cred.username === username && cred.password === password);
+    try {
+        // Send POST request to the server
+        const response = await fetch('https://author.edulips.com/validate_login', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ username, password }),
+        });
 
-    if (isValid) {
-        // Save login state and username to localStorage
-        localStorage.setItem('isLoggedIn', 'true');
-        localStorage.setItem('username', username);
-        // Redirect to index.html
-        window.location.href = 'index.html';
-    } else {
-        errorMessage.textContent = 'Invalid username or password';
+        if (response.ok) {
+            const result = await response.json();
+            if (result.success) {
+                // Save login state and username to localStorage
+                localStorage.setItem('isLoggedIn', 'true');
+                localStorage.setItem('username', username);
+                // Redirect to index.html
+                window.location.href = 'index.html';
+            } else {
+                errorMessage.textContent = result.message || 'Invalid username or password';
+                errorMessage.style.display = 'block';
+            }
+        } else {
+            throw new Error('Network response was not ok');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        errorMessage.textContent = 'User not found. Contact admin.';
         errorMessage.style.display = 'block';
     }
 });
-
-        // Toggle password visibility
         const togglePassword = document.getElementById('togglePassword');
         const passwordInput = document.getElementById('password');
-
         togglePassword.addEventListener('click', () => {
             const type = passwordInput.type === 'password' ? 'text' : 'password';
             passwordInput.type = type;
             togglePassword.classList.toggle('fa-eye', type === 'password');
             togglePassword.classList.toggle('fa-eye-slash', type === 'text');
         });
+        
     </script>
 </body>
 </html>

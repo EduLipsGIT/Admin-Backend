@@ -823,3 +823,103 @@ app.post('/generate-content_hin', async (req, res) => {
       return res.status(500).send('An unexpected error occurred.');
   }
 });
+
+const validCredentials = [
+  { username: 'Kirtiman Nanda', password: 'Kirtiman_Pass' },
+  { username: 'Sonam Kumari', password: 'Sonam_Pass2024' },
+  { username: 'Navjyoti Kumar', password: 'Navjyoti_Pass' },
+];
+
+app.post('/validate_login', async (req, res) => {
+  const { username, password } = req.body;
+
+  const user = validCredentials.find(
+    (cred) => cred.username === username && cred.password === password
+  );
+
+  if (user) {
+    try {
+      const isValid = await checkUserCondition(username);
+      if (isValid) {
+        res.status(200).json({ success: true, message: 'Login successful!' });
+      } else {
+        res.status(401).json({ success: false, message: 'User not allowed' });
+      }
+    } catch (error) {
+      console.error('Error checking user condition:', error.message);
+      res.status(500).json({ success: false, message: 'Server error' });
+    }
+  } else {
+    res.status(401).json({ success: false, message: 'Invalid username or password' });
+  }
+});
+
+async function checkUserCondition(username) {
+  try {
+    const adminDataRef = db.ref('Admin_Data');
+    const snapshot = await adminDataRef.once('value');
+    const adminData = snapshot.val();
+
+    if (!adminData) {
+      console.log('Admin_Data is empty.');
+      return false; // No data exists
+    }
+
+    for (const childKey in adminData) {
+      if (adminData.hasOwnProperty(childKey)) {
+        const childData = adminData[childKey];
+
+        if (childData.ADMIN_NAME === username) {
+          if (
+            childData.ADMIN_STATUS === 'ALLOWED' ||
+            childData.ADMIN_STATUS === 'SUPER_ALLOWED'
+          ) {
+            return true; // User is allowed
+          }
+        }
+      }
+    }
+    return false;
+  } catch (error) {
+    throw error;
+  }
+}
+
+app.post('/check_user', async (req, res) => {
+  const { username } = req.body;
+  try {
+    const adminDataRef = db.ref('Admin_Data');
+    const snapshot = await adminDataRef.once('value');
+    const adminData = snapshot.val();
+
+    if (!adminData) {
+      return res.status(403).json({ success: false, message: 'Access denied. No admin data found.' });
+    }
+
+
+    for (const childKey in adminData) {
+      if (adminData.hasOwnProperty(childKey)) {
+        const childData = adminData[childKey];
+    
+        if (childData.ADMIN_NAME === username) {
+    
+          if (
+            childData.ADMIN_STATUS === 'ALLOWED' ||
+            childData.ADMIN_STATUS === 'SUPER_ALLOWED'
+          ) {
+            console.log(`Access allowed for username: ${username} with status: ${childData.ADMIN_STATUS}`);
+            return res.status(200).json({ success: true, message: 'Access allowed.' });
+          } else {
+            console.log(`Access denied for username: ${username} with status: ${childData.ADMIN_STATUS}`);
+          }
+        } else {
+          console.log(`No match for ADMIN_NAME with username: ${username} in childKey: ${childKey}`);
+        }
+      }
+    }
+    return res.status(403).json({ success: false, message: 'Access denied. User not allowed.' });
+  } catch (error) {
+    console.error('Error checking user condition:', error.message);
+    return res.status(500).json({ success: false, message: 'Server error.' });
+  }
+});
