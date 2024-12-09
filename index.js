@@ -824,6 +824,50 @@ app.post('/generate-content_hin', async (req, res) => {
   }
 });
 
+app.post('/rewrite_content', async (req, res) => {
+  const { data } = req.body;
+  if (!data) {
+    return res.status(400).json({ message: 'Empty title data.' });
+}
+  try {
+   
+    // Step 2: Communicate with the Google Gemini API to get title and description
+      try {
+          const response = await axios.post(
+              GOOGLE_GEMINI_URL + `?key=${GOOGLE_API_KEY}`,
+              {
+                  contents: [
+                      {
+                          parts: [
+                              {
+                                  text: `Rewrite the following and start with R:" ${data}`
+                              }
+                          ]
+                      }
+                  ]
+              },
+              {
+                  headers: {
+                      'Content-Type': 'application/json'
+                  }
+              }
+          );
+
+          const apiText = response.data.candidates?.[0]?.content?.parts?.map(part => part.text).join(' ') || '';
+          console.log(apiText);
+          res.status(200).json({
+            apiText
+         });           
+      } catch (apiErr) {
+          console.error('Failed to communicate with Google Gemini API:', apiErr.message);
+          return res.status(500).send('Failed to communicate with the Google Gemini API.');
+      }
+  } catch (err) {
+      // console.error('Unexpected error:', err.message);
+      return res.status(500).send('An unexpected error occurred.');
+  }
+});
+
 const validCredentials = [
   { username: 'Kirtiman Nanda', password: 'Kirtiman_Pass' },
   { username: 'Sonam Kumari', password: 'Sonam_Pass2024' },
