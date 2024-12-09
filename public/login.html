@@ -77,14 +77,8 @@
         </form>
     </div>
     <script>
-        const validCredentials = [
-        { username: 'Kirtiman Nanda', password: 'Kirtiman_Pass' },
-        { username: 'Admin_1', password: 'AdminPass_1' },
-        { username: 'Sonam Kumari', password: 'Sonam_Pass2024' },
-        { username: 'rahishai868', password: 'rahishai_Pass2024' }
-        ];
-
-        document.getElementById('loginForm').addEventListener('submit', function(event) {
+     
+    document.getElementById('loginForm').addEventListener('submit', async function(event) {
     event.preventDefault();
 
     const username = document.getElementById('username').value;
