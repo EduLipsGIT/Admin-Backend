@@ -245,7 +245,7 @@ function handleLogout() {
         <textarea id="title" name="title" required style="width: 100%; height: 100px; margin-bottom: 0;"></textarea>
         
         <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 0; padding-top: 0;">
-            <button type="button" onclick="Rewrite_title()" style="width: 100px; padding: 5px;">Rewrite title</button>
+            <!-- <button type="button" onclick="Rewrite_title()" style="width: 100px; padding: 5px;">Rewrite title</button> -->
             <span id="titleWordCount" class="word-count">0 words</span>
         </div>
         
@@ -253,7 +253,7 @@ function handleLogout() {
         <textarea id="desc" name="desc" required style="width: 100%; height: 100px; margin-bottom: 0;"></textarea>
         
         <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 0; padding-top: 0;">
-            <button type="button" onclick="Rewrite_desc()" style="width: 100px; padding: 5px;">Rewrite description</button>
+            <!-- <button type="button" onclick="Rewrite_desc()" style="width: 100px; padding: 5px;">Rewrite description</button> -->
             <span id="descWordCount" class="word-count">0 words</span>
         </div>
         
@@ -371,48 +371,48 @@ function handleLogout() {
 //     }
 // }
 
-async function Rewrite_title() {
-    const title_data = document.getElementById('title').value;
-    try {
-        const response = await fetch('https://author.edulips.com/rewrite_content', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ data: title_data })
-        });
+// async function Rewrite_title() {
+//     const title_data = document.getElementById('title').value;
+//     try {
+//         const response = await fetch('https://author.edulips.com/rewrite_content', {
+//             method: 'POST',
+//             headers: { 'Content-Type': 'application/json' },
+//             body: JSON.stringify({ data: title_data })
+//         });
 
-        const result = await response.json();
+//         const result = await response.json();
 
-        if (response.ok) {
-            document.getElementById('title').reset;
-            document.getElementById('title').value = result.apiText;
-            updateWordCount(document.getElementById('title'), document.getElementById('titleWordCount'), 20);
-        } else {
-            alert(`Server Error: ${result.message}`);
-        }
-    } catch (err) {
-        console.error('Request Error:', err.message);
-    }
-}
-async function Rewrite_desc() {
-    const desc_data = document.getElementById('desc').value;
-    try {
-        const response = await fetch('/rewrite_content', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ data: desc_data })
-        });
-        const result = await response.json();
-         if (response.ok) {
-            document.getElementById('desc').reset;
-            document.getElementById('desc').value = result.apiText;
-            updateWordCount(document.getElementById('desc'), document.getElementById('descWordCount'), 20);
-            } else {
-                alert(result.message);
-            }
-        } catch (error) {
-            console.error('Request Error:', error);
-    }
-}
+//         if (response.ok) {
+//             document.getElementById('title').reset;
+//             document.getElementById('title').value = result.apiText;
+//             updateWordCount(document.getElementById('title'), document.getElementById('titleWordCount'), 20);
+//         } else {
+//             alert(`Server Error: ${result.message}`);
+//         }
+//     } catch (err) {
+//         console.error('Request Error:', err.message);
+//     }
+// }
+// async function Rewrite_desc() {
+//     const desc_data = document.getElementById('desc').value;
+//     try {
+//         const response = await fetch('/rewrite_content', {
+//             method: 'POST',
+//             headers: { 'Content-Type': 'application/json' },
+//             body: JSON.stringify({ data: desc_data })
+//         });
+//         const result = await response.json();
+//          if (response.ok) {
+//             document.getElementById('desc').reset;
+//             document.getElementById('desc').value = result.apiText;
+//             updateWordCount(document.getElementById('desc'), document.getElementById('descWordCount'), 20);
+//             } else {
+//                 alert(result.message);
+//             }
+//         } catch (error) {
+//             console.error('Request Error:', error);
+//     }
+// }
 
         // Update word count on input event
         document.getElementById('title').addEventListener('input', function() {
