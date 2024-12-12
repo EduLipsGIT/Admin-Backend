@@ -8,7 +8,7 @@
   const { GoogleAuth } = require('google-auth-library');  
   const moment = require('moment-timezone');
   const cheerio = require('cheerio');
-  const GOOGLE_API_KEY = 'AIzaSyDzM70IvTmqcS9M5PC5Tg4tmder3U5fQnY';
+  const GOOGLE_API_KEY = 'AIzaSyBt2OAc8SB-4_-thP0DF7zsIz-99auVqsg';
   const GOOGLE_GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent';
 
 
@@ -656,172 +656,172 @@
   };
   app.get('/reset-leaderboard', resetLeaderboard);  
 
-  app.post('/generate-content_eng', async (req, res) => {
-    const { url } = req.body;
-    let image;
+//   app.post('/generate-content_eng', async (req, res) => {
+//     const { url } = req.body;
+//     let image;
 
-    if (!url) {
-        console.error('URL is missing in the request');
-        return res.status(400).send('URL is missing.');
-    }
+//     if (!url) {
+//         console.error('URL is missing in the request');
+//         return res.status(400).send('URL is missing.');
+//     }
 
-    try {
-        console.log('Received URL:', url);
+//     try {
+//         console.log('Received URL:', url);
 
-        // Step 1: Fetch the news page HTML to get the image URL
-        try {
-            const newsResponse = await axios.get(url);
-            console.log('Successfully fetched news page HTML');
+//         // Step 1: Fetch the news page HTML to get the image URL
+//         try {
+//             const newsResponse = await axios.get(url);
+//             console.log('Successfully fetched news page HTML');
 
-            const $ = cheerio.load(newsResponse.data);
-            image = $('meta[property="og:image"]').attr('content') || '';
-            console.log('Extracted Image URL:', image);
-        } catch (newsErr) {
-            console.error('Failed to fetch news page HTML or extract image:', newsErr.message);
-            return res.status(500).send('Error fetching news content or extracting image URL.');
-        }
+//             const $ = cheerio.load(newsResponse.data);
+//             image = $('meta[property="og:image"]').attr('content') || '';
+//             console.log('Extracted Image URL:', image);
+//         } catch (newsErr) {
+//             console.error('Failed to fetch news page HTML or extract image:', newsErr.message);
+//             return res.status(500).send('Error fetching news content or extracting image URL.');
+//         }
 
-        // Step 2: Communicate with the Google Gemini API to get title and description
-        try {
-            const response = await axios.post(
-                GOOGLE_GEMINI_URL + `?key=${GOOGLE_API_KEY}`,
-                {
-                    contents: [
-                        {
-                            parts: [
-                                {
-                                    text: `Rewrite the title in more than 20 words and less than 40 words and summarize the news article for description in more than 70 and less than 90 words from: ${url} in english , start the title part with T: and the description part with D:`
-                                }
-                            ]
-                        }
-                    ]
-                },
-                {
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
-                }
-            );
+//         // Step 2: Communicate with the Google Gemini API to get title and description
+//         try {
+//             const response = await axios.post(
+//                 GOOGLE_GEMINI_URL + `?key=${GOOGLE_API_KEY}`,
+//                 {
+//                     contents: [
+//                         {
+//                             parts: [
+//                                 {
+//                                     text: `Rewrite the title in more than 20 words and less than 40 words and summarize the news article for description in more than 70 and less than 90 words from: ${url} in english , start the title part with T: and the description part with D:`
+//                                 }
+//                             ]
+//                         }
+//                     ]
+//                 },
+//                 {
+//                     headers: {
+//                         'Content-Type': 'application/json'
+//                     }
+//                 }
+//             );
 
-            console.log('Google Gemini API Response:', JSON.stringify(response.data));
+//             console.log('Google Gemini API Response:', JSON.stringify(response.data));
 
-            const apiText = response.data.candidates?.[0]?.content?.parts?.map(part => part.text).join(' ') || '';
-            console.log('API Text Received:', apiText);
+//             const apiText = response.data.candidates?.[0]?.content?.parts?.map(part => part.text).join(' ') || '';
+//             console.log('API Text Received:', apiText);
 
-            const titleStart = '**T:';
-            const descStart = '**D:**';
+//             const titleStart = '**T:';
+//             const descStart = '**D:**';
             
-            const titleIndex = apiText.indexOf(titleStart);
-            const descIndex = apiText.indexOf(descStart);
+//             const titleIndex = apiText.indexOf(titleStart);
+//             const descIndex = apiText.indexOf(descStart);
             
-            if (titleIndex !== -1 && descIndex !== -1) {
-                const title = apiText.substring(titleIndex + titleStart.length, descIndex).trim();
-                const description = apiText.substring(descIndex + descStart.length).trim();
+//             if (titleIndex !== -1 && descIndex !== -1) {
+//                 const title = apiText.substring(titleIndex + titleStart.length, descIndex).trim();
+//                 const description = apiText.substring(descIndex + descStart.length).trim();
             
-                // console.log('Extracted Title:', title);
-                // console.log('Extracted Description:', description);
-                // console.log('Extracted Image URL:', image);
+//                 // console.log('Extracted Title:', title);
+//                 // console.log('Extracted Description:', description);
+//                 // console.log('Extracted Image URL:', image);
             
-                return res.status(200).json({
-                    title,
-                    description,
-                    image
-                });
-            } else {
-                return res.status(500).send('Title or description could not be found in the response.');
-            }            
-        } catch (apiErr) {
-            // console.error('Failed to communicate with Google Gemini API:', apiErr.message);
-            return res.status(500).send('Failed to communicate with the Google Gemini API.');
-        }
-    } catch (err) {
-        // console.error('Unexpected error:', err.message);
-        return res.status(500).send('An unexpected error occurred.');
-    }
-});
-app.post('/generate-content_hin', async (req, res) => {
-  const { url } = req.body;
-  let image;
+//                 return res.status(200).json({
+//                     title,
+//                     description,
+//                     image
+//                 });
+//             } else {
+//                 return res.status(500).send('Title or description could not be found in the response.');
+//             }            
+//         } catch (apiErr) {
+//             // console.error('Failed to communicate with Google Gemini API:', apiErr.message);
+//             return res.status(500).send('Failed to communicate with the Google Gemini API.');
+//         }
+//     } catch (err) {
+//         // console.error('Unexpected error:', err.message);
+//         return res.status(500).send('An unexpected error occurred.');
+//     }
+// });
+// app.post('/generate-content_hin', async (req, res) => {
+//   const { url } = req.body;
+//   let image;
 
-  if (!url) {
-      console.error('URL is missing in the request');
-      return res.status(400).send('URL is missing.');
-  }
+//   if (!url) {
+//       console.error('URL is missing in the request');
+//       return res.status(400).send('URL is missing.');
+//   }
 
-  try {
-      console.log('Received URL:', url);
+//   try {
+//       console.log('Received URL:', url);
 
-      // Step 1: Fetch the news page HTML to get the image URL
-      try {
-          const newsResponse = await axios.get(url);
-          console.log('Successfully fetched news page HTML');
+//       // Step 1: Fetch the news page HTML to get the image URL
+//       try {
+//           const newsResponse = await axios.get(url);
+//           console.log('Successfully fetched news page HTML');
 
-          const $ = cheerio.load(newsResponse.data);
-          image = $('meta[property="og:image"]').attr('content') || '';
-          console.log('Extracted Image URL:', image);
-      } catch (newsErr) {
-          console.error('Failed to fetch news page HTML or extract image:', newsErr.message);
-          return res.status(500).send('Error fetching news content or extracting image URL.');
-      }
+//           const $ = cheerio.load(newsResponse.data);
+//           image = $('meta[property="og:image"]').attr('content') || '';
+//           console.log('Extracted Image URL:', image);
+//       } catch (newsErr) {
+//           console.error('Failed to fetch news page HTML or extract image:', newsErr.message);
+//           return res.status(500).send('Error fetching news content or extracting image URL.');
+//       }
 
-      // Step 2: Communicate with the Google Gemini API to get title and description
-      try {
-          const response = await axios.post(
-              GOOGLE_GEMINI_URL + `?key=${GOOGLE_API_KEY}`,
-              {
-                  contents: [
-                      {
-                          parts: [
-                              {
-                                  text: `Rewrite the title in more than 20 words and less than 40 words and summarize the news article for description in more than 70 and less than 90 words from: ${url} in hindi , start the title part with T: and the description part with D:`
-                              }
-                          ]
-                      }
-                  ]
-              },
-              {
-                  headers: {
-                      'Content-Type': 'application/json'
-                  }
-              }
-          );
+//       // Step 2: Communicate with the Google Gemini API to get title and description
+//       try {
+//           const response = await axios.post(
+//               GOOGLE_GEMINI_URL + `?key=${GOOGLE_API_KEY}`,
+//               {
+//                   contents: [
+//                       {
+//                           parts: [
+//                               {
+//                                   text: `Rewrite the title in more than 20 words and less than 40 words and summarize the news article for description in more than 70 and less than 90 words from: ${url} in hindi , start the title part with T: and the description part with D:`
+//                               }
+//                           ]
+//                       }
+//                   ]
+//               },
+//               {
+//                   headers: {
+//                       'Content-Type': 'application/json'
+//                   }
+//               }
+//           );
 
-          console.log('Google Gemini API Response:', JSON.stringify(response.data));
+//           console.log('Google Gemini API Response:', JSON.stringify(response.data));
 
-          const apiText = response.data.candidates?.[0]?.content?.parts?.map(part => part.text).join(' ') || '';
-          console.log('API Text Received:', apiText);
+//           const apiText = response.data.candidates?.[0]?.content?.parts?.map(part => part.text).join(' ') || '';
+//           console.log('API Text Received:', apiText);
 
-          const titleStart = '**T:';
-          const descStart = '**D:';
+//           const titleStart = '**T:';
+//           const descStart = '**D:';
          
-          const titleIndex = apiText.indexOf(titleStart);
-          const descIndex = apiText.indexOf(descStart);
+//           const titleIndex = apiText.indexOf(titleStart);
+//           const descIndex = apiText.indexOf(descStart);
           
-          if (titleIndex !== -1 && descIndex !== -1) {
-              const title = apiText.substring(titleIndex + titleStart.length, descIndex).trim();
-              const description = apiText.substring(descIndex + descStart.length).trim();
+//           if (titleIndex !== -1 && descIndex !== -1) {
+//               const title = apiText.substring(titleIndex + titleStart.length, descIndex).trim();
+//               const description = apiText.substring(descIndex + descStart.length).trim();
           
-              // console.log('Extracted Title:', title);
-              // console.log('Extracted Description:', description);
-              // console.log('Extracted Image URL:', image);
+//               // console.log('Extracted Title:', title);
+//               // console.log('Extracted Description:', description);
+//               // console.log('Extracted Image URL:', image);
           
-              return res.status(200).json({
-                  title,
-                  description,
-                  image
-              });
-          } else {
-              return res.status(500).send('Title or description could not be found in the response.');
-          }            
-      } catch (apiErr) {
-          // console.error('Failed to communicate with Google Gemini API:', apiErr.message);
-          return res.status(500).send('Failed to communicate with the Google Gemini API.');
-      }
-  } catch (err) {
-      // console.error('Unexpected error:', err.message);
-      return res.status(500).send('An unexpected error occurred.');
-  }
-});
+//               return res.status(200).json({
+//                   title,
+//                   description,
+//                   image
+//               });
+//           } else {
+//               return res.status(500).send('Title or description could not be found in the response.');
+//           }            
+//       } catch (apiErr) {
+//           // console.error('Failed to communicate with Google Gemini API:', apiErr.message);
+//           return res.status(500).send('Failed to communicate with the Google Gemini API.');
+//       }
+//   } catch (err) {
+//       // console.error('Unexpected error:', err.message);
+//       return res.status(500).send('An unexpected error occurred.');
+//   }
+// });
 
 app.post('/rewrite_content', async (req, res) => {
   const { data } = req.body;
