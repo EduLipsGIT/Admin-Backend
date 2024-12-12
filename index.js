@@ -71,14 +71,25 @@
   }
 
   ///CHILD CALCULATION///
-  async function getNextChildKey(username) {
+  async function getNextChildKey() {
+    let ref = db.ref('News_UnApproved');
     try {
-      let ref;
-      if(username == "Admin_1"){
-      ref = db.ref('News');
-      }else{
-      ref = db.ref('News_UnApproved');
+      const snapshot = await ref.orderByKey().limitToFirst(1).once('value');
+      if (snapshot.exists()) {
+        const firstKey = Object.keys(snapshot.val())[0];
+        const firstChildNumber = parseInt(firstKey);
+        return firstChildNumber - 1; // Subtract 1 from the first child number
+      } else {
+        return 999; // Default value if no children exist yet
       }
+    } catch (error) {
+      console.error('Error fetching next child key:', error.message);
+      throw error;
+    }
+  }
+  async function getNextChildKeySuperAdmin() {
+    let ref = db.ref('News');
+    try {
       const snapshot = await ref.orderByKey().limitToFirst(1).once('value');
       if (snapshot.exists()) {
         const firstKey = Object.keys(snapshot.val())[0];
@@ -114,7 +125,7 @@
   async function checkTitleExists(title , username) {
     try {
       let newsRef;
-      if(username == "Admin_1"){
+      if(username == "Pramod Kumar" || username == "Navjyoti Kumar"){
       newsRef = db.ref('News');
       }else{
       newsRef = db.ref('News_UnApproved');
@@ -191,7 +202,6 @@
     const { title, desc, newslink, imagelink, category, language, username } = req.body;
     const currentDate = getCurrentDate();
     try {
-      const childKey = await getNextChildKey(username);
       const uniqueId = generateUniqueId();
       const titleExists = await checkTitleExists(title , username);
       if (titleExists) {
@@ -204,11 +214,13 @@
         return;
       }
       if(username == "Navjyoti Kumar" || username == "Pramod Kumar"){
+        const childKey = await getNextChildKeySuperAdmin();
         await addNewsToCategory(title, desc, newslink, imagelink, category, childKey, currentDate, username,  getCurrentTime());
         await addNewsToLanguage(title, desc, newslink, imagelink, language, childKey, currentDate, username,  getCurrentTime());
         await addNewsToGeneral(title, desc, newslink, imagelink, childKey, currentDate, username, category , language , getCurrentTime());
         await sendNotification( title, fixed_desc , childKey , imagelink);  
       }else{ 
+        const childKey = await getNextChildKey();
         await addNewsToGeneral(title, desc, newslink, imagelink, childKey, currentDate, username, category , language , getCurrentTime());
       } 
       res.send('News added Successfully!');
@@ -222,7 +234,7 @@
   async function getNextQuizChildKey(username) {
     try {
       let ref;
-      if(username == "Admin_1"){
+      if(username == "Pramod KumarZ"){
       ref = db.ref('News');
       }else{
       ref = db.ref('News_UnApproved');
