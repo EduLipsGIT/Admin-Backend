@@ -152,7 +152,7 @@
       return;
     }
     let newsRef;
-    if(username == "Admin_1"){
+    if(username == "Navjoti Kumar" || username == "Pramod Kumar"){
     newsRef = db.ref('News');
     }else{
     newsRef = db.ref('News_UnApproved');
@@ -208,7 +208,6 @@
         await addNewsToLanguage(title, desc, newslink, imagelink, language, childKey, currentDate, username,  getCurrentTime());
         await addNewsToGeneral(title, desc, newslink, imagelink, childKey, currentDate, username, category , language , getCurrentTime());
         await sendNotification( title, fixed_desc , childKey , imagelink);  
-      
       }else{ 
         await addNewsToGeneral(title, desc, newslink, imagelink, childKey, currentDate, username, category , language , getCurrentTime());
       } 
