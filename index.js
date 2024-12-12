@@ -203,7 +203,7 @@
         res.send('Kindly Login again')
         return;
       }
-      if(username == "Admin_1"){
+      if(username == "Navjyoti Kumar" || username == "Pramod Kumar"){
         await addNewsToCategory(title, desc, newslink, imagelink, category, childKey, currentDate, username,  getCurrentTime());
         await addNewsToLanguage(title, desc, newslink, imagelink, language, childKey, currentDate, username,  getCurrentTime());
         await addNewsToGeneral(title, desc, newslink, imagelink, childKey, currentDate, username, category , language , getCurrentTime());
