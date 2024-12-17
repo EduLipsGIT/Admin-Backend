@@ -8,13 +8,9 @@
   const { GoogleAuth } = require('google-auth-library');  
   const moment = require('moment-timezone');
   const cheerio = require('cheerio');
-  // const GOOGLE_API_KEY = 'AIzaSyBt2OAc8SB-4_-thP0DF7zsIz-99auVqsg';
   const GOOGLE_GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent';
-
-
   const xlsx = require('xlsx');
   const fileUpload = require('express-fileupload'); 
-  // Initialize Firebase Admin SDK
   admin.initializeApp({
     credential: admin.credential.cert({
       projectId: process.env.FIREBASE_PROJECT_ID,
@@ -34,14 +30,11 @@
   const { time } = require('console');
   // Enable CORS with default options
   app.use(cors());
-
   // Middleware to parse incoming request bodies
   app.use(bodyParser.urlencoded({ extended: true }));
   app.use(bodyParser.json());
-
   // Middleware to serve static files (index.html, quiz.html, etc.)
   app.use(express.static(path.join(__dirname, 'public')));
-
   async function getAccessToken() {
     const serviceAccount = {
       type: process.env.GOOGLE_SERVICE_ACCOUNT_TYPE,
@@ -56,17 +49,13 @@
       client_x509_cert_url: process.env.GOOGLE_CLIENT_CERT_URL,
       universe_domain: process.env.GOOGLE_UNIVERSE_DOMAIN
     };
-
     const auth = new GoogleAuth({
       credentials: serviceAccount,
       scopes: ['https://www.googleapis.com/auth/firebase.messaging']
     });
-
     const client = await auth.getClient();
     const accessTokenResponse = await client.getAccessToken();
     const accessToken = accessTokenResponse.token;
-
-    console.log('Access Token:', accessToken);
     accessToken = accessTokenResponse.token;
   }
 
@@ -147,19 +136,9 @@
     }
   }
 
-  ////CHECK RESTRICTION////
-  async function checkRestricted(username) {
-    if (username == "Admin_2" || username == "Uploader05" || username == "Admin_3" || username == "Editor01" ||username == "Admin_6" ||username == "rahishai868"){
-      return true;
-    }
-  }
-
   // PUBLISH TO UNAPPROVED NEWS
   async function addNewsToGeneral(title, desc, newslink, imagelink, childKey, currentDate, username , language , category) {
     if (await checkTitleExists(title)) {
-      return;
-    }
-    if (await checkRestricted(username)){
       return;
     }
     let newsRef;
@@ -177,9 +156,72 @@
       imagelink: imagelink,
       date: currentDate,
       time: currentTime,
-      'lang' : category  , 
+      'lang' : category , 
       'Uploaded By': username,
-      'cat': language
+      'cat': language,
+      'notification_id' : childKey.toString()
+    });
+  }
+
+  async function addNewsToCategory(title, desc, newslink, imagelink, category, childKey, currentDate, username , language , category) {
+    if (await checkTitleExistsCATEGORY(title , category)) {
+        return;
+    }
+    const categoryRef = db.ref(category);
+    const currentTime = getCurrentTime();
+    const newCategoryRef = categoryRef.child(childKey.toString());
+    await newCategoryRef.set({
+      title: title,
+      desc: desc,
+      newslink: newslink,
+      imagelink: imagelink,
+      date: currentDate,
+      time: currentTime,
+      'lang' : category , 
+      'Uploaded By': username,
+      'cat': language,
+      'notification_id' : childKey.toString()
+    });
+  }
+
+  ////2. LANG DIRECT UPLOAD///
+  async function checkTitleExistsLang(title , language) {
+    try {
+      const languageRef = db.ref(language);
+      const snapshot = await languageRef.once('value');
+      const newsItems = snapshot.val();
+      for (const key in newsItems) {
+        if (newsItems.hasOwnProperty(key)) {
+          const newsItem = newsItems[key];
+          if (newsItem.title === title) {
+            return true; // Title already exists
+          }
+        }
+      }
+      return false; // Title does not exist
+    } catch (error) {
+      console.error('Error checking title existence:', error.message);
+      throw error;
+    }
+  }
+  async function addNewsToLanguage(title, desc, newslink, imagelink, language, childKey, currentDate, username , language , category) {
+    if (await checkTitleExistsLang(title, language)) {
+      return;
+    }
+    const languageRef = db.ref(language);
+    const newLanguageRef = languageRef.child(childKey.toString());
+    const currentTime = getCurrentTime();
+    await newLanguageRef.set({
+      title: title,
+      desc: desc,
+      newslink: newslink,
+      imagelink: imagelink,
+      date: currentDate,
+      time: currentTime,
+      'lang' : category , 
+      'Uploaded By': username,
+      'cat': language,
+      'notification_id' : childKey.toString()
     });
   }
 
@@ -208,15 +250,10 @@
         res.send('News Already Exists!');
         return;
       }
-      const Admin_Restricted = await checkRestricted(username);
-      if(Admin_Restricted){
-        res.send('Kindly Login again')
-        return;
-      }
       if(username == "Navjyoti Kumar" || username == "Pramod Kumar"){
         const childKey = await getNextChildKeySuperAdmin();
-        await addNewsToCategory(title, desc, newslink, imagelink, category, childKey, currentDate, username,  getCurrentTime());
-        await addNewsToLanguage(title, desc, newslink, imagelink, language, childKey, currentDate, username,  getCurrentTime());
+        await addNewsToCategory(title, desc, newslink, imagelink, category, childKey, currentDate, username, category , language , getCurrentTime());
+        await addNewsToLanguage(title, desc, newslink, imagelink, language, childKey, currentDate, username, category , language , getCurrentTime());
         await addNewsToGeneral(title, desc, newslink, imagelink, childKey, currentDate, username, category , language , getCurrentTime());
         await sendNotification( title, fixed_desc , childKey , imagelink);  
       }else{ 
@@ -234,7 +271,7 @@
   async function getNextQuizChildKey(username) {
     try {
       let ref;
-      if(username == "Pramod KumarZ"){
+      if(username == "Pramod Kumar"){
       ref = db.ref('News');
       }else{
       ref = db.ref('News_UnApproved');
@@ -493,67 +530,7 @@
       throw error;
     }
   }
-  async function addNewsToCategory(title, desc, newslink, imagelink, category, childKey, currentDate, username) {
-    if (await checkTitleExistsCATEGORY(title , category)) {
-        return;
-    }
-    if (await checkRestricted(username)){
-      return;
-    }
-    const categoryRef = db.ref(category);
-    const currentTime = getCurrentTime();
-    const newCategoryRef = categoryRef.child(childKey.toString());
-    await newCategoryRef.set({
-      title: title,
-      desc: desc,
-      newslink: newslink,
-      imagelink: imagelink,
-      date: currentDate,
-      time: currentTime,
-      'Uploaded By': username
-    });
-  }
-
-  ////2. LANG DIRECT UPLOAD///
-  async function checkTitleExistsLang(title , language) {
-    try {
-      const languageRef = db.ref(language);
-      const snapshot = await languageRef.once('value');
-      const newsItems = snapshot.val();
-      for (const key in newsItems) {
-        if (newsItems.hasOwnProperty(key)) {
-          const newsItem = newsItems[key];
-          if (newsItem.title === title) {
-            return true; // Title already exists
-          }
-        }
-      }
-      return false; // Title does not exist
-    } catch (error) {
-      console.error('Error checking title existence:', error.message);
-      throw error;
-    }
-  }
-  async function addNewsToLanguage(title, desc, newslink, imagelink, language, childKey, currentDate, username) {
-    if (await checkTitleExistsLang(title, language)) {
-      return;
-    }
-    if (await checkRestricted(username)){
-      return;
-    }
-    const languageRef = db.ref(language);
-    const newLanguageRef = languageRef.child(childKey.toString());
-    const currentTime = getCurrentTime();
-    await newLanguageRef.set({
-      title: title,
-      desc: desc,
-      newslink: newslink,
-      imagelink: imagelink,
-      date: currentDate,
-      time: currentTime,
-      'Uploaded By': username
-    });
-  }
+  
   // Function to Rearrange and Upload News Data
   function rearrangeAndUploadNewsData(res) {
     // Fetch all children
