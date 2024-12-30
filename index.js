@@ -773,3 +773,41 @@ async function checkUserCondition(username) {
     throw error;
   }
 }
+app.post('/check_user', async (req, res) => {
+  const { username } = req.body;
+  try {
+    const adminDataRef = db.ref('Admin_Data');
+    const snapshot = await adminDataRef.once('value');
+    const adminData = snapshot.val();
+
+    if (!adminData) {
+      return res.status(403).json({ success: false, message: 'Access denied. No admin data found.' });
+    }
+
+
+    for (const childKey in adminData) {
+      if (adminData.hasOwnProperty(childKey)) {
+        const childData = adminData[childKey];
+
+        if (childData.ADMIN_NAME === username) {
+
+          if (
+            childData.ADMIN_STATUS === 'ALLOWED' ||
+            childData.ADMIN_STATUS === 'SUPER_ALLOWED'
+          ) {
+            console.log(`Access allowed for username: ${username} with status: ${childData.ADMIN_STATUS}`);
+            return res.status(200).json({ success: true, message: 'Access allowed.' });
+          } else {
+            console.log(`Access denied for username: ${username} with status: ${childData.ADMIN_STATUS}`);
+          }
+        } else {
+          console.log(`No match for ADMIN_NAME with username: ${username} in childKey: ${childKey}`);
+        }
+      }
+    }
+    return res.status(403).json({ success: false, message: 'Access denied. User not allowed.' });
+  } catch (error) {
+    console.error('Error checking user condition:', error.message);
+    return res.status(500).json({ success: false, message: 'Server error.' });
+  }
+});
