@@ -94,21 +94,22 @@
   }
   async function getNextStudyChildKey() {
     try {
-      let ref;
-      ref = db.ref('Ques_Data');
-      const snapshot = await ref.orderByKey().limitToFirst(1).once('value');
+      const ref = db.ref('Ques_Data');
+      const snapshot = await ref.orderByKey().limitToLast(1).once('value');
+  
       if (snapshot.exists()) {
-        const firstKey = Object.keys(snapshot.val())[0];
-        const firstChildNumber = parseInt(firstKey);
-        return firstChildNumber - 1; // Subtract 1 from the first child number
+        const lastKey = Object.keys(snapshot.val())[0];
+        const lastChildNumber = parseInt(lastKey, 10);
+        return lastChildNumber + 1;
       } else {
-        return 999; // Default value if no children exist yet
+        return 1;
       }
     } catch (error) {
       console.error('Error fetching next child key:', error.message);
       throw error;
     }
   }
+  
 
   ///// CHECK DUPLICATION ////////
   async function checkTitleExists(title , username) {
@@ -465,7 +466,6 @@
       res.status(500).json({ error: 'Error processing file.', details: error.message });
     }
   });
-
   // Function to replace invalid characters in keys
   function sanitizeKeys(obj) {
     const sanitizedObj = {};
@@ -510,6 +510,65 @@
     console.log(`Server is running on port ${port}`);
   });
 
+  // //UPLOAD PRE MADE QUESTIONS
+  // app.post('/uploadPreMadeQues', async (req, res) => {
+  //   if (!req.files || !req.files.file) {
+  //     return res.status(400).send('No file uploaded.');
+  //   }
+  //   const file = req.files.file;
+  //   try {
+  //     const workbook = xlsx.read(file.data, { type: 'buffer' });
+  //     const sheetName = workbook.SheetNames[0];
+  //     const sheet = workbook.Sheets[sheetName];
+  //     const jsonData = xlsx.utils.sheet_to_json(sheet);
+
+  //     // Process and upload each row
+  //     for (const row of jsonData) {
+  //       const category_bk = row['Exam'];
+  //       const subject_bk = row['Chapter'];
+        
+  //       // Sanitize row before uploading
+  //       const sanitizedRow = sanitizeKeys(row);
+
+  //       // Upload each row to Firebase using these category values
+  //       await uploadPremade(sanitizedRow, category_bk, subject_bk);
+  //     }
+
+  //     res.json(jsonData);
+  //   } catch (error) {
+  //     console.error('Error processing file:', error);
+  //     res.status(500).json({ error: 'Error processing file.', details: error.message });
+  //   }
+  // });
+  // async function uploadPremade(item, category_bk, subject_bk) {
+  //   const bulkRef = db.ref('PreMade_Tests').child(category_bk).child(subject_bk);
+
+  //   const childKey = await getNextPremadeChildKey(bulkRef);
+
+  //   if (childKey) {
+  //     const itemRef = bulkRef.child(childKey.toString());
+  //     await itemRef.set(item);
+  //    } else {
+  //     console.warn('Invalid child key for item:', item);
+  //   }
+  //   console.log('Data uploaded to Firebase successfully.');
+  // }
+  // async function getNextPremadeChildKey(bulkRef) {
+  //   try {
+  //     const snapshot = await bulkRef.orderByKey().limitToFirst(1).once('value');
+  //     if (snapshot.exists()) {
+  //       const firstKey = Object.keys(snapshot.val())[0];
+  //       const firstChildNumber = parseInt(firstKey);
+  //       return firstChildNumber - 1; // Subtract 1 from the first child number
+  //     } else {
+  //       return 100000; // Default value if no children exist yet
+  //     }
+  //   } catch (error) {
+  //     console.error('Error fetching next child key:', error.message);
+  //     throw error;
+  //   }
+  // }
+  
   // 1.CAT DIRECT UPLOAD ////
   async function checkTitleExistsCATEGORY(title ,category) {
     try {
@@ -645,216 +704,6 @@
   };
   app.get('/reset-leaderboard', resetLeaderboard);  
 
-//   app.post('/generate-content_eng', async (req, res) => {
-//     const { url } = req.body;
-//     let image;
-
-//     if (!url) {
-//         console.error('URL is missing in the request');
-//         return res.status(400).send('URL is missing.');
-//     }
-
-//     try {
-//         console.log('Received URL:', url);
-
-//         // Step 1: Fetch the news page HTML to get the image URL
-//         try {
-//             const newsResponse = await axios.get(url);
-//             console.log('Successfully fetched news page HTML');
-
-//             const $ = cheerio.load(newsResponse.data);
-//             image = $('meta[property="og:image"]').attr('content') || '';
-//             console.log('Extracted Image URL:', image);
-//         } catch (newsErr) {
-//             console.error('Failed to fetch news page HTML or extract image:', newsErr.message);
-//             return res.status(500).send('Error fetching news content or extracting image URL.');
-//         }
-
-//         // Step 2: Communicate with the Google Gemini API to get title and description
-//         try {
-//             const response = await axios.post(
-//                 GOOGLE_GEMINI_URL + `?key=${GOOGLE_API_KEY}`,
-//                 {
-//                     contents: [
-//                         {
-//                             parts: [
-//                                 {
-//                                     text: `Rewrite the title in more than 20 words and less than 40 words and summarize the news article for description in more than 70 and less than 90 words from: ${url} in english , start the title part with T: and the description part with D:`
-//                                 }
-//                             ]
-//                         }
-//                     ]
-//                 },
-//                 {
-//                     headers: {
-//                         'Content-Type': 'application/json'
-//                     }
-//                 }
-//             );
-
-//             console.log('Google Gemini API Response:', JSON.stringify(response.data));
-
-//             const apiText = response.data.candidates?.[0]?.content?.parts?.map(part => part.text).join(' ') || '';
-//             console.log('API Text Received:', apiText);
-
-//             const titleStart = '**T:';
-//             const descStart = '**D:**';
-            
-//             const titleIndex = apiText.indexOf(titleStart);
-//             const descIndex = apiText.indexOf(descStart);
-            
-//             if (titleIndex !== -1 && descIndex !== -1) {
-//                 const title = apiText.substring(titleIndex + titleStart.length, descIndex).trim();
-//                 const description = apiText.substring(descIndex + descStart.length).trim();
-            
-//                 // console.log('Extracted Title:', title);
-//                 // console.log('Extracted Description:', description);
-//                 // console.log('Extracted Image URL:', image);
-            
-//                 return res.status(200).json({
-//                     title,
-//                     description,
-//                     image
-//                 });
-//             } else {
-//                 return res.status(500).send('Title or description could not be found in the response.');
-//             }            
-//         } catch (apiErr) {
-//             // console.error('Failed to communicate with Google Gemini API:', apiErr.message);
-//             return res.status(500).send('Failed to communicate with the Google Gemini API.');
-//         }
-//     } catch (err) {
-//         // console.error('Unexpected error:', err.message);
-//         return res.status(500).send('An unexpected error occurred.');
-//     }
-// });
-// app.post('/generate-content_hin', async (req, res) => {
-//   const { url } = req.body;
-//   let image;
-
-//   if (!url) {
-//       console.error('URL is missing in the request');
-//       return res.status(400).send('URL is missing.');
-//   }
-
-//   try {
-//       console.log('Received URL:', url);
-
-//       // Step 1: Fetch the news page HTML to get the image URL
-//       try {
-//           const newsResponse = await axios.get(url);
-//           console.log('Successfully fetched news page HTML');
-
-//           const $ = cheerio.load(newsResponse.data);
-//           image = $('meta[property="og:image"]').attr('content') || '';
-//           console.log('Extracted Image URL:', image);
-//       } catch (newsErr) {
-//           console.error('Failed to fetch news page HTML or extract image:', newsErr.message);
-//           return res.status(500).send('Error fetching news content or extracting image URL.');
-//       }
-
-//       // Step 2: Communicate with the Google Gemini API to get title and description
-//       try {
-//           const response = await axios.post(
-//               GOOGLE_GEMINI_URL + `?key=${GOOGLE_API_KEY}`,
-//               {
-//                   contents: [
-//                       {
-//                           parts: [
-//                               {
-//                                   text: `Rewrite the title in more than 20 words and less than 40 words and summarize the news article for description in more than 70 and less than 90 words from: ${url} in hindi , start the title part with T: and the description part with D:`
-//                               }
-//                           ]
-//                       }
-//                   ]
-//               },
-//               {
-//                   headers: {
-//                       'Content-Type': 'application/json'
-//                   }
-//               }
-//           );
-
-//           console.log('Google Gemini API Response:', JSON.stringify(response.data));
-
-//           const apiText = response.data.candidates?.[0]?.content?.parts?.map(part => part.text).join(' ') || '';
-//           console.log('API Text Received:', apiText);
-
-//           const titleStart = '**T:';
-//           const descStart = '**D:';
-         
-//           const titleIndex = apiText.indexOf(titleStart);
-//           const descIndex = apiText.indexOf(descStart);
-          
-//           if (titleIndex !== -1 && descIndex !== -1) {
-//               const title = apiText.substring(titleIndex + titleStart.length, descIndex).trim();
-//               const description = apiText.substring(descIndex + descStart.length).trim();
-          
-//               // console.log('Extracted Title:', title);
-//               // console.log('Extracted Description:', description);
-//               // console.log('Extracted Image URL:', image);
-          
-//               return res.status(200).json({
-//                   title,
-//                   description,
-//                   image
-//               });
-//           } else {
-//               return res.status(500).send('Title or description could not be found in the response.');
-//           }            
-//       } catch (apiErr) {
-//           // console.error('Failed to communicate with Google Gemini API:', apiErr.message);
-//           return res.status(500).send('Failed to communicate with the Google Gemini API.');
-//       }
-//   } catch (err) {
-//       // console.error('Unexpected error:', err.message);
-//       return res.status(500).send('An unexpected error occurred.');
-//   }
-// });
-
-// app.post('/rewrite_content', async (req, res) => {
-//   const { data } = req.body;
-//   if (!data) {
-//     return res.status(400).json({ message: 'Empty title data.' });
-// }
-//   try {
-   
-//     // Step 2: Communicate with the Google Gemini API to get title and description
-//       try {
-//           const response = await axios.post(
-//               GOOGLE_GEMINI_URL + `?key=${GOOGLE_API_KEY}`,
-//               {
-//                   contents: [
-//                       {
-//                           parts: [
-//                               {
-//                                   text: `Rewrite the following and start with R:" ${data}`
-//                               }
-//                           ]
-//                       }
-//                   ]
-//               },
-//               {
-//                   headers: {
-//                       'Content-Type': 'application/json'
-//                   }
-//               }
-//           );
-
-//           const apiText = response.data.candidates?.[0]?.content?.parts?.map(part => part.text).join(' ') || '';
-//           console.log(apiText);
-//           res.status(200).json({
-//             apiText
-//          });           
-//       } catch (apiErr) {
-//           console.error('Failed to communicate with Google Gemini API:', apiErr.message);
-//           return res.status(500).send('Failed to communicate with the Google Gemini API.');
-//       }
-//   } catch (err) {
-//       // console.error('Unexpected error:', err.message);
-//       return res.status(500).send('An unexpected error occurred.');
-//   }
-// });
 
 const validCredentials = [
   { username: 'Kirtiman Nanda', password: 'Kirtiman_Pass' },
@@ -917,42 +766,3 @@ async function checkUserCondition(username) {
     throw error;
   }
 }
-
-app.post('/check_user', async (req, res) => {
-  const { username } = req.body;
-  try {
-    const adminDataRef = db.ref('Admin_Data');
-    const snapshot = await adminDataRef.once('value');
-    const adminData = snapshot.val();
-
-    if (!adminData) {
-      return res.status(403).json({ success: false, message: 'Access denied. No admin data found.' });
-    }
-
-
-    for (const childKey in adminData) {
-      if (adminData.hasOwnProperty(childKey)) {
-        const childData = adminData[childKey];
-    
-        if (childData.ADMIN_NAME === username) {
-    
-          if (
-            childData.ADMIN_STATUS === 'ALLOWED' ||
-            childData.ADMIN_STATUS === 'SUPER_ALLOWED'
-          ) {
-            console.log(`Access allowed for username: ${username} with status: ${childData.ADMIN_STATUS}`);
-            return res.status(200).json({ success: true, message: 'Access allowed.' });
-          } else {
-            console.log(`Access denied for username: ${username} with status: ${childData.ADMIN_STATUS}`);
-          }
-        } else {
-          console.log(`No match for ADMIN_NAME with username: ${username} in childKey: ${childKey}`);
-        }
-      }
-    }
-    return res.status(403).json({ success: false, message: 'Access denied. User not allowed.' });
-  } catch (error) {
-    console.error('Error checking user condition:', error.message);
-    return res.status(500).json({ success: false, message: 'Server error.' });
-  }
-});
