@@ -94,14 +94,21 @@
   }
   async function getNextStudyChildKey() {
     try {
+      // Reference to the database node
       const ref = db.ref('Ques_Data');
+  
+      // Fetch the last child key in ascending order
       const snapshot = await ref.orderByKey().limitToLast(1).once('value');
   
       if (snapshot.exists()) {
+        // Get the last key in the snapshot
         const lastKey = Object.keys(snapshot.val())[0];
         const lastChildNumber = parseInt(lastKey, 10);
+  
+        // Return last child number plus 1
         return lastChildNumber + 1;
       } else {
+        // Default value if no children exist
         return 1;
       }
     } catch (error) {
