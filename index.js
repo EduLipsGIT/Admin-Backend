@@ -414,17 +414,17 @@
       const sheet = workbook.Sheets[sheetName];
       const jsonData = xlsx.utils.sheet_to_json(sheet);
       console.log('Converted JSON Data:', jsonData);
-      await uploadQuizToFirebase(jsonData);
+      await uploadQuizToFirebase(jsonData , res);
       res.json(jsonData);
     } catch (error) {
       console.error('Error processing file:', error);
       res.status(500).json({ error: 'Error processing file.', details: error.message });
     }
   });
-  async function uploadQuizToFirebase(data) {
-    const bulkRef = db.ref('News_UnApproved')
+  async function uploadQuizToFirebase(data , res) {
+    const bulkRef = db.ref('News')
     for (const item of data) {
-      const childKey = await getNextChildKey(bulkRef);
+      const childKey = await getNextChildKeySuperAdmin();
       if (childKey) {
         const itemRef = bulkRef.child(childKey.toString());
         item.Ques_in_News_Enabled = 'Yes'; 
@@ -434,6 +434,7 @@
         console.warn('Invalid child key for item:', item);
       }
     }
+    rearrangeAndUploadNewsData(res);
     console.log('Data uploaded to Firebase successfully.');
   }
   ////////////BULK STUDY DATA///////////
@@ -517,64 +518,6 @@
     console.log(`Server is running on port ${port}`);
   });
 
-  // //UPLOAD PRE MADE QUESTIONS
-  // app.post('/uploadPreMadeQues', async (req, res) => {
-  //   if (!req.files || !req.files.file) {
-  //     return res.status(400).send('No file uploaded.');
-  //   }
-  //   const file = req.files.file;
-  //   try {
-  //     const workbook = xlsx.read(file.data, { type: 'buffer' });
-  //     const sheetName = workbook.SheetNames[0];
-  //     const sheet = workbook.Sheets[sheetName];
-  //     const jsonData = xlsx.utils.sheet_to_json(sheet);
-
-  //     // Process and upload each row
-  //     for (const row of jsonData) {
-  //       const category_bk = row['Exam'];
-  //       const subject_bk = row['Chapter'];
-        
-  //       // Sanitize row before uploading
-  //       const sanitizedRow = sanitizeKeys(row);
-
-  //       // Upload each row to Firebase using these category values
-  //       await uploadPremade(sanitizedRow, category_bk, subject_bk);
-  //     }
-
-  //     res.json(jsonData);
-  //   } catch (error) {
-  //     console.error('Error processing file:', error);
-  //     res.status(500).json({ error: 'Error processing file.', details: error.message });
-  //   }
-  // });
-  // async function uploadPremade(item, category_bk, subject_bk) {
-  //   const bulkRef = db.ref('PreMade_Tests').child(category_bk).child(subject_bk);
-
-  //   const childKey = await getNextPremadeChildKey(bulkRef);
-
-  //   if (childKey) {
-  //     const itemRef = bulkRef.child(childKey.toString());
-  //     await itemRef.set(item);
-  //    } else {
-  //     console.warn('Invalid child key for item:', item);
-  //   }
-  //   console.log('Data uploaded to Firebase successfully.');
-  // }
-  // async function getNextPremadeChildKey(bulkRef) {
-  //   try {
-  //     const snapshot = await bulkRef.orderByKey().limitToFirst(1).once('value');
-  //     if (snapshot.exists()) {
-  //       const firstKey = Object.keys(snapshot.val())[0];
-  //       const firstChildNumber = parseInt(firstKey);
-  //       return firstChildNumber - 1; // Subtract 1 from the first child number
-  //     } else {
-  //       return 100000; // Default value if no children exist yet
-  //     }
-  //   } catch (error) {
-  //     console.error('Error fetching next child key:', error.message);
-  //     throw error;
-  //   }
-  // }
   
   // 1.CAT DIRECT UPLOAD ////
   async function checkTitleExistsCATEGORY(title ,category) {
