@@ -196,7 +196,7 @@ td[contenteditable="true"]:focus {
                 formData.append('file', file);
 
                 const xhr = new XMLHttpRequest();
-                xhr.open('POST', 'mhttps://author.edulips.co/uploadDailyQues', true);
+                xhr.open('POST', 'https://author.edulips.co/uploadDailyQues', true);
 
                 xhr.upload.onprogress = function (event) {
                     if (event.lengthComputable) {
