@@ -754,3 +754,65 @@ app.post('/check_user', async (req, res) => {
     return res.status(500).json({ success: false, message: 'Server error.' });
   }
 });
+
+app.post('/submit-quiz', async (req, res) => {
+  const {question, question1, question2, question3, question4, correctAnswer, description, username } = req.body;
+  const currentDate = getCurrentDate();
+
+  try {
+    const childKey = await getNextQuizChildKey();
+    await addQuizToGeneral(question , question1, question2, question3, question4, correctAnswer, description, childKey, currentDate, username);
+    res.send('Quiz added successfully');
+  } catch (error) {
+    console.error('Error adding quiz:', error.message);
+    res.status(500).send('Error adding quiz: ' + error.message);
+  }
+});
+
+//// ROUTE FOR HTTP NOTIFICATIONS REQUEST////
+app.post('/notify-user', async (req, res) => {
+  const { userToken, username} = req.body;
+
+  if (!userToken || !username) {
+      return res.status(400).json({ error: 'Missing required fields' });
+  }
+
+  try {
+      const result = await sendUserSpecificNotification(userToken, username);
+      res.status(200).json({ message: 'Notification sent successfully', result });
+  } catch (error) {
+      res.status(500).json({ error: error.message });
+  }
+});
+
+const sendUserSpecificNotification = async (userToken, username) => {
+  const uniqueNotificationId = generateUniqueId();
+  const groupKey = uuidv4();
+  const message = {
+    app_id: 'b184d4f9-341c-46d8-8c8f-f5863faaf3f0',
+    include_player_ids: [userToken],
+    headings: { en: 'Enrollment request' }, // Notification title
+    contents: { en: `${username} wants to join your institute` }, // Notification content
+     android: {
+      priority: "high",
+    },
+    android_group: uniqueNotificationId
+  };
+  try {
+    const response = await axios.post('https://onesignal.com/api/v1/notifications', message, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `ZjY3ZDExNjAtOGVkZC00NjFiLThmOTEtODU5YWIxY2I0NDUy`
+      }
+    });
+    console.log('Notification sent successfully:', response.data);
+  } catch (error) {
+    if (error.response) {
+      console.error('Error response:', error.response.data);
+    } else if (error.request) {
+      console.error('Error request:', error.request);
+    } else {
+      console.error('Error message:', error.message);
+    }
+  }
+};
