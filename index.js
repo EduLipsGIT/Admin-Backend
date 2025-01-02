@@ -776,9 +776,9 @@ const sendUserSpecificNotification = async (userToken, username) => {
   const groupKey = uuidv4();
   const message = {
     app_id: 'b184d4f9-341c-46d8-8c8f-f5863faaf3f0',
-    include_player_ids: [userToken],
+    include_player_ids: '4b97f4bd-89d7-4983-a8f3-058767824c7a',
     headings: { en: 'Enrollment request' }, // Notification title
-    contents: { en: `${username} wants to join your institute` }, // Notification content
+    contents: { en: `wants to join your institute` }, // Notification content
      android: {
       priority: "high",
     },
