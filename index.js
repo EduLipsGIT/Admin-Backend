@@ -771,19 +771,22 @@ app.post('/submit-quiz', async (req, res) => {
 
 //// ROUTE FOR HTTP NOTIFICATIONS REQUEST////
 
-const sendUserSpecificNotification = async (userToken, username) => {
+const sendUserSpecificNotification = async () => {
   const uniqueNotificationId = generateUniqueId();
   const groupKey = uuidv4();
   const message = {
     app_id: 'b184d4f9-341c-46d8-8c8f-f5863faaf3f0',
-    include_player_ids: '4b97f4bd-89d7-4983-a8f3-058767824c7a',
-    headings: { en: 'Enrollment request' }, // Notification title
-    contents: { en: `wants to join your institute` }, // Notification content
-     android: {
+    include_player_ids: ['4b97f4bd-89d7-4983-a8f3-058767824c7a'],
+    headings: { "en": 'title' },
+    contents: { "en": 'fixed_desc' },
+    big_picture: 'imagelink',
+    small_picture: 'imagelink',
+    android: {
       priority: "high",
     },
     android_group: uniqueNotificationId
   };
+  
   try {
     const response = await axios.post('https://onesignal.com/api/v1/notifications', message, {
       headers: {
@@ -802,17 +805,5 @@ const sendUserSpecificNotification = async (userToken, username) => {
     }
   }
 };
-app.post('/notifyuser', async (req, res) => {
-  const { userToken, username} = req.body;
 
-  if (!userToken || !username) {
-      return res.status(400).json({ error: 'Missing required fields' });
-  }
-
-  try {
-      const result = await sendUserSpecificNotification(userToken, username);
-      res.status(200).json({ message: 'Notification sent successfully', result });
-  } catch (error) {
-      res.status(500).json({ error: error.message });
-  }
-});
+app.get('/notify-user', sendUserSpecificNotification);  
