@@ -770,20 +770,6 @@ app.post('/submit-quiz', async (req, res) => {
 });
 
 //// ROUTE FOR HTTP NOTIFICATIONS REQUEST////
-app.post('/notify-user', async (req, res) => {
-  const { userToken, username} = req.body;
-
-  if (!userToken || !username) {
-      return res.status(400).json({ error: 'Missing required fields' });
-  }
-
-  try {
-      const result = await sendUserSpecificNotification(userToken, username);
-      res.status(200).json({ message: 'Notification sent successfully', result });
-  } catch (error) {
-      res.status(500).json({ error: error.message });
-  }
-});
 
 const sendUserSpecificNotification = async (userToken, username) => {
   const uniqueNotificationId = generateUniqueId();
@@ -816,3 +802,17 @@ const sendUserSpecificNotification = async (userToken, username) => {
     }
   }
 };
+app.post('/notifyuser', async (req, res) => {
+  const { userToken, username} = req.body;
+
+  if (!userToken || !username) {
+      return res.status(400).json({ error: 'Missing required fields' });
+  }
+
+  try {
+      const result = await sendUserSpecificNotification(userToken, username);
+      res.status(200).json({ message: 'Notification sent successfully', result });
+  } catch (error) {
+      res.status(500).json({ error: error.message });
+  }
+});
