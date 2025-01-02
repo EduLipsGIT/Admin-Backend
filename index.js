@@ -771,14 +771,14 @@ app.post('/submit-quiz', async (req, res) => {
 
 //// ROUTE FOR HTTP NOTIFICATIONS REQUEST////
   app.post('/notifyUser', async (req, res) => {
-    const { title, fixed_desc, childKey, imagelink } = req.body;
+    const { title, fixed_desc } = req.body;
 
-    if (!title || !fixed_desc || !childKey || !imagelink) {
+    if (!title || !fixed_desc) {
         return res.status(400).json({ error: 'Missing required fields' });
     }
 
     try {
-        const result = await sendUserSpecificNotification(title, fixed_desc, childKey, imagelink);
+        const result = await sendUserSpecificNotification(title, fixed_desc);
         res.status(200).json({ message: 'Notification sent successfully', result });
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -786,19 +786,14 @@ app.post('/submit-quiz', async (req, res) => {
   });
 
 
-  const sendUserSpecificNotification = async (title, fixed_desc, childKey, imagelink) => {
+  const sendUserSpecificNotification = async (title, fixed_desc) => {
     const uniqueNotificationId = generateUniqueId();
     const groupKey = uuidv4();
     const message = {
       app_id: 'b184d4f9-341c-46d8-8c8f-f5863faaf3f0',
-      include_player_ids: ['4b97f4bd-89d7-4983-a8f3-058767824c7a'],
-      headings: { "en": title },
-      contents: { "en": fixed_desc },
-      big_picture: imagelink,
-      small_picture: imagelink,
-      data: { 
-        child_key: childKey.toString(),
-      },
+      include_player_ids: [title],
+      headings: { "en": 'Enrollment Request' },
+      contents: { "en": [fixed_desc] + ' wants to join with you!' },
       android: {
         priority: "high",
       },
