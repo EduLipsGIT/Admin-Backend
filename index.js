@@ -785,13 +785,12 @@ app.post('/submit-quiz', async (req, res) => {
     }
   });
 
-
   const sendUserSpecificNotification = async (title, fixed_desc) => {
     const uniqueNotificationId = generateUniqueId();
     const groupKey = uuidv4();
     const message = {
       app_id: 'b184d4f9-341c-46d8-8c8f-f5863faaf3f0',
-      include_player_ids: [title],
+      include_player_ids: [title.trim()],
       headings: { "en": 'Enrollment Request' },
       contents: { "en": [fixed_desc] + ' wants to join with you!' },
       android: {
