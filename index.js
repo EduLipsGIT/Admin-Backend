@@ -57,6 +57,7 @@
     accessToken = accessTokenResponse.token;
   }
 
+  ///// CALCULATION OF CHILD KEYS /////
   async function getNextChildKey() {
     const ref = firestore.collection('News_UnApproved');
     const snapshot = await ref.limit(1).get();
@@ -127,8 +128,36 @@
       throw error;
     }
   }
+  async function checkTitleExistsCATEGORY(title, category) {
+    try {
+      const categoryRef = firestore.collection(category); // Reference to Firestore collection
+      const snapshot = await categoryRef.where("title", "==", title).get(); // Query Firestore for matching title
+      
+      if (!snapshot.empty) {
+        return true; // Title exists
+      }
+      return false; // Title does not exist
+    } catch (error) {
+      console.error('Error checking title existence:', error.message);
+      throw error;
+    }
+  }
+  async function checkTitleExistsLang(title, language) {
+    try {
+      const languageRef = firestore.collection(language);
+      const snapshot = await languageRef.where('title', '==', title).get();
+      if (!snapshot.empty) {
+        return true;
+      } else {
+        return false;
+      }
+    } catch (error) {
+      console.error('Error checking title existence:', error.message);
+      throw error;
+    }
+  }
   
-  // PUBLISH TO UNAPPROVED NEWS
+  //////// UPLOAD NEWS 
   async function addNewsToGeneral(title, desc, newslink, imagelink, childKey, currentDate, username, language, category) {
    
     if (await checkTitleExists(title, username)) {
@@ -184,22 +213,6 @@
       await categoryRef.doc(childKey.toString()).set(newsData);
     } catch (error) {
       console.error('Error adding news to category:', error.message);
-      throw error;
-    }
-  }
-  
-  ////2. LANG DIRECT UPLOAD///
-  async function checkTitleExistsLang(title, language) {
-    try {
-      const languageRef = firestore.collection(language);
-      const snapshot = await languageRef.where('title', '==', title).get();
-      if (!snapshot.empty) {
-        return true;
-      } else {
-        return false;
-      }
-    } catch (error) {
-      console.error('Error checking title existence:', error.message);
       throw error;
     }
   }
@@ -269,11 +282,14 @@
       res.status(500).send('Error adding news: ' + error.message);
     }
   });
+
+
+
+  ///////////////// QUIZ UPLOADS ////////////////
   async function getNextQuizChildKey(username) {
     try {
       let ref;
-    
-      if (username === "Pramod Kumar") {
+      if (username === "Pramod Kumar" || username === "Navjyoti Kumar") {
         ref = firestore.collection('News');
       } else {
         ref = firestore.collection('News_UnApproved');
@@ -436,7 +452,22 @@
     rearrangeAndUploadNewsData(res);
     console.log('Data uploaded to Firebase successfully.');
   }
-  ////////////BULK STUDY DATA///////////
+  app.post('/submit-quiz', async (req, res) => {
+    const {question, question1, question2, question3, question4, correctAnswer, description, username } = req.body;
+    const currentDate = getCurrentDate();
+  
+    try {
+      const childKey = await getNextQuizChildKey();
+      await addQuizToGeneral(question , question1, question2, question3, question4, correctAnswer, description, childKey, currentDate, username);
+      res.send('Quiz added successfully');
+    } catch (error) {
+      console.error('Error adding quiz:', error.message);
+      res.status(500).send('Error adding quiz: ' + error.message);
+    }
+  });
+
+
+  ////////////BULK UPLOADS ///////////
   app.post('/uploadStudyQues', async (req, res) => {
     if (!req.files || !req.files.file) {
       return res.status(400).send('No file uploaded.');
@@ -460,10 +491,8 @@
         console.log('Section:', section_bk);
         console.log('Chapter:', chapter_bk);
 
-        // Sanitize row before uploading
         const sanitizedRow = sanitizeKeys(row);
 
-        // Upload each row to Firebase using these category values
         await uploadToFirebase(sanitizedRow, category_bk, subject_bk, section_bk, chapter_bk);
       }
 
@@ -473,17 +502,14 @@
       res.status(500).json({ error: 'Error processing file.', details: error.message });
     }
   });
-  // Function to replace invalid characters in keys
   function sanitizeKeys(obj) {
     const sanitizedObj = {};
     for (const key in obj) {
-      // Replace invalid characters with an underscore or remove them
       const sanitizedKey = key.replace(/[.#$/\[\]]/g, '_');
       sanitizedObj[sanitizedKey] = obj[key];
     }
     return sanitizedObj;
   }
-  //BULK UPLOAD//
   async function uploadToFirebase(item, category_bk, subject_bk, section_bk, chapter_bk) {
     const bulkRef = db.ref('Ques_Data');
 
@@ -517,25 +543,11 @@
     console.log(`Server is running on port ${port}`);
   });
 
-  
-  // 1.CAT DIRECT UPLOAD ////
-  async function checkTitleExistsCATEGORY(title, category) {
-    try {
-      const categoryRef = firestore.collection(category); // Reference to Firestore collection
-      const snapshot = await categoryRef.where("title", "==", title).get(); // Query Firestore for matching title
-      
-      if (!snapshot.empty) {
-        return true; // Title exists
-      }
-      return false; // Title does not exist
-    } catch (error) {
-      console.error('Error checking title existence:', error.message);
-      throw error;
-    }
-  }
+  /////////////// CRON JOBS //////////////////////
   async function rearrangeAndUploadNewsData(res) {
+    const reorderedNewsRef = firestore.collection("News");
     try {
-      const snapshot = await reorderedNewsRef.once("value");
+      const snapshot = await reorderedNewsRef.get(); // Use .get() for Firestore
   
       const keysList = [];
       const engList = [];
@@ -543,10 +555,11 @@
       const yesList = [];
       const defaultNewsList = [];
   
-      snapshot.forEach((childSnapshot) => {
-        const quizEnabled = childSnapshot.child("Ques_in_News_Enabled").val();
-        const itemData = childSnapshot.val();
-        const key = childSnapshot.key;
+      snapshot.forEach((doc) => {
+        const itemData = doc.data();
+        const quizEnabled = itemData.Ques_in_News_Enabled;
+        const lang = itemData.lang;
+        const key = doc.id;
   
         if (itemData) {
           keysList.push(key);
@@ -554,7 +567,6 @@
           if (quizEnabled === "Yes") {
             yesList.push(itemData);
           } else {
-            const lang = childSnapshot.child("lang").val();
             if (lang === "News_Eng") {
               engList.push(itemData);
             } else if (lang === "News_Hindi") {
@@ -564,7 +576,7 @@
             }
           }
         } else {
-          console.error("ItemData is null for snapshot:", key);
+          console.error("ItemData is null for document:", key);
         }
       });
   
@@ -587,10 +599,9 @@
         if (yesIndex < yesList.length) finalList.push(yesList[yesIndex++]);
       }
   
-      const totalItems = finalList.length;
       const updatePromises = finalList.map((itemData, index) => {
-        const key = index < keysList.length ? keysList[index] : reorderedNewsRef.push().key;
-        return reorderedNewsRef.child(key).set(itemData);
+        const key = index < keysList.length ? keysList[index] : reorderedNewsRef.doc().id;
+        return reorderedNewsRef.doc(key).set(itemData);
       });
   
       await Promise.all(updatePromises);
@@ -600,21 +611,15 @@
       console.error("Error fetching data:", error.message);
       res.status(500).send("Error fetching data.");
     }
-  }
-  
+  }  
   app.get('/rearrange', (req, res) => {
     rearrangeAndUploadNewsData(res);
   });
-  
 
-  app.get('/rearrange', (req, res) => {
-    rearrangeAndUploadNewsData(res);
-  });
-  
-  /////
+
   const resetLeaderboard = async (req, res) => {
     try {
-        const leaderboardRef = firestore.ref("Live_Leaderboard");
+        const leaderboardRef = db.ref("Live_Leaderboard");
   
       // Fetch data once
       const snapshot = await leaderboardRef.once("value");
@@ -639,10 +644,9 @@
       res.status(500).send("Failed to reset leaderboard");
     }
   };
-    
-  app.get('/reset-leaderboard', resetLeaderboard);  
+app.get('/reset-leaderboard', resetLeaderboard);  
 
-
+////////////AUTHENTICATION  
 const validCredentials = [
   { username: 'Kirtiman Nanda', password: 'Kirtiman_Pass' },
   { username: 'Sonam Kumari', password: 'Sonam_Pass2024' },
@@ -746,22 +750,7 @@ app.post('/check_user', async (req, res) => {
   }
 });
 
-
-app.post('/submit-quiz', async (req, res) => {
-  const {question, question1, question2, question3, question4, correctAnswer, description, username } = req.body;
-  const currentDate = getCurrentDate();
-
-  try {
-    const childKey = await getNextQuizChildKey();
-    await addQuizToGeneral(question , question1, question2, question3, question4, correctAnswer, description, childKey, currentDate, username);
-    res.send('Quiz added successfully');
-  } catch (error) {
-    console.error('Error adding quiz:', error.message);
-    res.status(500).send('Error adding quiz: ' + error.message);
-  }
-});
-
-//// ROUTE FOR HTTP NOTIFICATIONS REQUEST////
+//// ROUTE FOR HTTP NOTIFICATION REQUESTS////
   app.post('/notifyUser', async (req, res) => {
     const { title, fixed_desc } = req.body;
 
@@ -809,6 +798,27 @@ app.post('/submit-quiz', async (req, res) => {
       }
     }
   };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 //    const rdbPath = "News";
 // // Function to copy data from RDB to Firestore
