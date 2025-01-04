@@ -1,14 +1,12 @@
+  require('dotenv').config();
   const express = require('express');
   const bodyParser = require('body-parser');
   const admin = require('firebase-admin');
   const path = require('path');
   const cors = require('cors');
   const axios = require('axios');
-  require('dotenv').config();
-  const { GoogleAuth } = require('google-auth-library');  
   const moment = require('moment-timezone');
   const cheerio = require('cheerio');
-  const GOOGLE_GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent';
   const xlsx = require('xlsx');
   const fileUpload = require('express-fileupload'); 
   admin.initializeApp({
@@ -16,25 +14,23 @@
       projectId: process.env.FIREBASE_PROJECT_ID,
       privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
       clientEmail: process.env.FIREBASE_CLIENT_EMAIL
+    
     }),
     databaseURL: `https://${process.env.FIREBASE_PROJECT_ID}-default-rtdb.firebaseio.com/`
   });
-  let accessToken = '';
   const db = admin.database();
-  const bulkRef = db.ref('News_UnApproved');
-  const reorderedNewsRef = db.ref("News");
-  const app = express();
+  const firestore = admin.firestore();
   const port = process.env.PORT || 3000;
   const fixed_desc = "Click to know more";
   const { v4: uuidv4 } = require('uuid'); 
   const { time } = require('console');
-  // Enable CORS with default options
+  const app = express();
   app.use(cors());
-  // Middleware to parse incoming request bodies
   app.use(bodyParser.urlencoded({ extended: true }));
   app.use(bodyParser.json());
-  // Middleware to serve static files (index.html, quiz.html, etc.)
   app.use(express.static(path.join(__dirname, 'public')));
+  app.use(fileUpload());
+
   async function getAccessToken() {
     const serviceAccount = {
       type: process.env.GOOGLE_SERVICE_ACCOUNT_TYPE,
@@ -49,67 +45,65 @@
       client_x509_cert_url: process.env.GOOGLE_CLIENT_CERT_URL,
       universe_domain: process.env.GOOGLE_UNIVERSE_DOMAIN
     };
+
     const auth = new GoogleAuth({
       credentials: serviceAccount,
       scopes: ['https://www.googleapis.com/auth/firebase.messaging']
     });
+
     const client = await auth.getClient();
     const accessTokenResponse = await client.getAccessToken();
     const accessToken = accessTokenResponse.token;
     accessToken = accessTokenResponse.token;
   }
 
-  ///CHILD CALCULATION///
   async function getNextChildKey() {
-    let ref = db.ref('News_UnApproved');
+    const ref = firestore.collection('News_UnApproved');
+    const snapshot = await ref.limit(1).get();
     try {
-      const snapshot = await ref.orderByKey().limitToFirst(1).once('value');
-      if (snapshot.exists()) {
-        const firstKey = Object.keys(snapshot.val())[0];
-        const firstChildNumber = parseInt(firstKey);
-        return firstChildNumber - 1; // Subtract 1 from the first child number
+      const snapshot = await ref.limit(1).get();
+      
+      if (!snapshot.empty) {
+        const firstDoc = snapshot.docs[0];
+        const firstDocId = parseInt(firstDoc.id);
+        return firstDocId - 1;
       } else {
-        return 999; // Default value if no children exist yet
+        return 999;
       }
     } catch (error) {
       console.error('Error fetching next child key:', error.message);
       throw error;
     }
   }
+
   async function getNextChildKeySuperAdmin() {
-    let ref = db.ref('News');
+    const ref = firestore.collection('News');
+    const snapshot = await ref.limit(1).get();
     try {
-      const snapshot = await ref.orderByKey().limitToFirst(1).once('value');
-      if (snapshot.exists()) {
-        const firstKey = Object.keys(snapshot.val())[0];
-        const firstChildNumber = parseInt(firstKey);
-        return firstChildNumber - 1; // Subtract 1 from the first child number
+      const snapshot = await ref.limit(1).get();
+      if (!snapshot.empty) {
+        const firstDoc = snapshot.docs[0];
+        const firstDocId = parseInt(firstDoc.id);
+        return firstDocId - 1;
       } else {
-        return 999; // Default value if no children exist yet
+        return 999;
       }
     } catch (error) {
       console.error('Error fetching next child key:', error.message);
       throw error;
     }
   }
+  
   async function getNextStudyChildKey() {
+    const ref = firestore.collection('Ques_Data');
     try {
-      // Reference to the database node
-      const ref = db.ref('Ques_Data');
-  
-      // Fetch the last child key in ascending order
-      const snapshot = await ref.orderByKey().limitToLast(1).once('value');
-  
-      if (snapshot.exists()) {
-        // Get the last key in the snapshot
-        const lastKey = Object.keys(snapshot.val())[0];
-        const lastChildNumber = parseInt(lastKey, 10);
-  
-        // Return last child number plus 1
+      const snapshot = await ref.orderBy('key_field', 'desc').limit(1).get();
+      if (!snapshot.empty) {
+        const lastDoc = snapshot.docs[0];
+        const lastChildNumber = lastDoc.data().key_field;
         return lastChildNumber + 1;
       } else {
-        // Default value if no children exist
-        return 1;
+       return 1;
       }
     } catch (error) {
       console.error('Error fetching next child key:', error.message);
@@ -117,132 +111,132 @@
     }
   }
   
-
   ///// CHECK DUPLICATION ////////
-  async function checkTitleExists(title , username) {
+  async function checkTitleExists(title, username) {
+    let newsRef;
     try {
-      let newsRef;
-      if(username == "Pramod Kumar" || username == "Navjyoti Kumar"){
-      newsRef = db.ref('News');
-      }else{
-      newsRef = db.ref('News_UnApproved');
+      if (username === "Pramod Kumar" || username === "Navjyoti Kumar") {
+        newsRef = firestore.collection('News');
+      } else {
+        newsRef = firestore.collection('News_UnApproved');
       }
-      const snapshot = await newsRef.once('value');
-      const newsItems = snapshot.val();
-      for (const key in newsItems) {
-        if (newsItems.hasOwnProperty(key)) {
-          const newsItem = newsItems[key];
-          if (newsItem.title === title) {
-            return true; // Title already exists
-          }
-        }
-      }
-      return false; // Title does not exist
+      const snapshot = await newsRef.where('title', '==', title).get();
+      return !snapshot.empty;
     } catch (error) {
       console.error('Error checking title existence:', error.message);
       throw error;
     }
   }
-
+  
   // PUBLISH TO UNAPPROVED NEWS
-  async function addNewsToGeneral(title, desc, newslink, imagelink, childKey, currentDate, username , language , category) {
-    if (await checkTitleExists(title)) {
+  async function addNewsToGeneral(title, desc, newslink, imagelink, childKey, currentDate, username, language, category) {
+   
+    if (await checkTitleExists(title, username)) {
+      console.log('Title already exists, skipping addition.');
+      return;
+    }  
+    let newsRef;
+    try {
+      if (username === "Navjyoti Kumar" || username === "Pramod Kumar") {
+        newsRef = firestore.collection('News');
+      } else {
+        newsRef = firestore.collection('News_UnApproved');
+      }
+      const currentTime = getCurrentTime();
+      const newsData = {
+        title: title,
+        desc: desc,
+        newslink: newslink,
+        imagelink: imagelink,
+        date: currentDate,
+        time: currentTime,
+        lang: category,
+        'Uploaded By': username,
+        cat: language,
+        notification_id: childKey.toString(),
+      };
+      await newsRef.doc(childKey.toString()).set(newsData);
+      console.log('News added successfully with document ID:', childKey.toString());
+    } catch (error) {
+      console.error('Error adding news:', error.message);
+      throw error;
+    }
+}
+  async function addNewsToCategory(title, desc, newslink, imagelink, category, childKey, currentDate, username, language) {
+    if (await checkTitleExistsCATEGORY(title, category)) {
       return;
     }
-    let newsRef;
-    if(username == "Navjoti Kumar" || username == "Pramod Kumar"){
-    newsRef = db.ref('News');
-    }else{
-    newsRef = db.ref('News_UnApproved');
-    }
-    const newNewsRef = newsRef.child(childKey.toString());
-    const currentTime = getCurrentTime();
-    await newNewsRef.set({
-      title: title,
-      desc: desc,
-      newslink: newslink,
-      imagelink: imagelink,
-      date: currentDate,
-      time: currentTime,
-      'lang' : category , 
-      'Uploaded By': username,
-      'cat': language,
-      'notification_id' : childKey.toString()
-    });
-  }
-
-  async function addNewsToCategory(title, desc, newslink, imagelink, category, childKey, currentDate, username , language , category) {
-    if (await checkTitleExistsCATEGORY(title , category)) {
-        return;
-    }
-    const categoryRef = db.ref(category);
-    const currentTime = getCurrentTime();
-    const newCategoryRef = categoryRef.child(childKey.toString());
-    await newCategoryRef.set({
-      title: title,
-      desc: desc,
-      newslink: newslink,
-      imagelink: imagelink,
-      date: currentDate,
-      time: currentTime,
-      'lang' : category , 
-      'Uploaded By': username,
-      'cat': language,
-      'notification_id' : childKey.toString()
-    });
-  }
-
-  ////2. LANG DIRECT UPLOAD///
-  async function checkTitleExistsLang(title , language) {
+    const categoryRef = firestore.collection(category); 
     try {
-      const languageRef = db.ref(language);
-      const snapshot = await languageRef.once('value');
-      const newsItems = snapshot.val();
-      for (const key in newsItems) {
-        if (newsItems.hasOwnProperty(key)) {
-          const newsItem = newsItems[key];
-          if (newsItem.title === title) {
-            return true; // Title already exists
-          }
-        }
+      const currentTime = getCurrentTime();
+      const newsData = {
+        title: title,
+        desc: desc,
+        newslink: newslink,
+        imagelink: imagelink,
+        date: currentDate,
+        time: currentTime,
+        lang: category,
+        'Uploaded By': username,
+        cat: language,
+        notification_id: childKey.toString(),
+      };
+      await categoryRef.doc(childKey.toString()).set(newsData);
+    } catch (error) {
+      console.error('Error adding news to category:', error.message);
+      throw error;
+    }
+  }
+  
+  ////2. LANG DIRECT UPLOAD///
+  async function checkTitleExistsLang(title, language) {
+    try {
+      const languageRef = firestore.collection(language);
+      const snapshot = await languageRef.where('title', '==', title).get();
+      if (!snapshot.empty) {
+        return true;
+      } else {
+        return false;
       }
-      return false; // Title does not exist
     } catch (error) {
       console.error('Error checking title existence:', error.message);
       throw error;
     }
   }
-  async function addNewsToLanguage(title, desc, newslink, imagelink, language, childKey, currentDate, username , language , category) {
+  
+  async function addNewsToLanguage(title, desc, newslink, imagelink, language, childKey, currentDate, username, category) {
     if (await checkTitleExistsLang(title, language)) {
       return;
     }
-    const languageRef = db.ref(language);
-    const newLanguageRef = languageRef.child(childKey.toString());
-    const currentTime = getCurrentTime();
-    await newLanguageRef.set({
-      title: title,
-      desc: desc,
-      newslink: newslink,
-      imagelink: imagelink,
-      date: currentDate,
-      time: currentTime,
-      'lang' : category , 
-      'Uploaded By': username,
-      'cat': language,
-      'notification_id' : childKey.toString()
-    });
+    const languageRef = firestore.collection(language); 
+    try {
+      const currentTime = getCurrentTime();
+      const newsData = {
+        title: title,
+        desc: desc,
+        newslink: newslink,
+        imagelink: imagelink,
+        date: currentDate,
+        time: currentTime,
+        lang: category,
+        'Uploaded By': username,
+        cat: language,
+        notification_id: childKey.toString(),
+      };
+      await languageRef.doc(childKey.toString()).set(newsData);
+    } catch (error) {
+      console.error('Error adding news to language:', error.message);
+      throw error;
+    }
   }
-
-  // Function to get current date
+  
   function getCurrentDate() {
     const today = new Date();
     const year = today.getFullYear();
-    const month = String(today.getMonth() + 1).padStart(2, '0'); // Months are zero-based
+    const month = String(today.getMonth() + 1).padStart(2, '0'); 
     const day = String(today.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
   }
-
-  // Function to get current time
   function getCurrentTime() {
   const indiaTime = moment.tz("Asia/Kolkata").format("h:mm A");
   return indiaTime;
@@ -252,42 +246,42 @@
     const { title, desc, newslink, imagelink, category, language, username } = req.body;
     const currentDate = getCurrentDate();
     try {
-      const uniqueId = generateUniqueId();
-      const titleExists = await checkTitleExists(title , username);
+       const titleExists = await checkTitleExists(title, username);
       if (titleExists) {
         res.send('News Already Exists!');
         return;
       }
-      if(username == "Navjyoti Kumar" || username == "Pramod Kumar"){
+      if (username === "Navjyoti Kumar" || username === "Pramod Kumar") {
         const childKey = await getNextChildKeySuperAdmin();
-        await addNewsToCategory(title, desc, newslink, imagelink, category, childKey, currentDate, username, category , language , getCurrentTime());
-        await addNewsToLanguage(title, desc, newslink, imagelink, language, childKey, currentDate, username, category , language , getCurrentTime());
-        await addNewsToGeneral(title, desc, newslink, imagelink, childKey, currentDate, username, category , language , getCurrentTime());
-        await sendNotification( title, fixed_desc , childKey , imagelink);  
-      }else{ 
+    
+        await addNewsToCategory(title, desc, newslink, imagelink, category, childKey, currentDate, username, category, language);
+        await addNewsToLanguage(title, desc, newslink, imagelink, language, childKey, currentDate, username, category);
+        await addNewsToGeneral(title, desc, newslink, imagelink, childKey, currentDate, username, category, language);  
+      // Send notification
+      await sendNotification(title, fixed_desc, childKey, imagelink);
+      } else {
         const childKey = await getNextChildKey();
-        await addNewsToGeneral(title, desc, newslink, imagelink, childKey, currentDate, username, category , language , getCurrentTime());
-      } 
+        await addNewsToGeneral(title, desc, newslink, imagelink, childKey, currentDate, username, category, language);
+      }
       res.send('News added Successfully!');
     } catch (error) {
       console.error('Error adding news:', error.message);
       res.status(500).send('Error adding news: ' + error.message);
     }
   });
-
-  ////SPECIFIC ADMIN 
   async function getNextQuizChildKey(username) {
     try {
       let ref;
-      if(username == "Pramod Kumar"){
-      ref = db.ref('News');
-      }else{
-      ref = db.ref('News_UnApproved');
+    
+      if (username === "Pramod Kumar") {
+        ref = firestore.collection('News');
+      } else {
+        ref = firestore.collection('News_UnApproved');
       }
-      const snapshot = await ref.orderByKey().limitToFirst(1).once('value');
-      if (snapshot.exists()) {
-        const firstKey = Object.keys(snapshot.val())[0];
-        const firstChildNumber = parseInt(firstKey);
+      const snapshot = await ref.orderBy('notification_id').limit(1).get();
+      if (!snapshot.empty) {
+        const firstDoc = snapshot.docs[0];
+        const firstChildNumber = parseInt(firstDoc.id, 10); 
         return firstChildNumber - 1;
       } else {
         return 999;
@@ -297,38 +291,44 @@
       throw error;
     }
   }
-  // Function to add quiz to the general 'Quizzes' reference
-  async function addQuizToGeneral(question , question1, question2, question3, question4, correctAnswer, description, childKey, currentDate, username) {
-    let quizzesRef;
-    if(username == "Admin_1"){
-      quizzesRef = db.ref('News');
-    }else{
-      quizzesRef = db.ref('News_UnApproved');
+  
+  async function addQuizToGeneral(question, question1, question2, question3, question4, correctAnswer, description, childKey, currentDate, username) {
+    try {
+      let quizzesRef;
+      if (username === "Admin_1") {
+        quizzesRef = firestore.collection('News');
+      } else {
+        quizzesRef = firestore.collection('News_UnApproved');
+      }
+      if (correctAnswer === "Option 1") {
+        correctAnswer = question1;
+      } else if (correctAnswer === "Option 2") {
+        correctAnswer = question2;
+      } else if (correctAnswer === "Option 3") {
+        correctAnswer = question3;
+      } else if (correctAnswer === "Option 4") {
+        correctAnswer = question4;
+      }
+      const newQuizRef = quizzesRef.doc(childKey.toString());  
+      await newQuizRef.set({
+        ques: question,
+        opt1: question1,
+        opt2: question2,
+        opt3: question3,
+        opt4: question4,
+        CorrectAns: correctAnswer,
+        desc_quiz: description,
+        date: currentDate,
+        'Uploaded By': username,
+        'Ques_in_News_Enabled': 'Yes'
+      });
+      
+    } catch (error) {
+      console.error('Error adding quiz to Firestore:', error.message);
+      throw error;
     }
-    const newQuizRef = quizzesRef.child(childKey.toString());
-    if(correctAnswer == "Option 1 "){
-      correctAnswer = question1
-    }else if (correctAnswer == "Option 2"){
-      correctAnswer = question2
-    }else if (correctAnswer == "Option 3"){
-      correctAnswer = question3
-    }else if (correctAnswer == "Option 4"){
-      correctAnswer = question4
-    };
-    await newQuizRef.set({
-      ques: question,
-      opt1: question1,
-      opt2: question2,
-      opt3: question3,
-      opt4: question4,
-      CorrectAns: correctAnswer,
-      desc_quiz: description,
-      date: currentDate,
-      'Uploaded By': username,
-      'Ques_in_News_Enabled' : 'Yes'
-    });
   }
-
+  
   app.post('/submit-quiz', async (req, res) => {
     const {question, question1, question2, question3, question4, correctAnswer, description, username } = req.body;
     const currentDate = getCurrentDate();
@@ -360,7 +360,7 @@
   });
 
   const generateUniqueId = () => {
-    return uuidv4(); // Generate a unique ID
+    return uuidv4();
   };
 
   const sendNotification = async (title, fixed_desc, childKey, imagelink) => {
@@ -401,7 +401,6 @@
     }
   };
 
-  app.use(fileUpload());
   /////////BULK QUIZ UPLOAD//////////
   app.post('/uploadDailyQues', async (req, res) => {
     if (!req.files || !req.files.file) {
@@ -422,7 +421,7 @@
     }
   });
   async function uploadQuizToFirebase(data , res) {
-    const bulkRef = db.ref('News')
+    const bulkRef = firestore.collection('News')
     for (const item of data) {
       const childKey = await getNextChildKeySuperAdmin();
       if (childKey) {
@@ -520,18 +519,13 @@
 
   
   // 1.CAT DIRECT UPLOAD ////
-  async function checkTitleExistsCATEGORY(title ,category) {
+  async function checkTitleExistsCATEGORY(title, category) {
     try {
-      const categoryRef = db.ref(category);
-      const snapshot = await categoryRef.once('value');
-      const newsItems = snapshot.val();
-      for (const key in newsItems) {
-        if (newsItems.hasOwnProperty(key)) {
-          const newsItem = newsItems[key];
-          if (newsItem.title === title) {
-            return true; // Title already exists
-          }
-        }
+      const categoryRef = firestore.collection(category); // Reference to Firestore collection
+      const snapshot = await categoryRef.where("title", "==", title).get(); // Query Firestore for matching title
+      
+      if (!snapshot.empty) {
+        return true; // Title exists
       }
       return false; // Title does not exist
     } catch (error) {
@@ -539,30 +533,28 @@
       throw error;
     }
   }
+  async function rearrangeAndUploadNewsData(res) {
+    try {
+      const snapshot = await reorderedNewsRef.once("value");
   
-  // Function to Rearrange and Upload News Data
-  function rearrangeAndUploadNewsData(res) {
-    // Fetch all children
-    reorderedNewsRef.once("value", (snapshot) => {
       const keysList = [];
       const engList = [];
       const hindiList = [];
       const yesList = [];
       const defaultNewsList = [];
-
+  
       snapshot.forEach((childSnapshot) => {
         const quizEnabled = childSnapshot.child("Ques_in_News_Enabled").val();
         const itemData = childSnapshot.val();
         const key = childSnapshot.key;
-
+  
         if (itemData) {
           keysList.push(key);
-
+  
           if (quizEnabled === "Yes") {
             yesList.push(itemData);
           } else {
             const lang = childSnapshot.child("lang").val();
-
             if (lang === "News_Eng") {
               engList.push(itemData);
             } else if (lang === "News_Hindi") {
@@ -575,47 +567,45 @@
           console.error("ItemData is null for snapshot:", key);
         }
       });
-
+  
       const finalList = [];
       let engIndex = 0, hindiIndex = 0, yesIndex = 0;
-
-      // Arrange items in the final order
+  
       while (engIndex < engList.length || hindiIndex < hindiList.length || yesIndex < yesList.length) {
         if (hindiIndex < hindiList.length) finalList.push(hindiList[hindiIndex++]);
         else if (defaultNewsList.length > 0) finalList.push(defaultNewsList.shift());
-
+  
         if (engIndex < engList.length) finalList.push(engList[engIndex++]);
         else if (defaultNewsList.length > 0) finalList.push(defaultNewsList.shift());
-
+  
         if (hindiIndex < hindiList.length) finalList.push(hindiList[hindiIndex++]);
         else if (defaultNewsList.length > 0) finalList.push(defaultNewsList.shift());
-
+  
         if (engIndex < engList.length) finalList.push(engList[engIndex++]);
         else if (defaultNewsList.length > 0) finalList.push(defaultNewsList.shift());
-
+  
         if (yesIndex < yesList.length) finalList.push(yesList[yesIndex++]);
       }
-
+  
       const totalItems = finalList.length;
-
-      finalList.forEach((itemData, index) => {
+      const updatePromises = finalList.map((itemData, index) => {
         const key = index < keysList.length ? keysList[index] : reorderedNewsRef.push().key;
-        reorderedNewsRef.child(key).set(itemData, (error) => {
-          if (error) {
-            console.error("Failed to upload item:", itemData, "-", error);
-          } else {
-            if (index === totalItems - 1) {
-              console.log("Upload Complete");
-              res.status(200).send("Rearranged and uploaded news data.");
-            }
-          }
-        });
+        return reorderedNewsRef.child(key).set(itemData);
       });
-    }, (error) => {
+  
+      await Promise.all(updatePromises);
+      console.log("Upload Complete");
+      res.status(200).send("Rearranged and uploaded news data.");
+    } catch (error) {
       console.error("Error fetching data:", error.message);
       res.status(500).send("Error fetching data.");
-    });
+    }
   }
+  
+  app.get('/rearrange', (req, res) => {
+    rearrangeAndUploadNewsData(res);
+  });
+  
 
   app.get('/rearrange', (req, res) => {
     rearrangeAndUploadNewsData(res);
@@ -624,34 +614,32 @@
   /////
   const resetLeaderboard = async (req, res) => {
     try {
-      const db = admin.database();
-      const leaderboardRef = db.ref("Live_Leaderboard");
-
+        const leaderboardRef = firestore.ref("Live_Leaderboard");
+  
       // Fetch data once
       const snapshot = await leaderboardRef.once("value");
-
-      if (snapshot.exists()) {
-        // Iterate through each child
-        const updates = {};
-        snapshot.forEach((childSnapshot) => {
-          const key = childSnapshot.key;
-          updates[`${key}/points`] = 0;
-          updates[`${key}/attempts`] = 0;
-        });
-
-        // Update all children at once
-        await leaderboardRef.update(updates);
-
-        // Respond with success
-        res.status(200).send("Reset complete successfully");
-      } else {
-        res.status(404).send("No data found under Live_Leaderboard");
+  
+      if (!snapshot.exists()) {
+        return res.status(404).send("No data found under Live_Leaderboard");
       }
+  
+      // Prepare updates for all players
+      const updates = {};
+      snapshot.forEach((childSnapshot) => {
+        const key = childSnapshot.key;
+        updates[`${key}/points`] = 0;
+        updates[`${key}/attempts`] = 0;
+      });
+  
+      // Update all children at once
+      await leaderboardRef.update(updates);
+      res.status(200).send("Reset complete successfully");
     } catch (error) {
       console.error("Error resetting leaderboard:", error);
       res.status(500).send("Failed to reset leaderboard");
     }
   };
+    
   app.get('/reset-leaderboard', resetLeaderboard);  
 
 
@@ -688,38 +676,40 @@ app.post('/validate_login', async (req, res) => {
 
 async function checkUserCondition(username) {
   try {
-    const adminDataRef = db.ref('Admin_Data');
+    const adminDataRef = firestore.ref('Admin_Data');
     const snapshot = await adminDataRef.once('value');
     const adminData = snapshot.val();
 
+    // Early exit if no data exists
     if (!adminData) {
       console.log('Admin_Data is empty.');
-      return false; // No data exists
+      return false;
     }
 
+    // Check if the user exists with the correct status
     for (const childKey in adminData) {
       if (adminData.hasOwnProperty(childKey)) {
         const childData = adminData[childKey];
-
-        if (childData.ADMIN_NAME === username) {
-          if (
-            childData.ADMIN_STATUS === 'ALLOWED' ||
-            childData.ADMIN_STATUS === 'SUPER_ALLOWED'
-          ) {
-            return true; // User is allowed
-          }
+        
+        // Early return if username matches and status is allowed
+        if (childData.ADMIN_NAME === username &&
+            (childData.ADMIN_STATUS === 'ALLOWED' || childData.ADMIN_STATUS === 'SUPER_ALLOWED')) {
+          return true;
         }
       }
     }
+
     return false;
   } catch (error) {
-    throw error;
+    console.error('Error checking user condition:', error.message);
+    throw error; // Re-throw to allow the caller to handle it
   }
 }
+
 app.post('/check_user', async (req, res) => {
   const { username } = req.body;
   try {
-    const adminDataRef = db.ref('Admin_Data');
+    const adminDataRef = firestore.ref('Admin_Data');
     const snapshot = await adminDataRef.once('value');
     const adminData = snapshot.val();
 
@@ -727,33 +717,35 @@ app.post('/check_user', async (req, res) => {
       return res.status(403).json({ success: false, message: 'Access denied. No admin data found.' });
     }
 
-
+    // Iterate through admin data to find the user
     for (const childKey in adminData) {
       if (adminData.hasOwnProperty(childKey)) {
         const childData = adminData[childKey];
 
+        // Check if the username matches
         if (childData.ADMIN_NAME === username) {
-
-          if (
-            childData.ADMIN_STATUS === 'ALLOWED' ||
-            childData.ADMIN_STATUS === 'SUPER_ALLOWED'
-          ) {
+          // Check the user's status
+          if (childData.ADMIN_STATUS === 'ALLOWED' || childData.ADMIN_STATUS === 'SUPER_ALLOWED') {
             console.log(`Access allowed for username: ${username} with status: ${childData.ADMIN_STATUS}`);
             return res.status(200).json({ success: true, message: 'Access allowed.' });
           } else {
             console.log(`Access denied for username: ${username} with status: ${childData.ADMIN_STATUS}`);
+            return res.status(403).json({ success: false, message: 'Access denied. User not allowed.' });
           }
-        } else {
-          console.log(`No match for ADMIN_NAME with username: ${username} in childKey: ${childKey}`);
         }
       }
     }
-    return res.status(403).json({ success: false, message: 'Access denied. User not allowed.' });
+
+    // If no matching user is found
+    console.log(`No match for ADMIN_NAME with username: ${username}`);
+    return res.status(403).json({ success: false, message: 'Access denied. User not found.' });
+
   } catch (error) {
     console.error('Error checking user condition:', error.message);
     return res.status(500).json({ success: false, message: 'Server error.' });
   }
 });
+
 
 app.post('/submit-quiz', async (req, res) => {
   const {question, question1, question2, question3, question4, correctAnswer, description, username } = req.body;
@@ -817,3 +809,41 @@ app.post('/submit-quiz', async (req, res) => {
       }
     }
   };
+
+  // const firestore = admin.firestore();
+  // const rdbPath = "News";
+
+// Function to copy data from RDB to Firestore
+// async function transferData() {
+//   try {
+//     // Fetch data from Realtime Database
+//     const rdbRef = db.ref(rdbPath);
+//     const snapshot = await rdbRef.once("value");
+//     const data = snapshot.val();
+
+//     if (data) {
+//       console.log(`Data fetched from Realtime Database at ${rdbPath}:`);
+//       console.log(data);
+
+//       // Loop through the data and write it to Firestore
+//       const firestoreRef = firestore.collection(rdbPath); // Firestore collection name
+//       const promises = [];
+
+//       Object.keys(data).forEach((key) => {
+//         // Writing each record as a document in Firestore with the same ID as in RDB
+//         const docRef = firestoreRef.doc(key);
+//         promises.push(docRef.set(data[key]));
+//       });
+
+//       // Wait for all writes to finish
+//       await Promise.all(promises);
+
+//       console.log("Data successfully transferred to Firestore!");
+//     } else {
+//       console.log("No data found at the specified Realtime Database path.");
+//     }
+//   } catch (error) {
+//     console.error("Error transferring data:", error);
+//   }
+// }
+// transferData()
