@@ -676,7 +676,7 @@ app.post('/validate_login', async (req, res) => {
 
 async function checkUserCondition(username) {
   try {
-    const adminDataRef = firestore.ref('Admin_Data');
+    const adminDataRef = db.ref('Admin_Data');
     const snapshot = await adminDataRef.once('value');
     const adminData = snapshot.val();
 
@@ -709,7 +709,7 @@ async function checkUserCondition(username) {
 app.post('/check_user', async (req, res) => {
   const { username } = req.body;
   try {
-    const adminDataRef = firestore.ref('Admin_Data');
+    const adminDataRef = db.ref('Admin_Data');
     const snapshot = await adminDataRef.once('value');
     const adminData = snapshot.val();
 
@@ -810,10 +810,8 @@ app.post('/submit-quiz', async (req, res) => {
     }
   };
 
-  // const firestore = admin.firestore();
-  // const rdbPath = "News";
-
-// Function to copy data from RDB to Firestore
+//    const rdbPath = "News";
+// // Function to copy data from RDB to Firestore
 // async function transferData() {
 //   try {
 //     // Fetch data from Realtime Database
