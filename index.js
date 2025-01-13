@@ -96,21 +96,22 @@
   }
   
   async function getNextStudyChildKey() {
-    const ref = firestore.collection('Ques_Data');
+    const ref = db.ref('Ques_Data');
     try {
-      const snapshot = await ref.orderBy('key_field', 'desc').limit(1).get();
-      if (!snapshot.empty) {
-        const lastDoc = snapshot.docs[0];
-        const lastChildNumber = lastDoc.data().key_field;
-        return lastChildNumber + 1;
+      const snapshot = await ref.orderByKey().limitToLast(1).once('value');
+      if (snapshot.exists()) {
+        const lastKey = Object.keys(snapshot.val())[0];
+        const lastChildNumber = parseInt(lastKey, 10);
+        return isNaN(lastChildNumber) ? 1 : lastChildNumber + 1;
       } else {
-       return 1;
+        return 1;
       }
     } catch (error) {
       console.error('Error fetching next child key:', error.message);
       throw error;
     }
   }
+  
   
   ///// CHECK DUPLICATION ////////
   async function checkTitleExists(title, username) {
@@ -481,18 +482,18 @@
 
       // Process and upload each row
       for (const row of jsonData) {
-        const category_bk = row['Exam/Category'];
-        const subject_bk = row['Subject'];
-        const section_bk = row['Section'];
-        const chapter_bk = row['Chapter'];
-
+        const category_bk = row['Exam/Category']?.trim().replace(/[\/]/g, '_'); // Replace '/' with '_'
+        const subject_bk = row['Subject']?.trim().replace(/[\/]/g, '_');
+        const section_bk = row['Section']?.trim().replace(/[\/]/g, '_');
+        const chapter_bk = row['Chapter']?.trim().replace(/[\/]/g, '_');
+      
         console.log('Category:', category_bk);
         console.log('Subject:', subject_bk);
         console.log('Section:', section_bk);
         console.log('Chapter:', chapter_bk);
-
+      
         const sanitizedRow = sanitizeKeys(row);
-
+      
         await uploadToFirebase(sanitizedRow, category_bk, subject_bk, section_bk, chapter_bk);
       }
 
@@ -505,11 +506,13 @@
   function sanitizeKeys(obj) {
     const sanitizedObj = {};
     for (const key in obj) {
-      const sanitizedKey = key.replace(/[.#$/\[\]]/g, '_');
-      sanitizedObj[sanitizedKey] = obj[key];
+      const trimmedKey = key.trim();
+      const sanitizedKey = trimmedKey.replace(/[.#$/\[\]]/g, '_');
+      sanitizedObj[sanitizedKey] = typeof obj[key] === 'string' ? obj[key].trim() : obj[key];
     }
     return sanitizedObj;
   }
+  
   async function uploadToFirebase(item, category_bk, subject_bk, section_bk, chapter_bk) {
     const bulkRef = db.ref('Ques_Data');
 
@@ -800,10 +803,33 @@ app.post('/check_user', async (req, res) => {
   };
 
 
-
-
-
-
+//   const fixExams = async (req, res) => {
+//     try {
+//         const leaderboardRef = db.ref("Questions_Data").child("competitive").child("Economics").child("indian economy").child("Money Banking and Financial Institutions");
+  
+//       // Fetch data once
+//       const snapshot = await leaderboardRef.once("value");
+  
+//       if (!snapshot.exists()) {
+//         return res.status(404).send("No data found under Live_Leaderboard");
+//       }
+  
+//       // Prepare updates for all players
+//       const updates = {};
+//       snapshot.forEach((childSnapshot) => {
+//         const key = childSnapshot.key;
+//         updates[`${key}/category`] = 'competitive';
+//       });
+  
+//       // Update all children at once
+//       await leaderboardRef.update(updates);
+//       res.status(200).send("Reset complete successfully");
+//     } catch (error) {
+//       console.error("Error resetting leaderboard:", error);
+//       res.status(500).send("Failed to reset leaderboard");
+//     }
+//   };
+// app.get('/fixExams', fixExams);  
 
 
 
