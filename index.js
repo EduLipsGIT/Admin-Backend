@@ -337,7 +337,8 @@
         desc_quiz: description,
         date: currentDate,
         'Uploaded By': username,
-        'Ques_in_News_Enabled': 'Yes'
+        'Ques_in_News_Enabled': 'Yes',
+        'notification_id' : childKey
       });
       
     } catch (error) {
@@ -445,6 +446,7 @@
         const itemRef = bulkRef.child(childKey.toString());
         item.Ques_in_News_Enabled = 'Yes'; 
         item['Uploaded By']  = 'Bulk_Upload'; 
+        item['notification_id']  = childKey.toString(); 
         await itemRef.set(item);
       } else {
         console.warn('Invalid child key for item:', item);
@@ -803,33 +805,52 @@ app.post('/check_user', async (req, res) => {
   };
 
 
-//   const fixExams = async (req, res) => {
+//   const fixQuizes = async (req, res) => {
 //     try {
-//         const leaderboardRef = db.ref("Questions_Data").child("competitive").child("Economics").child("indian economy").child("Money Banking and Financial Institutions");
-  
-//       // Fetch data once
-//       const snapshot = await leaderboardRef.once("value");
-  
-//       if (!snapshot.exists()) {
-//         return res.status(404).send("No data found under Live_Leaderboard");
-//       }
-  
-//       // Prepare updates for all players
-//       const updates = {};
-//       snapshot.forEach((childSnapshot) => {
-//         const key = childSnapshot.key;
-//         updates[`${key}/category`] = 'competitive';
-//       });
-  
-//       // Update all children at once
-//       await leaderboardRef.update(updates);
-//       res.status(200).send("Reset complete successfully");
+//         const newsRef = firestore.collection('News');
+
+//         // Fetch all documents in the News collection
+//         const snapshot = await newsRef.get();
+
+//         if (snapshot.empty) {
+//             return res.status(404).send("No data found under News");
+//         }
+
+//         // Prepare updates
+//         const updates = [];
+//         snapshot.forEach((doc) => {
+//             const data = doc.data();
+
+//             // Check if "Ques_in_News_Enabled" exists and is "Yes"
+//             if (data.Ques_in_News_Enabled && data.Ques_in_News_Enabled.toLowerCase() === "yes") {
+//                 // Generate a random 5-letter ID
+//                 const randomId = Math.random().toString(36).substring(2, 7).toUpperCase();
+//                 updates.push({
+//                     ref: doc.ref,
+//                     data: { notification_id: randomId }
+//                 });
+//             }
+//         });
+
+//         // Update the database
+//         if (updates.length > 0) {
+//             const batch = firestore.batch();
+//             updates.forEach(update => {
+//                 batch.update(update.ref, update.data);
+//             });
+//             await batch.commit();
+//             res.status(200).send("Update completed successfully");
+//         } else {
+//             res.status(200).send("No updates needed");
+//         }
+
 //     } catch (error) {
-//       console.error("Error resetting leaderboard:", error);
-//       res.status(500).send("Failed to reset leaderboard");
+//         console.error("Error updating news items:", error);
+//         res.status(500).send("Failed to update news items");
 //     }
-//   };
-// app.get('/fixExams', fixExams);  
+// };
+// app.get('/fixQuizes', fixQuizes);
+ 
 
 
 
