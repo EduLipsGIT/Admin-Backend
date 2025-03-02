@@ -771,14 +771,14 @@ app.post('/check_user', async (req, res) => {
     }
   });
 
-  const sendUserSpecificNotification = async (title, fixed_desc) => {
+  const sendUserSpecificNotification = async (title, fixed_desc , message) => {
     const uniqueNotificationId = generateUniqueId();
     const groupKey = uuidv4();
     const message = {
       app_id: 'b184d4f9-341c-46d8-8c8f-f5863faaf3f0',
       include_player_ids: [title.trim()],
       headings: { "en": 'Enrollment Request' },
-      contents: { "en": [fixed_desc] + ' wants to join with you!' },
+      contents: { "en": message },
       android: {
         priority: "high",
       },
@@ -807,14 +807,17 @@ app.post('/check_user', async (req, res) => {
 
 //   const fixQuizes = async (req, res) => {
 //     try {
-//         const newsRef = firestore.collection('News');
+//         const newsRef = firestore.collection('News_Hindi');
 
 //         // Fetch all documents in the News collection
 //         const snapshot = await newsRef.get();
 
 //         if (snapshot.empty) {
+//             console.log("No data found under News");
 //             return res.status(404).send("No data found under News");
 //         }
+
+//         let quizItemCount = 0;
 
 //         // Prepare updates
 //         const updates = [];
@@ -823,33 +826,22 @@ app.post('/check_user', async (req, res) => {
 
 //             // Check if "Ques_in_News_Enabled" exists and is "Yes"
 //             if (data.Ques_in_News_Enabled && data.Ques_in_News_Enabled.toLowerCase() === "yes") {
-//                 // Generate a random 5-letter ID
-//                 const randomId = Math.random().toString(36).substring(2, 7).toUpperCase();
-//                 updates.push({
-//                     ref: doc.ref,
-//                     data: { notification_id: randomId }
-//                 });
+//                 quizItemCount++;
+//                 console.log(`Quiz enabled for: ${doc.id}`);
 //             }
 //         });
 
-//         // Update the database
-//         if (updates.length > 0) {
-//             const batch = firestore.batch();
-//             updates.forEach(update => {
-//                 batch.update(update.ref, update.data);
-//             });
-//             await batch.commit();
-//             res.status(200).send("Update completed successfully");
-//         } else {
-//             res.status(200).send("No updates needed");
-//         }
-
+//         console.log(`Total quizzes enabled: ${quizItemCount}`);
+//         res.send(`Total quizzes enabled: ${quizItemCount}`);
+        
 //     } catch (error) {
 //         console.error("Error updating news items:", error);
 //         res.status(500).send("Failed to update news items");
 //     }
 // };
+
 // app.get('/fixQuizes', fixQuizes);
+
  
 
 
