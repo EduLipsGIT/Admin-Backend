@@ -778,7 +778,7 @@ app.post('/check_user', async (req, res) => {
       app_id: 'b184d4f9-341c-46d8-8c8f-f5863faaf3f0',
       include_player_ids: [title.trim()],
       headings: { "en": 'Enrollment Request' },
-      contents: { "en": "h " + message_fixed.trim() },
+      contents: { "en":  message_fixed.trim()},
       android: {
         priority: "high",
       },
