@@ -757,28 +757,28 @@ app.post('/check_user', async (req, res) => {
 
 //// ROUTE FOR HTTP NOTIFICATION REQUESTS////
   app.post('/notifyUser', async (req, res) => {
-    const { title, fixed_desc } = req.body;
+    const { title, fixed_desc , message_fixed } = req.body;
 
     if (!title || !fixed_desc) {
         return res.status(400).json({ error: 'Missing required fields' });
     }
 
     try {
-        const result = await sendUserSpecificNotification(title, fixed_desc);
+        const result = await sendUserSpecificNotification(title, fixed_desc , message_fixed);
         res.status(200).json({ message: 'Notification sent successfully', result });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
   });
 
-  const sendUserSpecificNotification = async (title, fixed_desc , message) => {
+  const sendUserSpecificNotification = async (title, fixed_desc , message_fixed) => {
     const uniqueNotificationId = generateUniqueId();
     const groupKey = uuidv4();
     const message = {
       app_id: 'b184d4f9-341c-46d8-8c8f-f5863faaf3f0',
       include_player_ids: [title.trim()],
       headings: { "en": 'Enrollment Request' },
-      contents: { "en": message },
+      contents: { "en": message_fixed },
       android: {
         priority: "high",
       },
