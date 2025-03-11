@@ -307,7 +307,7 @@ function handleLogout() {
             const data = Object.fromEntries(formData.entries());
             data.username = username;
 
-            fetch('https://author.edulips.com/submit-news', {
+            fetch('/submit-news', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'

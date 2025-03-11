@@ -2,13 +2,18 @@
   const express = require('express');
   const bodyParser = require('body-parser');
   const admin = require('firebase-admin');
+  const { IgApiClient } = require('instagram-private-api');
+const { get } = require('request-promise');
+const fs = require("fs");
   const path = require('path');
   const cors = require('cors');
   const axios = require('axios');
   const moment = require('moment-timezone');
   const cheerio = require('cheerio');
   const xlsx = require('xlsx');
-  const fileUpload = require('express-fileupload'); 
+  const fileUpload = require('express-fileupload');
+  const sessionPath = "./session.json";
+ 
   admin.initializeApp({
     credential: admin.credential.cert({
       projectId: process.env.FIREBASE_PROJECT_ID,
@@ -56,6 +61,16 @@
     const accessToken = accessTokenResponse.token;
     accessToken = accessTokenResponse.token;
   }
+////INSTA LOGIN
+async function loginWithSession(ig) {
+  if (fs.existsSync(sessionPath)) {
+      const session = JSON.parse(fs.readFileSync(sessionPath, "utf-8"));
+      await ig.state.deserialize(session);
+  } else {
+      await ig.account.login(process.env.IG_USERNAME, process.env.IG_PASSWORD);
+      fs.writeFileSync(sessionPath, JSON.stringify(await ig.state.serialize()));
+  }
+}
 
   ///// CALCULATION OF CHILD KEYS /////
   async function getNextChildKey() {
@@ -187,6 +202,7 @@
       };
       await newsRef.doc(childKey.toString()).set(newsData);
       console.log('News added successfully with document ID:', childKey.toString());
+      await postToInsta(title , desc , imagelink , newslink);
     } catch (error) {
       console.error('Error adding news:', error.message);
       throw error;
@@ -804,6 +820,32 @@ app.post('/check_user', async (req, res) => {
     }
   };
 
+  ///UPLOAD TO INSTA
+  const postToInsta = async (title, desc, imgUrl , newsLink) => {
+    try {
+        const ig = new IgApiClient();
+        ig.state.generateDevice(process.env.IG_USERNAME);
+
+        // Log in
+        await loginWithSession(ig);
+
+        // Fetch image from direct URL
+        const imageBuffer = await get({
+            url: imgUrl, // Must be a valid direct image URL
+            encoding: null,
+        });
+
+        // Post to Instagram
+        await ig.publish.photo({
+            file: imageBuffer,
+            caption: `📰 ${title}\n\n📌 ${desc}\n\n🔗 Source: ${newsLink} 🌍`,
+             });
+
+        console.log("✅ Post successfully uploaded!");
+    } catch (error) {
+        console.error("❌ Error posting to Instagram:", error);
+    }
+};
 
 //   const fixQuizes = async (req, res) => {
 //     try {
