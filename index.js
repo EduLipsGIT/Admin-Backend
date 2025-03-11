@@ -12,7 +12,7 @@ const fs = require("fs");
   const cheerio = require('cheerio');
   const xlsx = require('xlsx');
   const fileUpload = require('express-fileupload');
-  const sessionPath = "./session.json";
+
  
   admin.initializeApp({
     credential: admin.credential.cert({
@@ -24,6 +24,8 @@ const fs = require("fs");
     databaseURL: `https://${process.env.FIREBASE_PROJECT_ID}-default-rtdb.firebaseio.com/`
   });
   const db = admin.database();
+  const db_firestore = admin.firestore();
+  const sessionRef = db_firestore.collection("instagram").doc("session");
   const firestore = admin.firestore();
   const port = process.env.PORT || 3000;
   const fixed_desc = "Click to know more";
@@ -63,15 +65,28 @@ const fs = require("fs");
   }
 ////INSTA LOGIN
 async function loginWithSession(ig) {
-  if (fs.existsSync(sessionPath)) {
-      const session = JSON.parse(fs.readFileSync(sessionPath, "utf-8"));
-      await ig.state.deserialize(session);
-  } else {
-      await ig.account.login(process.env.IG_USERNAME, process.env.IG_PASSWORD);
-      fs.writeFileSync(sessionPath, JSON.stringify(await ig.state.serialize()));
+  try {
+      const sessionDoc = await sessionRef.get();
+
+      if (sessionDoc.exists) {
+          console.log("Using stored Instagram session...");
+          await ig.state.deserialize(sessionDoc.data().session);
+      } else {
+          console.log("Logging into Instagram...");
+          await ig.account.login(process.env.IG_USERNAME, process.env.IG_PASSWORD);
+
+          let sessionData = await ig.state.serialize();
+
+          // 🔹 Remove undefined values before saving
+          sessionData = JSON.parse(JSON.stringify(sessionData)); 
+
+          await sessionRef.set({ session: sessionData });
+          console.log("Instagram session saved to Firebase.");
+      }
+  } catch (error) {
+      console.error("Error logging into Instagram:", error);
   }
 }
-
   ///// CALCULATION OF CHILD KEYS /////
   async function getNextChildKey() {
     const ref = firestore.collection('News_UnApproved');
