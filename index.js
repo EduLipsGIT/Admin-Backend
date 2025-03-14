@@ -802,7 +802,7 @@ app.post('/check_user', async (req, res) => {
     }
   });
 
-  const sendUserSpecificNotification = async (title, fixed_desc , message_fixed , notificationType , childCode) => {
+  const sendUserSpecificNotification = async (title, fixed_desc , message_fixed , notificationType , z) => {
     const uniqueNotificationId = generateUniqueId();
     const groupKey = uuidv4();
     const message = {

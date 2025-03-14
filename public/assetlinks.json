@@ -1,0 +1,13 @@
+[
+    {
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "com.edulips",
+        "sha256_cert_fingerprints": [
+          "61:28:84:BF:0B:8C:03:C7:B4:74:0A:CC:4D:C8:A5:94:4E:92:29:91:34:F2:E7:44:68:24:45:4C:96:F8:B4:3A"
+        ]
+      }
+    }
+  ]
+  
