@@ -581,7 +581,7 @@ async function loginWithSession(ig) {
 
   /////////////// CRON JOBS //////////////////////
   async function rearrangeAndUploadNewsData(res) {
-    const reorderedNewsRef = firestore.collection("News");
+    const reorderedNewsRef = firestore.collection("News_Eng");
     try {
       const snapshot = await reorderedNewsRef.get(); // Use .get() for Firestore
   
@@ -788,21 +788,21 @@ app.post('/check_user', async (req, res) => {
 
 //// ROUTE FOR HTTP NOTIFICATION REQUESTS////
   app.post('/notifyUser', async (req, res) => {
-    const { title, fixed_desc , message_fixed } = req.body;
+    const { title, fixed_desc , message_fixed , notificationType , childCode} = req.body;
 
     if (!title || !fixed_desc) {
         return res.status(400).json({ error: 'Missing required fields' });
     }
 
     try {
-        const result = await sendUserSpecificNotification(title, fixed_desc , message_fixed);
+        const result = await sendUserSpecificNotification(title, fixed_desc , message_fixed , notificationType , childCode);
         res.status(200).json({ message: 'Notification sent successfully', result });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
   });
 
-  const sendUserSpecificNotification = async (title, fixed_desc , message_fixed) => {
+  const sendUserSpecificNotification = async (title, fixed_desc , message_fixed , notificationType , childCode) => {
     const uniqueNotificationId = generateUniqueId();
     const groupKey = uuidv4();
     const message = {
@@ -812,6 +812,10 @@ app.post('/check_user', async (req, res) => {
       contents: { "en":  message_fixed.trim()},
       android: {
         priority: "high",
+      },
+      data: { 
+        child_key: childCode.toString(),
+        notificationType: notificationType.toString()
       },
       android_group: uniqueNotificationId
     };
@@ -900,11 +904,6 @@ app.post('/check_user', async (req, res) => {
 // app.get('/fixQuizes', fixQuizes);
 
  
-
-
-
-
-
 
 
 
