@@ -8,14 +8,6 @@
     ],
     "routes": [
         {
-            "src": "/.well-known/assetlinks.json",
-            "dest": "/.well-known/assetlinks.json",
-            "headers": {
-                "Content-Type": "application/json",
-                "Cache-Control": "public, max-age=3600, must-revalidate"
-            }
-        },
-        {
             "src": "/(.*)",
             "dest": "/",
             "headers": {
