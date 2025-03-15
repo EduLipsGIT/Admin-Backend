@@ -866,6 +866,21 @@ app.post('/check_user', async (req, res) => {
     }
 };
 
+///DEEP LINKING
+
+app.get("/test/:testID", (req, res) => {
+  const testID = req.params.testID;
+  const instID = req.query.InstID || "";
+  const batchSelected = req.query.batchSelected || "";
+
+  // Format the deep link for your app
+  const deepLink = `myapp://test?TestID=${testID}&InstID=${instID}&batchSelected=${batchSelected}`;
+
+  console.log("Redirecting to:", deepLink);
+  
+  res.redirect(deepLink);
+});
+
 //   const fixQuizes = async (req, res) => {
 //     try {
 //         const newsRef = firestore.collection('News_Hindi');
@@ -902,18 +917,6 @@ app.post('/check_user', async (req, res) => {
 // };
 
 // app.get('/fixQuizes', fixQuizes);
-
- 
-
-
-
-
-
-
-
-
-
-
 
 //    const rdbPath = "News";
 // // Function to copy data from RDB to Firestore
