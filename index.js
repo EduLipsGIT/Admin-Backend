@@ -802,7 +802,7 @@ app.post('/check_user', async (req, res) => {
     }
   });
 
-  const sendUserSpecificNotification = async (title, fixed_desc , message_fixed , notificationType , z) => {
+  const sendUserSpecificNotification = async (title, fixed_desc , message_fixed , notificationType , childCode) => {
     const uniqueNotificationId = generateUniqueId();
     const groupKey = uuidv4();
     const message = {
@@ -873,13 +873,40 @@ app.get("/test/:testID", (req, res) => {
   const instID = req.query.InstID || "";
   const batchSelected = req.query.batchSelected || "";
 
-  // Format the deep link for your app
+  // Your custom app deep link
   const deepLink = `myapp://test?TestID=${testID}&InstID=${instID}&batchSelected=${batchSelected}`;
 
-  console.log("Redirecting to:", deepLink);
-  
-  res.redirect(deepLink);
+  // Play Store link as fallback
+  const playStoreLink = "https://play.google.com/store/apps/details?id=com.edulips";
+
+  // HTML with JavaScript redirection
+  const htmlResponse = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Redirecting...</title>
+        <script>
+            function openApp() {
+                var deepLink = "${deepLink}";
+                var fallbackUrl = "${playStoreLink}";
+
+                window.location.href = deepLink;
+                
+                setTimeout(function() {
+                    window.location.href = fallbackUrl;
+                }, 2000); // Wait 2 seconds before redirecting to Play Store if the app isn't opened
+            }
+        </script>
+    </head>
+    <body onload="openApp()">
+        <p>Redirecting... If nothing happens, <a href="${playStoreLink}">click here</a> to download the app.</p>
+    </body>
+    </html>
+  `;
+
+  res.send(htmlResponse);
 });
+
 
 //   const fixQuizes = async (req, res) => {
 //     try {
