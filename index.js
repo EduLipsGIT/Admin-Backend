@@ -469,23 +469,36 @@ async function loginWithSession(ig) {
       res.status(500).json({ error: 'Error processing file.', details: error.message });
     }
   });
-  async function uploadQuizToFirebase(data , res) {
-    const bulkRef = firestore.collection('News')
-    for (const item of data) {
-      const childKey = await getNextChildKeySuperAdmin();
-      if (childKey) {
-        const itemRef = bulkRef.child(childKey.toString());
-        item.Ques_in_News_Enabled = 'Yes'; 
-        item['Uploaded By']  = 'Bulk_Upload'; 
-        item['notification_id']  = childKey.toString(); 
-        await itemRef.set(item);
-      } else {
-        console.warn('Invalid child key for item:', item);
-      }
+  async function uploadQuizToFirebase(data, res) {
+    try {
+        const bulkRef = firestore.collection('News'); // Firestore collection reference
+
+        for (const item of data) {
+            const childKey = await getNextChildKeySuperAdmin(); // Get unique key
+
+            if (childKey) {
+                const itemRef = bulkRef.doc(childKey.toString()); // Firestore uses `doc()`
+                
+                // Modify item before uploading
+                item.Ques_in_News_Enabled = 'Yes';
+                item['Uploaded By'] = 'Bulk_Upload';
+                item['notification_id'] = childKey.toString();
+
+                await itemRef.set(item); // Upload item to Firestore
+            } else {
+                console.warn('Invalid child key for item:', item);
+            }
+        }
+
+        // Call function after successful upload
+        await rearrangeAndUploadNewsData(res);
+
+        console.log('Data uploaded to Firebase successfully.');
+    } catch (error) {
+        console.error('Error uploading data to Firebase:', error);
     }
-    rearrangeAndUploadNewsData(res);
-    console.log('Data uploaded to Firebase successfully.');
-  }
+}
+
   app.post('/submit-quiz', async (req, res) => {
     const {question, question1, question2, question3, question4, correctAnswer, description, username } = req.body;
     const currentDate = getCurrentDate();
@@ -655,7 +668,7 @@ async function loginWithSession(ig) {
 
   const resetLeaderboard = async (req, res) => {
     try {
-        const leaderboardRef = db.ref("Live_Leaderboard");
+        const leaderboardRef = db.ref("UserData");
   
       // Fetch data once
       const snapshot = await leaderboardRef.once("value");
@@ -908,40 +921,42 @@ app.get("/test/:testID", (req, res) => {
 });
 
 
-//   const fixQuizes = async (req, res) => {
-//     try {
-//         const newsRef = firestore.collection('News_Hindi');
+// const fixQuizes = async (req, res) => {
+//   try {
+//       const newsRef = admin.firestore().collection("News_Eng");
+//       const snapshot = await newsRef.get();
 
-//         // Fetch all documents in the News collection
-//         const snapshot = await newsRef.get();
+//       if (snapshot.empty) {
+//           console.log("No data found under News");
+//           return res.status(404).send("No data found under News");
+//       }
 
-//         if (snapshot.empty) {
-//             console.log("No data found under News");
-//             return res.status(404).send("No data found under News");
-//         }
+//       let deletePromises = [];
 
-//         let quizItemCount = 0;
+//       snapshot.forEach((doc) => {
+//           const data = doc.data();
 
-//         // Prepare updates
-//         const updates = [];
-//         snapshot.forEach((doc) => {
-//             const data = doc.data();
+//           if (data.Ques_in_News_Enabled && data.Ques_in_News_Enabled.toLowerCase() === "yes") {
+//               deletePromises.push(newsRef.doc(doc.id).delete());
+//           }
+//       });
 
-//             // Check if "Ques_in_News_Enabled" exists and is "Yes"
-//             if (data.Ques_in_News_Enabled && data.Ques_in_News_Enabled.toLowerCase() === "yes") {
-//                 quizItemCount++;
-//                 console.log(`Quiz enabled for: ${doc.id}`);
-//             }
-//         });
+//       if (deletePromises.length === 0) {
+//           console.log("No quizzes enabled.");
+//           return res.status(404).send("No quizzes enabled.");
+//       }
 
-//         console.log(`Total quizzes enabled: ${quizItemCount}`);
-//         res.send(`Total quizzes enabled: ${quizItemCount}`);
-        
-//     } catch (error) {
-//         console.error("Error updating news items:", error);
-//         res.status(500).send("Failed to update news items");
-//     }
+//       await Promise.all(deletePromises);
+
+//       console.log("All quiz-enabled news items deleted successfully.");
+//       res.status(200).send("All quiz-enabled news items deleted successfully.");
+      
+//   } catch (error) {
+//       console.error("Error deleting quiz-enabled items:", error);
+//       res.status(500).send("Failed to delete quiz-enabled items");
+//   }
 // };
+
 
 // app.get('/fixQuizes', fixQuizes);
 
