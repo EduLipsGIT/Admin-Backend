@@ -114,8 +114,8 @@ td[contenteditable="true"]:focus {
     <form id="uploadForm" enctype="multipart/form-data">
         <h1>Upload Excel File</h1>
         <input type="file" name="file" accept=".xlsx" required onchange="displayExcelData()" />
-        <button type="submit">Study Questions for Institute</button>
-        <button id="quizUploadButton" type="button">Daily Quiz in News</button>
+        <button id="quizUploadButton" type="button">Upload</button>
+        <button type="button" onclick="downloadStoredExcel()">Download Format</button>
         <div id="progressContainer" style="display: none; margin-top: 20px; text-align: center;">
             <div style="margin-bottom: 10px; font-size: 1.1rem;">Uploading...</div>
             <progress id="progressBar" value="0" max="100" style="width: 100%; height: 30px;"></progress>
@@ -133,53 +133,15 @@ td[contenteditable="true"]:focus {
             }
         }
 
+        function downloadStoredExcel() {
+    const fileUrl = "FinalFormatQuiz.xlsx";
+    console.log("Opening file:", fileUrl);
+    window.open(fileUrl, "_blank");
+}
+
         window.onload = checkLogin;
 
-        async function Upload_StudyQuiz() {
-            const files = document.querySelector('input[type="file"]').files;
-            const totalFiles = files.length; // Get total number of files
-            let filesUploaded = 0; // Counter for files uploaded
-
-            const progressContainer = document.getElementById('progressContainer');
-            const progressBar = document.getElementById('progressBar');
-            const progressText = document.getElementById('progressText');
-            progressContainer.style.display = 'block';
-            progressBar.value = 0;
-            progressText.innerText = '0%';
-
-            // Iterate over files and upload one by one
-            Array.from(files).forEach((file, index) => {
-                const formData = new FormData();
-                formData.append('file', file);
-
-                const xhr = new XMLHttpRequest();
-                xhr.open('POST', 'https://author.edulips.com/uploadStudyQues', true);
-
-                xhr.upload.onprogress = function (event) {
-                    if (event.lengthComputable) {
-                        const percent = (event.loaded / event.total) * 100;
-                        progressBar.value = (filesUploaded + (percent / 100)) * 100 / totalFiles;
-                        progressText.innerText = `${Math.round((filesUploaded + (percent / 100)) * 100 / totalFiles)}%`;
-                    }
-                };
-
-                xhr.onload = function () {
-                    filesUploaded++;
-                    if (filesUploaded === totalFiles) {
-                        document.getElementById('output').innerText = 'All files uploaded successfully!';
-                        progressText.innerText = 'Upload Complete!';
-                    }
-                };
-
-                xhr.onerror = function () {
-                    document.getElementById('output').innerText = 'Error uploading file.';
-                };
-
-                xhr.send(formData);
-            });
-        }
-
-        async function Upload_DailyQuiz() {
+       async function Upload_Quiz() {
             const files = document.querySelector('input[type="file"]').files;
             const totalFiles = files.length; // Get total number of files
             let filesUploaded = 0; // Counter for files uploaded
@@ -196,7 +158,7 @@ td[contenteditable="true"]:focus {
                 formData.append('file', file);
 
                 const xhr = new XMLHttpRequest();
-                xhr.open('POST','/uploadDailyQues', true);
+                xhr.open('POST','https://author.edulips.com/uploadQuizBulk', true);
 
                 xhr.upload.onprogress = function (event) {
                     if (event.lengthComputable) {
@@ -294,13 +256,8 @@ td[contenteditable="true"]:focus {
             return new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
         }
 
-        document.getElementById('uploadForm').onsubmit = async function (e) {
-            e.preventDefault();
-            await Upload_StudyQuiz();
-        };
-
         document.getElementById('quizUploadButton').onclick = async function () {
-            await Upload_DailyQuiz();
+            await Upload_Quiz();
         };
     </script>
     </body>

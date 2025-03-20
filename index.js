@@ -63,6 +63,11 @@ const fs = require("fs");
     const accessToken = accessTokenResponse.token;
     accessToken = accessTokenResponse.token;
   }
+  
+  app.listen(port, () => {
+    console.log(`Server is running on port ${port}`);
+  });
+
 ////INSTA LOGIN
 async function loginWithSession(ig) {
   try {
@@ -391,6 +396,7 @@ async function loginWithSession(ig) {
       res.status(500).send('Error adding quiz: ' + error.message);
     }
   });
+  
 
   //// ROUTE FOR HTTP NOTIFICATIONS REQUEST////
   app.post('/notify', async (req, res) => {
@@ -450,8 +456,8 @@ async function loginWithSession(ig) {
     }
   };
 
-  /////////BULK QUIZ UPLOAD//////////
-  app.post('/uploadDailyQues', async (req, res) => {
+  ////////////BULK UPLOADS ///////////
+  app.post('/uploadQuizBulk', async (req, res) => {
     if (!req.files || !req.files.file) {
       return res.status(400).send('No file uploaded.');
     }
@@ -461,14 +467,90 @@ async function loginWithSession(ig) {
       const sheetName = workbook.SheetNames[0];
       const sheet = workbook.Sheets[sheetName];
       const jsonData = xlsx.utils.sheet_to_json(sheet);
-      console.log('Converted JSON Data:', jsonData);
-      await uploadQuizToFirebase(jsonData , res);
+
+      // Process and upload each row
+      for (const row of jsonData) {
+        const category_bk = row['Exam/Category']?.trim().replace(/[\/]/g, '_'); // Replace '/' with '_'
+        const subject_bk = row['Subject']?.trim().replace(/[\/]/g, '_');
+        const section_bk = row['Section']?.trim().replace(/[\/]/g, '_');
+        const chapter_bk = row['Chapter']?.trim().replace(/[\/]/g, '_');
+        const type = row['type']?.trim().replace(/[\/]/g, '_');
+        
+        const quesType = row['type']?.trim().replace(/[\/]/g, '_');
+      
+        console.log('Category:', category_bk);
+        console.log('Subject:', subject_bk);
+        console.log('Section:', section_bk);
+        console.log('Chapter:', chapter_bk);
+        console.log('Type:', type);
+      
+        const sanitizedRow = sanitizeKeys(row);
+        const childkey = await getNextChildKeySuperAdmin();
+
+        if(type == "news"){
+          await uploadBulkGeneralQuiz(sanitizedRow , childkey);
+          await uploadStudy(sanitizedRow, category_bk, subject_bk, section_bk, chapter_bk);
+        }else if(type == "study"){
+          await uploadStudy(sanitizedRow, category_bk, subject_bk, section_bk, chapter_bk);
+        }
+      }
       res.json(jsonData);
     } catch (error) {
       console.error('Error processing file:', error);
       res.status(500).json({ error: 'Error processing file.', details: error.message });
     }
   });
+  
+  ////FOR UPLOADING STUDY QUESTIONS
+  async function uploadStudy(item, category_bk, subject_bk, section_bk, chapter_bk) {
+    const bulkRef = db.ref('Ques_Data');
+
+    const childKey = await getNextStudyChildKey(bulkRef);
+
+    if (childKey) {
+      const itemRef = bulkRef.child(childKey.toString());
+      await itemRef.set(item);
+      await RegisterKeys(item ,category_bk, subject_bk, section_bk, chapter_bk , childKey.toString());
+    } else {
+      console.warn('Invalid child key for item:', item);
+    }
+    console.log('Study Data uploaded!');
+  }
+
+  async function uploadBulkGeneralQuiz(item, childKey) {
+    try {
+      const quizzesRef = firestore.collection('News');
+     
+      // Add extra metadata fields
+      item['Ques_in_News_Enabled'] = 'Yes';
+      item['notification_id'] = childKey;
+  
+      const newQuizRef = quizzesRef.doc(childKey.toString());
+      await newQuizRef.set(item);
+      console.log('General Quiz Data uploaded!');
+    } catch (error) {
+      console.error('Error adding quiz to Firestore:', error.message);
+      throw error;
+    }
+  }
+  
+
+  async function RegisterKeys(item, category_bk, subject_bk, section_bk, chapter_bk , child_key) {
+    const bulkRef = db.ref('Questions_Data').child(category_bk).child(subject_bk).child(section_bk).child(chapter_bk).child(child_key);
+    if (child_key) {
+      await bulkRef.set({
+        'ques_id' : child_key  , 
+        'subject': subject_bk,
+        'section': section_bk,
+        'chapter': chapter_bk,
+        'category': category_bk
+      });
+      } else {
+      console.warn('Invalid child key for item:', item);
+    }
+  }
+
+  /// FOR UPLOADING GENERAL QUIZ IN NEWS
   async function uploadQuizToFirebase(data, res) {
     try {
         const bulkRef = firestore.collection('News'); // Firestore collection reference
@@ -499,98 +581,15 @@ async function loginWithSession(ig) {
     }
 }
 
-  app.post('/submit-quiz', async (req, res) => {
-    const {question, question1, question2, question3, question4, correctAnswer, description, username } = req.body;
-    const currentDate = getCurrentDate();
-  
-    try {
-      const childKey = await getNextQuizChildKey();
-      await addQuizToGeneral(question , question1, question2, question3, question4, correctAnswer, description, childKey, currentDate, username);
-      res.send('Quiz added successfully');
-    } catch (error) {
-      console.error('Error adding quiz:', error.message);
-      res.status(500).send('Error adding quiz: ' + error.message);
-    }
-  });
-
-
-  ////////////BULK UPLOADS ///////////
-  app.post('/uploadStudyQues', async (req, res) => {
-    if (!req.files || !req.files.file) {
-      return res.status(400).send('No file uploaded.');
-    }
-    const file = req.files.file;
-    try {
-      const workbook = xlsx.read(file.data, { type: 'buffer' });
-      const sheetName = workbook.SheetNames[0];
-      const sheet = workbook.Sheets[sheetName];
-      const jsonData = xlsx.utils.sheet_to_json(sheet);
-
-      // Process and upload each row
-      for (const row of jsonData) {
-        const category_bk = row['Exam/Category']?.trim().replace(/[\/]/g, '_'); // Replace '/' with '_'
-        const subject_bk = row['Subject']?.trim().replace(/[\/]/g, '_');
-        const section_bk = row['Section']?.trim().replace(/[\/]/g, '_');
-        const chapter_bk = row['Chapter']?.trim().replace(/[\/]/g, '_');
-      
-        console.log('Category:', category_bk);
-        console.log('Subject:', subject_bk);
-        console.log('Section:', section_bk);
-        console.log('Chapter:', chapter_bk);
-      
-        const sanitizedRow = sanitizeKeys(row);
-      
-        await uploadToFirebase(sanitizedRow, category_bk, subject_bk, section_bk, chapter_bk);
-      }
-
-      res.json(jsonData);
-    } catch (error) {
-      console.error('Error processing file:', error);
-      res.status(500).json({ error: 'Error processing file.', details: error.message });
-    }
-  });
-  function sanitizeKeys(obj) {
-    const sanitizedObj = {};
-    for (const key in obj) {
-      const trimmedKey = key.trim();
-      const sanitizedKey = trimmedKey.replace(/[.#$/\[\]]/g, '_');
-      sanitizedObj[sanitizedKey] = typeof obj[key] === 'string' ? obj[key].trim() : obj[key];
-    }
-    return sanitizedObj;
+function sanitizeKeys(obj) {
+  const sanitizedObj = {};
+  for (const key in obj) {
+    const trimmedKey = key.trim();
+    const sanitizedKey = trimmedKey.replace(/[.#$/\[\]]/g, '_');
+    sanitizedObj[sanitizedKey] = typeof obj[key] === 'string' ? obj[key].trim() : obj[key];
   }
-  
-  async function uploadToFirebase(item, category_bk, subject_bk, section_bk, chapter_bk) {
-    const bulkRef = db.ref('Ques_Data');
-
-    const childKey = await getNextStudyChildKey(bulkRef);
-
-    if (childKey) {
-      const itemRef = bulkRef.child(childKey.toString());
-      await itemRef.set(item);
-      await RegisterKeys(item ,category_bk, subject_bk, section_bk, chapter_bk , childKey.toString());
-    } else {
-      console.warn('Invalid child key for item:', item);
-    }
-    console.log('Data uploaded to Firebase successfully.');
-  }
-
-  async function RegisterKeys(item, category_bk, subject_bk, section_bk, chapter_bk , child_key) {
-    const bulkRef = db.ref('Questions_Data').child(category_bk).child(subject_bk).child(section_bk).child(chapter_bk).child(child_key);
-    if (child_key) {
-      await bulkRef.set({
-        'ques_id' : child_key  , 
-        'subject': subject_bk,
-        'section': section_bk,
-        'chapter': chapter_bk,
-        'category': category_bk
-      });
-      } else {
-      console.warn('Invalid child key for item:', item);
-    }
-  }
-  app.listen(port, () => {
-    console.log(`Server is running on port ${port}`);
-  });
+  return sanitizedObj;
+}
 
   /////////////// CRON JOBS //////////////////////
   async function rearrangeAndUploadNewsData(res) {
