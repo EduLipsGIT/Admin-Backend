@@ -489,7 +489,7 @@ async function loginWithSession(ig) {
 
         if(type == "news"){
           await uploadBulkGeneralQuiz(sanitizedRow , childkey);
-          await uploadStudy(sanitizedRow, category_bk, subject_bk, section_bk, chapter_bk);
+          // await uploadStudy(sanitizedRow, category_bk, subject_bk, section_bk, chapter_bk);
         }else if(type == "study"){
           await uploadStudy(sanitizedRow, category_bk, subject_bk, section_bk, chapter_bk);
         }
@@ -523,7 +523,7 @@ async function loginWithSession(ig) {
      
       // Add extra metadata fields
       item['Ques_in_News_Enabled'] = 'Yes';
-      item['notification_id'] = childKey;
+      item['notification_id'] = childKey.toString();
   
       const newQuizRef = quizzesRef.doc(childKey.toString());
       await newQuizRef.set(item);
@@ -564,7 +564,7 @@ async function loginWithSession(ig) {
                 // Modify item before uploading
                 item.Ques_in_News_Enabled = 'Yes';
                 item['Uploaded By'] = 'Bulk_Upload';
-                item['notification_id'] = childKey.toString();
+                item['notification_id'] = String.valueOf(childKey) + " ";
 
                 await itemRef.set(item); // Upload item to Firestore
             } else {
@@ -920,44 +920,44 @@ app.get("/test/:testID", (req, res) => {
 });
 
 
-// const fixQuizes = async (req, res) => {
-//   try {
-//       const newsRef = admin.firestore().collection("News_Eng");
-//       const snapshot = await newsRef.get();
+const fixQuizes = async (req, res) => {
+  try {
+      const newsRef = admin.firestore().collection("News");
+      const snapshot = await newsRef.get();
 
-//       if (snapshot.empty) {
-//           console.log("No data found under News");
-//           return res.status(404).send("No data found under News");
-//       }
+      if (snapshot.empty) {
+          console.log("No data found under News");
+          return res.status(404).send("No data found under News");
+      }
 
-//       let deletePromises = [];
+      let deletePromises = [];
 
-//       snapshot.forEach((doc) => {
-//           const data = doc.data();
+      snapshot.forEach((doc) => {
+          const data = doc.data();
 
-//           if (data.Ques_in_News_Enabled && data.Ques_in_News_Enabled.toLowerCase() === "yes") {
-//               deletePromises.push(newsRef.doc(doc.id).delete());
-//           }
-//       });
+          if (data.Ques_in_News_Enabled && data.Ques_in_News_Enabled.toLowerCase() === "yes") {
+              deletePromises.push(newsRef.doc(doc.id).delete());
+          }
+      });
 
-//       if (deletePromises.length === 0) {
-//           console.log("No quizzes enabled.");
-//           return res.status(404).send("No quizzes enabled.");
-//       }
+      if (deletePromises.length === 0) {
+          console.log("No quizzes enabled.");
+          return res.status(404).send("No quizzes enabled.");
+      }
 
-//       await Promise.all(deletePromises);
+      await Promise.all(deletePromises);
 
-//       console.log("All quiz-enabled news items deleted successfully.");
-//       res.status(200).send("All quiz-enabled news items deleted successfully.");
+      console.log("All quiz-enabled news items deleted successfully.");
+      res.status(200).send("All quiz-enabled news items deleted successfully.");
       
-//   } catch (error) {
-//       console.error("Error deleting quiz-enabled items:", error);
-//       res.status(500).send("Failed to delete quiz-enabled items");
-//   }
-// };
+  } catch (error) {
+      console.error("Error deleting quiz-enabled items:", error);
+      res.status(500).send("Failed to delete quiz-enabled items");
+  }
+};
 
 
-// app.get('/fixQuizes', fixQuizes);
+app.get('/fixQuizes', fixQuizes);
 
 //    const rdbPath = "News";
 // // Function to copy data from RDB to Firestore
