@@ -593,9 +593,10 @@ function sanitizeKeys(obj) {
 
   /////////////// CRON JOBS //////////////////////
   async function rearrangeAndUploadNewsData(res) {
-    const reorderedNewsRef = firestore.collection("News_Eng");
+    const reorderedNewsRef = firestore.collection("News");
     try {
-      const snapshot = await reorderedNewsRef.get(); // Use .get() for Firestore
+      const snapshot = await reorderedNewsRef.limit(200).get(); // Use .get() for Firestore
+
   
       const keysList = [];
       const engList = [];
