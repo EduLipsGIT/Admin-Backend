@@ -489,7 +489,7 @@ async function loginWithSession(ig) {
 
         if(type == "news"){
           await uploadBulkGeneralQuiz(sanitizedRow , childkey);
-          // await uploadStudy(sanitizedRow, category_bk, subject_bk, section_bk, chapter_bk);
+           await uploadStudy(sanitizedRow, category_bk, subject_bk, section_bk, chapter_bk);
         }else if(type == "study"){
           await uploadStudy(sanitizedRow, category_bk, subject_bk, section_bk, chapter_bk);
         }
