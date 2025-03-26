@@ -107,6 +107,7 @@ td[contenteditable="true"]:focus {
     outline: 2px solid #007bff;
 }
 
+
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.5/xlsx.full.min.js"></script>
 </head>
@@ -141,48 +142,75 @@ td[contenteditable="true"]:focus {
 
         window.onload = checkLogin;
 
-       async function Upload_Quiz() {
-            const files = document.querySelector('input[type="file"]').files;
-            const totalFiles = files.length; // Get total number of files
-            let filesUploaded = 0; // Counter for files uploaded
+        async function Upload_Quiz() {
+    const files = document.querySelector('input[type="file"]').files;
+    const totalFiles = files.length; // Get total number of files
+    let filesUploaded = 0; // Counter for successfully uploaded files
+    let filesFailed = 0; // Counter for failed uploads
 
-            const progressContainer = document.getElementById('progressContainer');
-            const progressBar = document.getElementById('progressBar');
-            const progressText = document.getElementById('progressText');
-            progressContainer.style.display = 'block';
-            progressBar.value = 0;
-            progressText.innerText = '0%';
+    const progressContainer = document.getElementById('progressContainer');
+    const progressBar = document.getElementById('progressBar');
+    const progressText = document.getElementById('progressText');
+    const output = document.getElementById('output');
 
-            Array.from(files).forEach((file, index) => {
-                const formData = new FormData();
-                formData.append('file', file);
+    progressContainer.style.display = 'block';
+    progressBar.value = 0;
+    progressText.innerText = '0%';
+    progressBar.style.backgroundColor = '#4caf50'; // Default green color
 
-                const xhr = new XMLHttpRequest();
-                xhr.open('POST','https://author.edulips.com/uploadQuizBulk', true);
+    Array.from(files).forEach((file, index) => {
+        const formData = new FormData();
+        formData.append('file', file);
 
-                xhr.upload.onprogress = function (event) {
-                    if (event.lengthComputable) {
-                        const percent = (event.loaded / event.total) * 100;
-                        progressBar.value = (filesUploaded + (percent / 100)) * 100 / totalFiles;
-                        progressText.innerText = `${Math.round((filesUploaded + (percent / 100)) * 100 / totalFiles)}%`;
-                    }
-                };
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', 'https://author.edulips.com/uploadQuizBulk', true);
 
-                xhr.onload = function () {
-                    filesUploaded++;
-                    if (filesUploaded === totalFiles) {
-                        document.getElementById('output').innerText = 'All files uploaded successfully!';
-                        progressText.innerText = 'Upload Complete!';
-                    }
-                };
+        xhr.upload.onprogress = function (event) {
+            if (event.lengthComputable) {
+                const percent = (event.loaded / event.total) * 100;
+                // Adjust progress calculation based on successful uploads only
+                progressBar.value = ((filesUploaded + filesFailed + (percent / 100)) * 100) / totalFiles;
+                progressText.innerText = `${Math.round(((filesUploaded + filesFailed + (percent / 100)) * 100) / totalFiles)}%`;
+            }
+        };
 
-                xhr.onerror = function () {
-                    document.getElementById('output').innerText = 'Error uploading file.';
-                };
+        xhr.onload = function () {
+            if (xhr.status >= 200 && xhr.status < 300) {
+                filesUploaded++;
+            } else {
+                filesFailed++;
+                console.error(`Error uploading ${file.name}: ${xhr.statusText}`);
+            }
+            updateProgress();
+        };
 
-                xhr.send(formData);
-            });
+        xhr.onerror = function () {
+            filesFailed++;
+            console.error(`Error uploading ${file.name}`);
+            updateProgress();
+        };
+
+        xhr.send(formData);
+    });
+
+    function updateProgress() {
+        const completed = filesUploaded + filesFailed;
+        progressBar.value = (completed * 100) / totalFiles;
+        progressText.innerText = `${Math.round((completed * 100) / totalFiles)}%`;
+
+        if (completed === totalFiles) {
+            if (filesFailed > 0) {
+                output.innerText = `${filesUploaded} files uploaded successfully, ${filesFailed} failed.`;
+                progressText.innerText = 'Upload completed with errors!';
+                progressBar.style.backgroundColor = 'red'; // Change bar to red if any error occurs
+            } else {
+                output.innerText = 'All files uploaded successfully!';
+                progressText.innerText = 'Upload Complete!';
+                progressBar.style.backgroundColor = '#4caf50'; // Keep green on success
+            }
         }
+    }
+}
 
         function displayExcelData() {
         const fileInput = document.querySelector('input[type="file"]');

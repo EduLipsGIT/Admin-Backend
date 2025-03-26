@@ -133,20 +133,20 @@ async function loginWithSession(ig) {
   async function getNextStudyChildKey() {
     const ref = db.ref('Ques_Data');
     try {
-      const snapshot = await ref.orderByKey().limitToLast(1).once('value');
-      if (snapshot.exists()) {
-        const lastKey = Object.keys(snapshot.val())[0];
-        const lastChildNumber = parseInt(lastKey, 10);
-        return isNaN(lastChildNumber) ? 1 : lastChildNumber + 1;
-      } else {
-        return 1;
-      }
+        const snapshot = await ref.orderByKey().limitToLast(1).once('value');
+        if (snapshot.exists()) {
+            const lastKey = Object.keys(snapshot.val())[0];
+            const lastChildNumber = parseInt(lastKey, 10);
+            return isNaN(lastChildNumber) ? "1" : String(lastChildNumber + 1);
+        } else {
+            return "1";
+        }
     } catch (error) {
-      console.error('Error fetching next child key:', error.message);
-      throw error;
+        console.error('Error fetching next child key:', error.message);
+        return "1"; // Fallback in case of an error
     }
-  }
-  
+}
+
   
   ///// CHECK DUPLICATION ////////
   async function checkTitleExists(title, username) {
@@ -470,14 +470,13 @@ async function loginWithSession(ig) {
 
       // Process and upload each row
       for (const row of jsonData) {
-        const category_bk = row['Exam/Category']?.trim().replace(/[\/]/g, '_'); // Replace '/' with '_'
-        const subject_bk = row['Subject']?.trim().replace(/[\/]/g, '_');
-        const section_bk = row['Section']?.trim().replace(/[\/]/g, '_');
-        const chapter_bk = row['Chapter']?.trim().replace(/[\/]/g, '_');
-        const type = row['type']?.trim().replace(/[\/]/g, '_');
+  
+      const category_bk = cleanString(row['Exam/Category']);
+      const subject_bk = cleanString(row['Subject']);
+      const section_bk = cleanString(row['Section']);
+      const chapter_bk = cleanString(row['Chapter']);
+      const type = cleanString(row['type']);
         
-        const quesType = row['type']?.trim().replace(/[\/]/g, '_');
-      
         console.log('Category:', category_bk);
         console.log('Subject:', subject_bk);
         console.log('Section:', section_bk);
@@ -485,13 +484,13 @@ async function loginWithSession(ig) {
         console.log('Type:', type);
       
         const sanitizedRow = sanitizeKeys(row);
-        const childkey = await getNextChildKeySuperAdmin();
+        const childkey = await getNextStudyChildKey();
 
         if(type == "news"){
           await uploadBulkGeneralQuiz(sanitizedRow , childkey);
-           await uploadStudy(sanitizedRow, category_bk, subject_bk, section_bk, chapter_bk);
+           await uploadStudy(sanitizedRow, category_bk, subject_bk, section_bk, chapter_bk , childkey);
         }else if(type == "study"){
-          await uploadStudy(sanitizedRow, category_bk, subject_bk, section_bk, chapter_bk);
+          await uploadStudy(sanitizedRow, category_bk, subject_bk, section_bk, chapter_bk , childkey);
         }
       }
       res.json(jsonData);
@@ -500,17 +499,17 @@ async function loginWithSession(ig) {
       res.status(500).json({ error: 'Error processing file.', details: error.message });
     }
   });
-  
+
+  function cleanString(value) {
+    return value != null ? String(value).trim().replace(/[\/]/g, '_') : "";
+ } 
   ////FOR UPLOADING STUDY QUESTIONS
-  async function uploadStudy(item, category_bk, subject_bk, section_bk, chapter_bk) {
+  async function uploadStudy(item, category_bk, subject_bk, section_bk, chapter_bk , childkey) {
     const bulkRef = db.ref('Ques_Data');
-
-    const childKey = await getNextStudyChildKey(bulkRef);
-
-    if (childKey) {
-      const itemRef = bulkRef.child(childKey.toString());
+    if (childkey) {
+      const itemRef = bulkRef.child(childkey);
       await itemRef.set(item);
-      await RegisterKeys(item ,category_bk, subject_bk, section_bk, chapter_bk , childKey.toString());
+      await RegisterKeys(item ,category_bk, subject_bk, section_bk, chapter_bk , childkey);
     } else {
       console.warn('Invalid child key for item:', item);
     }
@@ -535,11 +534,11 @@ async function loginWithSession(ig) {
   }
   
 
-  async function RegisterKeys(item, category_bk, subject_bk, section_bk, chapter_bk , child_key) {
-    const bulkRef = db.ref('Questions_Data').child(category_bk).child(subject_bk).child(section_bk).child(chapter_bk).child(child_key);
-    if (child_key) {
+  async function RegisterKeys(item, category_bk, subject_bk, section_bk, chapter_bk , childkey) {
+    const bulkRef = db.ref('Questions_Data').child(category_bk).child(subject_bk).child(section_bk).child(chapter_bk).child(childkey);
+    if (childkey) {
       await bulkRef.set({
-        'ques_id' : child_key  , 
+        'ques_id' : childkey , 
         'subject': subject_bk,
         'section': section_bk,
         'chapter': chapter_bk,
