@@ -486,7 +486,7 @@ async function loginWithSession(ig) {
         const sanitizedRow = sanitizeKeys(row);
     
         if(type == "news"){
-          // await uploadBulkGeneralQuiz(sanitizedRow);
+          await uploadBulkGeneralQuiz(sanitizedRow);
            await uploadStudy(sanitizedRow, category_bk, subject_bk, section_bk, chapter_bk);
         }else if(type == "study"){
           await uploadStudy(sanitizedRow, category_bk, subject_bk, section_bk, chapter_bk);
