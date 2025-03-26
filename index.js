@@ -484,13 +484,12 @@ async function loginWithSession(ig) {
         console.log('Type:', type);
       
         const sanitizedRow = sanitizeKeys(row);
-        const childkey = await getNextStudyChildKey();
-
+    
         if(type == "news"){
-          await uploadBulkGeneralQuiz(sanitizedRow , childkey);
-           await uploadStudy(sanitizedRow, category_bk, subject_bk, section_bk, chapter_bk , childkey);
+          // await uploadBulkGeneralQuiz(sanitizedRow);
+           await uploadStudy(sanitizedRow, category_bk, subject_bk, section_bk, chapter_bk);
         }else if(type == "study"){
-          await uploadStudy(sanitizedRow, category_bk, subject_bk, section_bk, chapter_bk , childkey);
+          await uploadStudy(sanitizedRow, category_bk, subject_bk, section_bk, chapter_bk);
         }
       }
       res.json(jsonData);
@@ -504,7 +503,9 @@ async function loginWithSession(ig) {
     return value != null ? String(value).trim().replace(/[\/]/g, '_') : "";
  } 
   ////FOR UPLOADING STUDY QUESTIONS
-  async function uploadStudy(item, category_bk, subject_bk, section_bk, chapter_bk , childkey) {
+  async function uploadStudy(item, category_bk, subject_bk, section_bk, chapter_bk) {
+
+    const childkey = await getNextStudyChildKey();
     const bulkRef = db.ref('Ques_Data');
     if (childkey) {
       const itemRef = bulkRef.child(childkey);
@@ -516,15 +517,16 @@ async function loginWithSession(ig) {
     console.log('Study Data uploaded!');
   }
 
-  async function uploadBulkGeneralQuiz(item, childKey) {
+  async function uploadBulkGeneralQuiz(item) {
     try {
+      const childkey = await getNextChildKeySuperAdmin();
       const quizzesRef = firestore.collection('News');
      
       // Add extra metadata fields
       item['Ques_in_News_Enabled'] = 'Yes';
-      item['notification_id'] = childKey.toString();
+      item['notification_id'] = childkey.toString();
   
-      const newQuizRef = quizzesRef.doc(childKey.toString());
+      const newQuizRef = quizzesRef.doc(childkey.toString());
       await newQuizRef.set(item);
       console.log('General Quiz Data uploaded!');
     } catch (error) {

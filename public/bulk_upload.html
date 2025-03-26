@@ -142,11 +142,11 @@ td[contenteditable="true"]:focus {
 
         window.onload = checkLogin;
 
-        async function Upload_Quiz() {
+        async function Upload_Quiz(batchSize = 5) {
     const files = document.querySelector('input[type="file"]').files;
-    const totalFiles = files.length; // Get total number of files
-    let filesUploaded = 0; // Counter for successfully uploaded files
-    let filesFailed = 0; // Counter for failed uploads
+    const totalFiles = files.length;
+    let filesUploaded = 0;
+    let filesFailed = 0;
 
     const progressContainer = document.getElementById('progressContainer');
     const progressBar = document.getElementById('progressBar');
@@ -156,38 +156,52 @@ td[contenteditable="true"]:focus {
     progressContainer.style.display = 'block';
     progressBar.value = 0;
     progressText.innerText = '0%';
-    progressBar.style.backgroundColor = '#4caf50'; // Default green color
+    progressBar.style.backgroundColor = '#4caf50'; // Green on start
 
-    Array.from(files).forEach((file, index) => {
+    // **Upload in Batches**
+    for (let i = 0; i < totalFiles; i += batchSize) {
+        const batch = Array.from(files).slice(i, i + batchSize);
         const formData = new FormData();
-        formData.append('file', file);
+        batch.forEach(file => formData.append('file', file));
 
+        try {
+            await sendBatch(formData);
+            filesUploaded += batch.length;
+        } catch (error) {
+            filesFailed += batch.length;
+            console.error("Batch upload failed:", error);
+        }
+
+        // **Update Progress Bar**
+        progressBar.value = ((filesUploaded + filesFailed) * 100) / totalFiles;
+        progressText.innerText = `${Math.round(progressBar.value)}%`;
+    }
+
+    // **Show Final Result**
+    if (filesFailed > 0) {
+        progressBar.style.backgroundColor = 'red';
+        output.innerText = `Upload Completed with ${filesFailed} failures.`;
+    } else {
+        output.innerText = 'All files uploaded successfully!';
+    }
+}
+
+// **Send a Batch Request**
+async function sendBatch(formData) {
+    return new Promise((resolve, reject) => {
         const xhr = new XMLHttpRequest();
         xhr.open('POST', 'https://author.edulips.com/uploadQuizBulk', true);
 
-        xhr.upload.onprogress = function (event) {
-            if (event.lengthComputable) {
-                const percent = (event.loaded / event.total) * 100;
-                // Adjust progress calculation based on successful uploads only
-                progressBar.value = ((filesUploaded + filesFailed + (percent / 100)) * 100) / totalFiles;
-                progressText.innerText = `${Math.round(((filesUploaded + filesFailed + (percent / 100)) * 100) / totalFiles)}%`;
-            }
-        };
-
         xhr.onload = function () {
             if (xhr.status >= 200 && xhr.status < 300) {
-                filesUploaded++;
+                resolve();
             } else {
-                filesFailed++;
-                console.error(`Error uploading ${file.name}: ${xhr.statusText}`);
+                reject(xhr.statusText);
             }
-            updateProgress();
         };
 
         xhr.onerror = function () {
-            filesFailed++;
-            console.error(`Error uploading ${file.name}`);
-            updateProgress();
+            reject('Network error');
         };
 
         xhr.send(formData);
