@@ -996,3 +996,48 @@ app.get('/fixQuizes', fixQuizes);
 //   }
 // }
 // transferData()
+
+// async function copyNewsInternational(sourceCollection, targetCollection) {
+//   const db = admin.firestore();
+//   const collectionRef = db.collection(sourceCollection);
+//   const newCollectionRef = db.collection(targetCollection);
+
+//   // Fetch all documents
+//   const snapshot = await collectionRef.get();
+
+//   if (snapshot.empty) {
+//       console.log("No documents found.");
+//       return;
+//   }
+
+//   let batch = db.batch();
+//   let count = 0;
+
+//   for (const doc of snapshot.docs) {
+//       const data = doc.data();
+
+//       // Filter documents with cat == "News_International"
+//       if (data.cat === "News_Entertainment") {
+//           const newDocRef = newCollectionRef.doc(doc.id); // Keep same ID
+
+//           // Copy data to new collection
+//           batch.set(newDocRef, data);
+
+//           console.log(`Copied ${doc.id} to ${targetCollection}`);
+//           count++;
+
+//           // Commit batch every 500 operations (Firestore limit)
+//           if (count % 500 === 0) {
+//               await batch.commit();
+//               batch = db.batch();
+//           }
+//       }
+//   }
+
+//   // Commit remaining batch
+//   await batch.commit();
+//   console.log("Copy operation completed successfully!");
+// }
+
+// // Usage: Copy all "News_International" docs from "your-source-collection" to "News_International"
+// copyNewsInternational("News", "News_Entertainment");
