@@ -1049,39 +1049,39 @@ app.get('/fixQuizes', fixQuizes);
 // copyNewsInternational("News", "News_Entertainment");
 
 
-// app.post('/create-video', upload.fields([
-//   { name: 'audio', maxCount: 1 },
-//   { name: 'image', maxCount: 1 }
-// ]), (req, res) => {
-//   const audioPath = req.files['audio'][0].path;
-//   const imagePath = req.files['image'][0].path;
+app.post('/create-video', upload.fields([
+  { name: 'audio', maxCount: 1 },
+  { name: 'image', maxCount: 1 }
+]), (req, res) => {
+  const audioPath = req.files['audio'][0].path;
+  const imagePath = req.files['image'][0].path;
 
-//   const outputPath = path.join(__dirname, 'outputs', `${Date.now()}.mp4`);
+  const outputPath = path.join(__dirname, 'outputs', `${Date.now()}.mp4`);
 
-//   // Ensure the outputs directory exists
-//   fs.mkdirSync(path.join(__dirname, 'outputs'), { recursive: true });
+  // Ensure the outputs directory exists
+  fs.mkdirSync(path.join(__dirname, 'outputs'), { recursive: true });
 
-//   ffmpeg()
-//     .input(imagePath)
-//     .loop() // image stays during the audio
-//     .input(audioPath)
-//     .audioCodec('aac')
-//     .videoCodec('libx264')
-//     .outputOptions([
-//       '-shortest', // end video when audio ends
-//       '-pix_fmt yuv420p' // needed for compatibility
-//     ])
-//     .save(outputPath)
-//     .on('end', () => {
-//       res.download(outputPath, 'video.mp4', (err) => {
-//         // cleanup files
-//         fs.unlinkSync(audioPath);
-//         fs.unlinkSync(imagePath);
-//         fs.unlinkSync(outputPath);
-//       });
-//     })
-//     .on('error', err => {
-//       console.error('Error creating video:', err);
-//       res.status(500).send('Failed to create video');
-//     });
-// });
+  ffmpeg()
+    .input(imagePath)
+    .loop() // image stays during the audio
+    .input(audioPath)
+    .audioCodec('aac')
+    .videoCodec('libx264')
+    .outputOptions([
+      '-shortest', // end video when audio ends
+      '-pix_fmt yuv420p' // needed for compatibility
+    ])
+    .save(outputPath)
+    .on('end', () => {
+      res.download(outputPath, 'video.mp4', (err) => {
+        // cleanup files
+        fs.unlinkSync(audioPath);
+        fs.unlinkSync(imagePath);
+        fs.unlinkSync(outputPath);
+      });
+    })
+    .on('error', err => {
+      console.error('Error creating video:', err);
+      res.status(500).send('Failed to create video');
+    });
+});
