@@ -1,63 +1,63 @@
 require('dotenv').config();
 const express = require('express');
-const multer = require('multer');
-const ffmpeg = require('fluent-ffmpeg');
-const ffmpegPath = require('ffmpeg-static');
+// const multer = require('multer');
+// const ffmpeg = require('fluent-ffmpeg');
+// const ffmpegPath = require('ffmpeg-static');
 const path = require('path');
 const fs = require('fs');
-const ffprobePath = require('ffprobe-static').path;
-ffmpeg.setFfmpegPath(ffmpegPath);
-ffmpeg.setFfprobePath(ffprobePath);  
+// const ffprobePath = require('ffprobe-static').path;
+// ffmpeg.setFfmpegPath(ffmpegPath);
+// ffmpeg.setFfprobePath(ffprobePath);  
 
 const app = express();
-ffmpeg.setFfmpegPath(ffmpegPath);
-const upload = multer({ dest: 'temp/' });
+// ffmpeg.setFfmpegPath(ffmpegPath);
+// const upload = multer({ dest: 'temp/' });
 
-app.use(express.static('public'));
-app.post('/create-video', upload.fields([{ name: 'image' }, { name: 'audio' }]), async (req, res) => {
-  const image = req.files['image']?.[0];
-  const audio = req.files['audio']?.[0];
+// app.use(express.static('public'));
+// app.post('/create-video', upload.fields([{ name: 'image' }, { name: 'audio' }]), async (req, res) => {
+//   const image = req.files['image']?.[0];
+//   const audio = req.files['audio']?.[0];
 
-  if (!image || !audio) return res.status(400).send('Missing image or audio file.');
+//   if (!image || !audio) return res.status(400).send('Missing image or audio file.');
 
-  const outputPath = path.join(__dirname, 'temp', `${Date.now()}_video.mp4`);
+//   const outputPath = path.join(__dirname, 'temp', `${Date.now()}_video.mp4`);
 
-  // Get audio duration using ffprobe
-  ffmpeg.ffprobe(audio.path, (err, metadata) => {
-    if (err) {
-      console.error('ffprobe error:', err);
-      return res.status(500).send('Could not analyze audio.');
-    }
+//   // Get audio duration using ffprobe
+//   ffmpeg.ffprobe(audio.path, (err, metadata) => {
+//     if (err) {
+//       console.error('ffprobe error:', err);
+//       return res.status(500).send('Could not analyze audio.');
+//     }
 
-    const duration = metadata.format.duration;
+//     const duration = metadata.format.duration;
 
-    ffmpeg()
-      .input(image.path)
-      .loop(duration) // match image duration to audio
-      .input(audio.path)
-      .outputOptions([
-        '-c:v libx264',
-        '-t ' + duration,         // set total duration
-        '-pix_fmt yuv420p',       // for browser compatibility
-        '-c:a aac',
-        '-shortest'               // end video when shortest stream ends
-      ])
-      .on('end', () => {
-        res.download(outputPath, 'video.mp4', () => {
-          fs.unlinkSync(image.path);
-          fs.unlinkSync(audio.path);
-          fs.unlinkSync(outputPath);
-        });
-      })
-      .on('error', (err) => {
-        console.error('FFmpeg error:', err.message);
-        fs.unlinkSync(image.path);
-        fs.unlinkSync(audio.path);
-        res.status(500).send('Failed to create video.');
-      })
-      .save(outputPath);
-  });
-});
+//     ffmpeg()
+//       .input(image.path)
+//       .loop(duration) // match image duration to audio
+//       .input(audio.path)
+//       .outputOptions([
+//         '-c:v libx264',
+//         '-t ' + duration,         // set total duration
+//         '-pix_fmt yuv420p',       // for browser compatibility
+//         '-c:a aac',
+//         '-shortest'               // end video when shortest stream ends
+//       ])
+//       .on('end', () => {
+//         res.download(outputPath, 'video.mp4', () => {
+//           fs.unlinkSync(image.path);
+//           fs.unlinkSync(audio.path);
+//           fs.unlinkSync(outputPath);
+//         });
+//       })
+//       .on('error', (err) => {
+//         console.error('FFmpeg error:', err.message);
+//         fs.unlinkSync(image.path);
+//         fs.unlinkSync(audio.path);
+//         res.status(500).send('Failed to create video.');
+//       })
+//       .save(outputPath);
+//   });
+// });
 
    const bodyParser = require('body-parser');
    const admin = require('firebase-admin');
