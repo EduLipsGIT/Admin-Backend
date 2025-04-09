@@ -1,0 +1,88 @@
+<!-- <!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Create Video</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-top: 50px;
+    }
+    form {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      width: 300px;
+    }
+    button {
+      padding: 10px;
+      background: #007bff;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    button:disabled {
+      background: #aaa;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Create Video from Image + Audio</h1>
+
+  <form id="uploadForm">
+    <label>Choose Image:
+      <input type="file" name="image" accept="image/*" required>
+    </label>
+    <label>Choose Audio:
+      <input type="file" name="audio" accept="audio/*" required>
+    </label>
+    <button type="submit">Create Video</button>
+  </form>
+
+  <p id="status"></p>
+
+  <script>
+    const form = document.getElementById('uploadForm');
+    const statusText = document.getElementById('status');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const formData = new FormData(form);
+
+      statusText.textContent = 'Uploading and processing...';
+
+      try {
+        const response = await fetch('/create-video', {
+          method: 'POST',
+          body: formData
+        });
+
+        if (!response.ok) {
+          throw new Error('Video creation failed');
+        }
+
+        // Create a blob and download link
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'video.mp4';
+        a.click();
+
+        URL.revokeObjectURL(url);
+        statusText.textContent = '✅ Video created successfully!';
+      } catch (err) {
+        statusText.textContent = '❌ Error: ' + err.message;
+      }
+    });
+  </script>
+
+</body>
+</html> -->
