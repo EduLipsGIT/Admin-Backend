@@ -12,7 +12,9 @@ const fs = require("fs");
   const cheerio = require('cheerio');
   const xlsx = require('xlsx');
   const fileUpload = require('express-fileupload');
-
+  const multer = require('multer');
+  const ffmpeg = require('fluent-ffmpeg');
+  
  
   admin.initializeApp({
     credential: admin.credential.cert({
@@ -32,12 +34,15 @@ const fs = require("fs");
   const { v4: uuidv4 } = require('uuid'); 
   const { time } = require('console');
   const app = express();
+  const upload = multer({ dest: 'uploads/' });
   app.use(cors());
   app.use(bodyParser.urlencoded({ extended: true }));
   app.use(bodyParser.json());
   app.use(express.static(path.join(__dirname, 'public')));
   app.use(fileUpload());
 
+
+  
   async function getAccessToken() {
     const serviceAccount = {
       type: process.env.GOOGLE_SERVICE_ACCOUNT_TYPE,
@@ -1041,3 +1046,41 @@ app.get('/fixQuizes', fixQuizes);
 
 // // Usage: Copy all "News_International" docs from "your-source-collection" to "News_International"
 // copyNewsInternational("News", "News_Entertainment");
+
+
+app.post('/create-video', upload.fields([
+  { name: 'audio', maxCount: 1 },
+  { name: 'image', maxCount: 1 }
+]), (req, res) => {
+  const audioPath = req.files['audio'][0].path;
+  const imagePath = req.files['image'][0].path;
+
+  const outputPath = path.join(__dirname, 'outputs', `${Date.now()}.mp4`);
+
+  // Ensure the outputs directory exists
+  fs.mkdirSync(path.join(__dirname, 'outputs'), { recursive: true });
+
+  ffmpeg()
+    .input(imagePath)
+    .loop() // image stays during the audio
+    .input(audioPath)
+    .audioCodec('aac')
+    .videoCodec('libx264')
+    .outputOptions([
+      '-shortest', // end video when audio ends
+      '-pix_fmt yuv420p' // needed for compatibility
+    ])
+    .save(outputPath)
+    .on('end', () => {
+      res.download(outputPath, 'video.mp4', (err) => {
+        // cleanup files
+        fs.unlinkSync(audioPath);
+        fs.unlinkSync(imagePath);
+        fs.unlinkSync(outputPath);
+      });
+    })
+    .on('error', err => {
+      console.error('Error creating video:', err);
+      res.status(500).send('Failed to create video');
+    });
+});
