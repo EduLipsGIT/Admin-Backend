@@ -35,7 +35,7 @@ const fs = require("fs");
   const { v4: uuidv4 } = require('uuid'); 
   const { time } = require('console');
   const app = express();
-  const upload = multer({ dest: 'uploads/' });
+  const upload = multer({ dest: '/tmp/' });
   app.use(cors());
   app.use(bodyParser.urlencoded({ extended: true }));
   app.use(bodyParser.json());
