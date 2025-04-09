@@ -1,68 +1,11 @@
 require('dotenv').config();
-const express = require('express');
-// const multer = require('multer');
-// const ffmpeg = require('fluent-ffmpeg');
-// const ffmpegPath = require('ffmpeg-static');
-const path = require('path');
-const fs = require('fs');
-// const ffprobePath = require('ffprobe-static').path;
-// ffmpeg.setFfmpegPath(ffmpegPath);
-// ffmpeg.setFfprobePath(ffprobePath);  
-
-const app = express();
-// ffmpeg.setFfmpegPath(ffmpegPath);
-// const upload = multer({ dest: 'temp/' });
-
-// app.use(express.static('public'));
-// app.post('/create-video', upload.fields([{ name: 'image' }, { name: 'audio' }]), async (req, res) => {
-//   const image = req.files['image']?.[0];
-//   const audio = req.files['audio']?.[0];
-
-//   if (!image || !audio) return res.status(400).send('Missing image or audio file.');
-
-//   const outputPath = path.join(__dirname, 'temp', `${Date.now()}_video.mp4`);
-
-//   // Get audio duration using ffprobe
-//   ffmpeg.ffprobe(audio.path, (err, metadata) => {
-//     if (err) {
-//       console.error('ffprobe error:', err);
-//       return res.status(500).send('Could not analyze audio.');
-//     }
-
-//     const duration = metadata.format.duration;
-
-//     ffmpeg()
-//       .input(image.path)
-//       .loop(duration) // match image duration to audio
-//       .input(audio.path)
-//       .outputOptions([
-//         '-c:v libx264',
-//         '-t ' + duration,         // set total duration
-//         '-pix_fmt yuv420p',       // for browser compatibility
-//         '-c:a aac',
-//         '-shortest'               // end video when shortest stream ends
-//       ])
-//       .on('end', () => {
-//         res.download(outputPath, 'video.mp4', () => {
-//           fs.unlinkSync(image.path);
-//           fs.unlinkSync(audio.path);
-//           fs.unlinkSync(outputPath);
-//         });
-//       })
-//       .on('error', (err) => {
-//         console.error('FFmpeg error:', err.message);
-//         fs.unlinkSync(image.path);
-//         fs.unlinkSync(audio.path);
-//         res.status(500).send('Failed to create video.');
-//       })
-//       .save(outputPath);
-//   });
-// });
-
+   const express = require('express');
    const bodyParser = require('body-parser');
    const admin = require('firebase-admin');
    const { IgApiClient } = require('instagram-private-api');
  const { get } = require('request-promise');
+ const fs = require("fs");
+   const path = require('path');
    const cors = require('cors');
    const axios = require('axios');
    const moment = require('moment-timezone');
@@ -88,10 +31,11 @@ const app = express();
    const fixed_desc = "Click to know more";
    const { v4: uuidv4 } = require('uuid'); 
    const { time } = require('console');
+   const app = express();
    app.use(cors());
    app.use(bodyParser.urlencoded({ extended: true }));
    app.use(bodyParser.json());
-  //  app.use(express.static(path.join(__dirname, 'public')));
+   app.use(express.static(path.join(__dirname, 'public')));
    app.use(fileUpload());
  
    async function getAccessToken() {
@@ -1016,38 +960,3 @@ const app = express();
  
  
  app.get('/fixQuizes', fixQuizes);
- 
- //    const rdbPath = "News";
- // // Function to copy data from RDB to Firestore
- // async function transferData() {
- //   try {
- //     // Fetch data from Realtime Database
- //     const rdbRef = db.ref(rdbPath);
- //     const snapshot = await rdbRef.once("value");
- //     const data = snapshot.val();
- 
- //     if (data) {
- //       console.log(`Data fetched from Realtime Database at ${rdbPath}:`);
- //       console.log(data);
- 
- //       // Loop through the data and write it to Firestore
- //       const firestoreRef = firestore.collection(rdbPath); // Firestore collection name
- //       const promises = [];
- 
- //       Object.keys(data).forEach((key) => {
- //         // Writing each record as a document in Firestore with the same ID as in RDB
- //         const docRef = firestoreRef.doc(key);
- //         promises.push(docRef.set(data[key]));
- //       });
- 
- //       // Wait for all writes to finish
- //       await Promise.all(promises);
- 
- //       console.log("Data successfully transferred to Firestore!");
- //     } else {
- //       console.log("No data found at the specified Realtime Database path.");
- //     }
- //   } catch (error) {
- //     console.error("Error transferring data:", error);
- //   }
- // }
