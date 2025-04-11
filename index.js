@@ -669,7 +669,7 @@ require('dotenv').config();
  
    const resetLeaderboard = async (req, res) => {
      try {
-         const leaderboardRef = db.ref("Live_Leadeboard");
+         const leaderboardRef = db.ref("Live_Leaderboard");
  
        // Fetch data once
        const snapshot = await leaderboardRef.once("value");
