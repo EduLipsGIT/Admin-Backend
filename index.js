@@ -69,29 +69,29 @@ require('dotenv').config();
    });
  
  ////INSTA LOGIN
- async function loginWithSession(ig) {
-   try {
-       const sessionDoc = await sessionRef.get();
+//  async function loginWithSession(ig) {
+//    try {
+//        const sessionDoc = await sessionRef.get();
  
-       if (sessionDoc.exists) {
-           console.log("Using stored Instagram session...");
-           await ig.state.deserialize(sessionDoc.data().session);
-       } else {
-           console.log("Logging into Instagram...");
-           await ig.account.login(process.env.IG_USERNAME, process.env.IG_PASSWORD);
+//        if (sessionDoc.exists) {
+//            console.log("Using stored Instagram session...");
+//            await ig.state.deserialize(sessionDoc.data().session);
+//        } else {
+//            console.log("Logging into Instagram...");
+//            await ig.account.login(process.env.IG_USERNAME, process.env.IG_PASSWORD);
  
-           let sessionData = await ig.state.serialize();
+//            let sessionData = await ig.state.serialize();
  
-           // 🔹 Remove undefined values before saving
-           sessionData = JSON.parse(JSON.stringify(sessionData)); 
+//            // 🔹 Remove undefined values before saving
+//            sessionData = JSON.parse(JSON.stringify(sessionData)); 
  
-           await sessionRef.set({ session: sessionData });
-           console.log("Instagram session saved to Firebase.");
-       }
-   } catch (error) {
-       console.error("Error logging into Instagram:", error);
-   }
- }
+//            await sessionRef.set({ session: sessionData });
+//            console.log("Instagram session saved to Firebase.");
+//        }
+//    } catch (error) {
+//        console.error("Error logging into Instagram:", error);
+//    }
+//  }
    ///// CALCULATION OF CHILD KEYS /////
    async function getNextChildKey() {
      const ref = firestore.collection('News_UnApproved');
@@ -222,7 +222,7 @@ require('dotenv').config();
        };
        await newsRef.doc(childKey.toString()).set(newsData);
        console.log('News added successfully with document ID:', childKey.toString());
-       await postToInsta(title , desc , imagelink , newslink);
+      //  await postToInsta(title , desc , imagelink , newslink);
      } catch (error) {
        console.error('Error adding news:', error.message);
        throw error;
@@ -457,51 +457,80 @@ require('dotenv').config();
    };
  
    ////////////BULK UPLOADS ///////////
-   app.post('/uploadQuizBulk', async (req, res) => {
-     if (!req.files || !req.files.file) {
-       return res.status(400).send('No file uploaded.');
-     }
-     const file = req.files.file;
-     try {
-       const workbook = xlsx.read(file.data, { type: 'buffer' });
-       const sheetName = workbook.SheetNames[0];
-       const sheet = workbook.Sheets[sheetName];
-       const jsonData = xlsx.utils.sheet_to_json(sheet);
- 
-       // Process and upload each row
-       for (const row of jsonData) {
- 
-       const category_bk = cleanString(row['Exam/Category']);
-       const subject_bk = cleanString(row['Subject']);
-       const section_bk = cleanString(row['Section']);
-       const chapter_bk = cleanString(row['Chapter']);
-       const type = cleanString(row['type']);
- 
-         console.log('Category:', category_bk);
-         console.log('Subject:', subject_bk);
-         console.log('Section:', section_bk);
-         console.log('Chapter:', chapter_bk);
-         console.log('Type:', type);
- 
-         const sanitizedRow = sanitizeKeys(row);
- 
-         if(type == "news"){
-           await uploadBulkGeneralQuiz(sanitizedRow);
-            await uploadStudy(sanitizedRow, category_bk, subject_bk, section_bk, chapter_bk);
-         }else if(type == "study"){
-           await uploadStudy(sanitizedRow, category_bk, subject_bk, section_bk, chapter_bk);
-         }
-       }
-       res.json(jsonData);
-     } catch (error) {
-       console.error('Error processing file:', error);
-       res.status(500).json({ error: 'Error processing file.', details: error.message });
-     }
-   });
- 
-   function cleanString(value) {
-     return value != null ? String(value).trim().replace(/[\/]/g, '_') : "";
-  } 
+ app.post('/uploadQuizBulk', async (req, res) => {
+  if (!req.files || !req.files.file) {
+    return res.status(400).send('No file uploaded.');
+  }
+
+  const file = req.files.file;
+
+  try {
+    const workbook = xlsx.read(file.data, { type: 'buffer' });
+    const sheetName = workbook.SheetNames[0];
+    const sheet = workbook.Sheets[sheetName];
+
+    // Step 1: Read sheet with raw values
+    const rawData = xlsx.utils.sheet_to_json(sheet, { raw: true });
+
+    // Step 2: Convert Excel serials to dd-mm-yyyy format
+    function parsePossibleDate(value) {
+      if (typeof value === 'number' && value > 25569 && value < 60000) {
+        const utc_days = Math.floor(value - 25569);
+        const utc_value = utc_days * 86400;
+        const date = new Date(utc_value * 1000);
+
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+
+        return `${day}-${month}-${year}`;
+      }
+      return value;
+    }
+
+    // Step 3: Process all rows and convert fields dynamically
+    const jsonData = rawData.map(row => {
+      const convertedRow = {};
+      for (const key in row) {
+        convertedRow[key] = parsePossibleDate(row[key]);
+      }
+      return convertedRow;
+    });
+
+    // Step 4: Loop through and process each row
+    for (const row of jsonData) {
+      const category_bk = cleanString(row['Exam/Category']);
+      const subject_bk = cleanString(row['Subject']);
+      const section_bk = cleanString(row['Section']);
+      const chapter_bk = cleanString(row['Chapter']);
+      const type = cleanString(row['type']);
+
+      console.log('Category:', category_bk);
+      console.log('Subject:', subject_bk);
+      console.log('Section:', section_bk);
+      console.log('Chapter:', chapter_bk);
+      console.log('Type:', type);
+
+      const sanitizedRow = sanitizeKeys(row);
+
+      if (type === "news") {
+        await uploadBulkGeneralQuiz(sanitizedRow);
+        await uploadStudy(sanitizedRow, category_bk, subject_bk, section_bk, chapter_bk);
+      } else if (type === "study") {
+        await uploadStudy(sanitizedRow, category_bk, subject_bk, section_bk, chapter_bk);
+      }
+    }
+
+    res.json(jsonData);
+  } catch (error) {
+    console.error('Error processing file:', error);
+    res.status(500).json({ error: 'Error processing file.', details: error.message });
+  }
+});
+
+function cleanString(value) {
+  return value != null ? String(value).trim().replace(/[\/]/g, '_') : "";
+}
    ////FOR UPLOADING STUDY QUESTIONS
    async function uploadStudy(item, category_bk, subject_bk, section_bk, chapter_bk) {
  
@@ -521,6 +550,8 @@ require('dotenv').config();
      try {
        const childkey = await getNextChildKeySuperAdmin();
        const quizzesRef = firestore.collection('News');
+       const quizzesRef_eng = firestore.collection('News_Eng');
+       const quizzesRef_hin = firestore.collection('News_Hindi');
  
        // Add extra metadata fields
        item['Ques_in_News_Enabled'] = 'Yes';
@@ -529,6 +560,12 @@ require('dotenv').config();
        const newQuizRef = quizzesRef.doc(childkey.toString());
        await newQuizRef.set(item);
        console.log('General Quiz Data uploaded!');
+       const newQuizRef_eng = quizzesRef_eng.doc(childkey.toString());
+       await newQuizRef_eng.set(item);
+       console.log('General Quiz for English Data uploaded!');
+       const newQuizRef_hin = quizzesRef_hin.doc(childkey.toString());
+       await newQuizRef_hin.set(item);
+       console.log('General Quiz For Hindi Data uploaded!');
      } catch (error) {
        console.error('Error adding quiz to Firestore:', error.message);
        throw error;
@@ -594,7 +631,7 @@ require('dotenv').config();
  
    /////////////// CRON JOBS //////////////////////
    async function rearrangeAndUploadNewsData(res) {
-     const reorderedNewsRef = firestore.collection("News");
+     const reorderedNewsRef = firestore.collection("News_Hindi");
      try {
        const snapshot = await reorderedNewsRef.limit(200).get(); // Use .get() for Firestore
  
@@ -853,35 +890,7 @@ require('dotenv').config();
      }
    };
  
-   ///UPLOAD TO INSTA
-   const postToInsta = async (title, desc, imgUrl , newsLink) => {
-     try {
-         const ig = new IgApiClient();
-         ig.state.generateDevice(process.env.IG_USERNAME);
- 
-         // Log in
-         await loginWithSession(ig);
- 
-         // Fetch image from direct URL
-         const imageBuffer = await get({
-             url: imgUrl, // Must be a valid direct image URL
-             encoding: null,
-         });
- 
-         // Post to Instagram
-         await ig.publish.photo({
-             file: imageBuffer,
-             caption: `📰 ${title}\n\n📌 ${desc}\n\n🔗 Source: ${newsLink} 🌍`,
-              });
- 
-         console.log("✅ Post successfully uploaded!");
-     } catch (error) {
-         console.error("❌ Error posting to Instagram:", error);
-     }
- };
- 
- ///DEEP LINKING
- 
+
  app.get("/test/:testID", (req, res) => {
    const testID = req.params.testID;
    const instID = req.query.InstID || "";
@@ -922,41 +931,130 @@ require('dotenv').config();
  });
  
  
- const fixQuizes = async (req, res) => {
-   try {
-       const newsRef = admin.firestore().collection("News");
-       const snapshot = await newsRef.get();
+ ///const fixQuizes = async (req, res) => {  
+
+///UPLOAD TO INSTA
+//    const postToInsta = async (title, desc, imgUrl , newsLink) => {
+//      try {
+//          const ig = new IgApiClient();
+//          ig.state.generateDevice(process.env.IG_USERNAME);
  
-       if (snapshot.empty) {
-           console.log("No data found under News");
-           return res.status(404).send("No data found under News");
-       }
+//          // Log in
+//          await loginWithSession(ig);
  
-       let deletePromises = [];
+//          // Fetch image from direct URL
+//          const imageBuffer = await get({
+//              url: imgUrl, // Must be a valid direct image URL
+//              encoding: null,
+//          });
  
-       snapshot.forEach((doc) => {
-           const data = doc.data();
+//          // Post to Instagram
+//          await ig.publish.photo({
+//              file: imageBuffer,
+//              caption: `📰 ${title}\n\n📌 ${desc}\n\n🔗 Source: ${newsLink} 🌍`,
+//               });
  
-           if (data.Ques_in_News_Enabled && data.Ques_in_News_Enabled.toLowerCase() === "yes") {
-               deletePromises.push(newsRef.doc(doc.id).delete());
-           }
-       });
+//          console.log("✅ Post successfully uploaded!");
+//      } catch (error) {
+//          console.error("❌ Error posting to Instagram:", error);
+//      }
+//  };
  
-       if (deletePromises.length === 0) {
-           console.log("No quizzes enabled.");
-           return res.status(404).send("No quizzes enabled.");
-       }
+ ///DEEP LINKING
+
+//    try {
+//        const newsRef = admin.firestore().collection("News");
+//        const snapshot = await newsRef.get();
  
-       await Promise.all(deletePromises);
+//        if (snapshot.empty) {
+//            console.log("No data found under News");
+//            return res.status(404).send("No data found under News");
+//        }
  
-       console.log("All quiz-enabled news items deleted successfully.");
-       res.status(200).send("All quiz-enabled news items deleted successfully.");
+//        let deletePromises = [];
  
-   } catch (error) {
-       console.error("Error deleting quiz-enabled items:", error);
-       res.status(500).send("Failed to delete quiz-enabled items");
-   }
- };
+//        snapshot.forEach((doc) => {
+//            const data = doc.data();
+ 
+//            if (data.Ques_in_News_Enabled && data.Ques_in_News_Enabled.toLowerCase() === "yes") {
+//                deletePromises.push(newsRef.doc(doc.id).delete());
+//            }
+//        });
+ 
+//        if (deletePromises.length === 0) {
+//            console.log("No quizzes enabled.");
+//            return res.status(404).send("No quizzes enabled.");
+//        }
+ 
+//        await Promise.all(deletePromises);
+ 
+//        console.log("All quiz-enabled news items deleted successfully.");
+//        res.status(200).send("All quiz-enabled news items deleted successfully.");
+ 
+//    } catch (error) {
+//        console.error("Error deleting quiz-enabled items:", error);
+//        res.status(500).send("Failed to delete quiz-enabled items");
+//    }
+//  };
  
 
- app.get('/fixQuizes', fixQuizes);
+//  app.get('/fixQuizes', fixQuizes);
+
+
+
+
+ /////////
+// async function copyDocsWithQuesEnabled() {
+//   try {
+//     const sourceSnapshot = await db_firestore.collection('News')
+//       .where('Ques_in_News_Enabled', '==', 'Yes')
+//       .get();
+
+//     if (sourceSnapshot.empty) {
+//       console.log('No documents found with Ques_in_News_Enabled == "Yes".');
+//       return;
+//     }
+
+//     let nextId = await getNextAvailableIdWithoutIndex(); // get starting ID
+//     const batch = db_firestore.batch();
+
+//     sourceSnapshot.forEach((doc) => {
+//       const data = doc.data();
+//       const destDocRef = db_firestore.collection('News_Eng').doc(nextId.toString());
+//       batch.set(destDocRef, data);
+//       nextId++;
+//     });
+
+//     await batch.commit();
+//     console.log(`${sourceSnapshot.size} documents copied to News_Hindi.`);
+//   } catch (error) {
+//     console.error('Error copying documents:', error);
+//   }
+// }
+
+
+// async function getNextAvailableIdWithoutIndex() {
+//   const ref = firestore.collection('News_Eng'); // destination collection
+//   try {
+//     const snapshot = await ref.get();
+//     if (!snapshot.empty) {
+//       let minId = Infinity;
+//       snapshot.forEach(doc => {
+//         const docId = parseInt(doc.id);
+//         if (!isNaN(docId) && docId < minId) {
+//           minId = docId;
+//         }
+//       });
+//       return (isFinite(minId) ? (minId - 1) : 999).toString(); // return as string
+//     } else {
+//       return "999"; // default start value
+//     }
+//   } catch (error) {
+//     console.error('Error fetching next child key:', error.message);
+//     throw error;
+//   }
+// }
+
+
+// Call the function
+// copyDocsWithQuesEnabled();

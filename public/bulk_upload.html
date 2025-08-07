@@ -226,54 +226,69 @@ async function sendBatch(formData) {
     }
 }
 
-        function displayExcelData() {
-        const fileInput = document.querySelector('input[type="file"]');
-        const file = fileInput.files[0];
+  function displayExcelData() {
+    const fileInput = document.querySelector('input[type="file"]');
+    const file = fileInput.files[0];
 
-        if (!file) {
-            alert('No file selected. Please select a valid file.');
-            return;
-        }
-
-        const reader = new FileReader();
-
-        reader.onload = function (event) {
-            const data = new Uint8Array(event.target.result);
-            const workbook = XLSX.read(data, { type: 'array' });
-            const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-            const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
-        
-            if (validateExcelDataRowWise(jsonData)) {
-                const table = document.getElementById('excelData');
-                table.innerHTML = '';
-                table.style.display = 'table';
-
-                const headerRow = document.createElement('tr');
-                jsonData[0].forEach((header) => {
-                    const th = document.createElement('th');
-                    th.innerText = header;
-                    headerRow.appendChild(th);
-                });
-                table.appendChild(headerRow);
-
-                for (let i = 1; i < jsonData.length; i++) {
-                    const row = document.createElement('tr');
-                    jsonData[i].forEach((cell) => {
-                        const td = document.createElement('td');
-                        td.innerText = cell || ''; // Ensure empty cells are rendered
-                        td.contentEditable = 'true';
-                        row.appendChild(td);
-                    });
-                    table.appendChild(row);
-                }
-            } else {
-                alert('The uploaded file contains empty rows or columns. Please correct it and try again.');
-                fileInput.value = ''; 
-            }
-        };
-
-        reader.readAsArrayBuffer(file);
+    if (!file) {
+        alert('No file selected. Please select a valid file.');
+        return;
     }
+
+    const reader = new FileReader();
+
+    reader.onload = function (event) {
+        const data = new Uint8Array(event.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+        const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1, raw: true });
+
+        if (validateExcelDataRowWise(jsonData)) {
+            const table = document.getElementById('excelData');
+            table.innerHTML = '';
+            table.style.display = 'table';
+
+            const headerRow = document.createElement('tr');
+            jsonData[0].forEach((header) => {
+                const th = document.createElement('th');
+                th.innerText = header;
+                headerRow.appendChild(th);
+            });
+            table.appendChild(headerRow);
+
+            for (let i = 1; i < jsonData.length; i++) {
+                const row = document.createElement('tr');
+                jsonData[i].forEach((cell) => {
+                    const td = document.createElement('td');
+                    td.innerText = formatIfExcelDate(cell); // 🔁 Convert if needed
+                    td.contentEditable = 'true';
+                    row.appendChild(td);
+                });
+                table.appendChild(row);
+            }
+        } else {
+            alert('The uploaded file contains empty rows or columns. Please correct it and try again.');
+            fileInput.value = '';
+        }
+    };
+
+    reader.readAsArrayBuffer(file);
+}
+
+// Converts Excel date serials to dd-mm-yyyy format
+function formatIfExcelDate(value) {
+    if (typeof value === 'number' && value > 25569 && value < 60000) {
+        const utc_days = Math.floor(value - 25569);
+        const utc_value = utc_days * 86400;
+        const date = new Date(utc_value * 1000);
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+        return `${day}-${month}-${year}`;
+    }
+    return value;
+}
+
 
  function validateExcelDataRowWise(jsonData) {
     console.log("JSON Data:", jsonData);
