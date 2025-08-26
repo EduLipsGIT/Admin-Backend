@@ -2,7 +2,7 @@ name: Trigger News Data Rearrange
 
 on:
   schedule:
-    - cron: '*/30 * * * *'  # Every 30 minutes
+    - cron: '*/60 * * * *'  # Every 60 minutes
 
 jobs:
   trigger:
@@ -10,4 +10,4 @@ jobs:
     steps:
       - name: Trigger Vercel API
         run: |
-          curl -X GET https://author.edulips.com/rearrange
+          curl --fail -X GET "https://author.edulips.com/rearrange"

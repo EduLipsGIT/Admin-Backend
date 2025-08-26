@@ -632,75 +632,95 @@ function cleanString(value) {
  }
  
    /////////////// CRON JOBS //////////////////////
-   async function rearrangeAndUploadNewsData(res) {
-     const reorderedNewsRef = firestore.collection("News_Hindi");
-     try {
-       const snapshot = await reorderedNewsRef.limit(200).get(); // Use .get() for Firestore
+ async function rearrangeAndUploadNewsData(res) {
+  try {
+    // Define the collections you want to process in order
+    const collections = ["News", "News_Eng", "News_Hindi"];
+
+    for (const colName of collections) {
+      console.log(`Processing collection: ${colName}`);
+      const reorderedNewsRef = firestore.collection(colName);
+
+      const snapshot = await reorderedNewsRef.limit(500).get();
+      if (snapshot.empty) {
+        console.log(`No documents found in ${colName}`);
+        continue;
+      }
+
+      const keysList = [];
+      const engList = [];
+      const hindiList = [];
+      const yesList = [];
+      const defaultNewsList = [];
+
+      snapshot.forEach((doc) => {
+        const itemData = doc.data();
+        const quizEnabled = itemData.Ques_in_News_Enabled;
+        const lang = itemData.lang;
+        const key = doc.id;
+
+        if (itemData) {
+          keysList.push(key);
+
+          if (quizEnabled === "Yes") {
+            yesList.push(itemData);
+          } else {
+            if (lang === "News_Eng") {
+              engList.push(itemData);
+            } else if (lang === "News_Hindi") {
+              hindiList.push(itemData);
+            } else {
+              defaultNewsList.push(itemData);
+            }
+          }
+        } else {
+          console.error("ItemData is null for document:", key);
+        }
+      });
+
+      const finalList = [];
+      let engIndex = 0,
+        hindiIndex = 0,
+        yesIndex = 0;
+
+      while (
+        engIndex < engList.length ||
+        hindiIndex < hindiList.length ||
+        yesIndex < yesList.length
+      ) {
+        if (hindiIndex < hindiList.length) finalList.push(hindiList[hindiIndex++]);
+        else if (defaultNewsList.length > 0) finalList.push(defaultNewsList.shift());
+
+        if (engIndex < engList.length) finalList.push(engList[engIndex++]);
+        else if (defaultNewsList.length > 0) finalList.push(defaultNewsList.shift());
+
+        if (hindiIndex < hindiList.length) finalList.push(hindiList[hindiIndex++]);
+        else if (defaultNewsList.length > 0) finalList.push(defaultNewsList.shift());
+
+        if (engIndex < engList.length) finalList.push(engList[engIndex++]);
+        else if (defaultNewsList.length > 0) finalList.push(defaultNewsList.shift());
+
+        if (yesIndex < yesList.length) finalList.push(yesList[yesIndex++]);
+      }
+
+      // Upload the reordered docs back
+      const updatePromises = finalList.map((itemData, index) => {
+        const key =
+          index < keysList.length ? keysList[index] : reorderedNewsRef.doc().id;
+        return reorderedNewsRef.doc(key).set(itemData);
+      });
+
+      await Promise.all(updatePromises);
+      console.log(`Upload complete for collection: ${colName}`);
+    }
+
+    res.status(200).send("Rearranged and uploaded news data for all collections.");
+  } catch (error) {
+    console.error("Error fetching data:", error.message);
+    res.status(500).send("Error fetching data.");
+  }
+}
  
- 
-       const keysList = [];
-       const engList = [];
-       const hindiList = [];
-       const yesList = [];
-       const defaultNewsList = [];
- 
-       snapshot.forEach((doc) => {
-         const itemData = doc.data();
-         const quizEnabled = itemData.Ques_in_News_Enabled;
-         const lang = itemData.lang;
-         const key = doc.id;
- 
-         if (itemData) {
-           keysList.push(key);
- 
-           if (quizEnabled === "Yes") {
-             yesList.push(itemData);
-           } else {
-             if (lang === "News_Eng") {
-               engList.push(itemData);
-             } else if (lang === "News_Hindi") {
-               hindiList.push(itemData);
-             } else {
-               defaultNewsList.push(itemData);
-             }
-           }
-         } else {
-           console.error("ItemData is null for document:", key);
-         }
-       });
- 
-       const finalList = [];
-       let engIndex = 0, hindiIndex = 0, yesIndex = 0;
- 
-       while (engIndex < engList.length || hindiIndex < hindiList.length || yesIndex < yesList.length) {
-         if (hindiIndex < hindiList.length) finalList.push(hindiList[hindiIndex++]);
-         else if (defaultNewsList.length > 0) finalList.push(defaultNewsList.shift());
- 
-         if (engIndex < engList.length) finalList.push(engList[engIndex++]);
-         else if (defaultNewsList.length > 0) finalList.push(defaultNewsList.shift());
- 
-         if (hindiIndex < hindiList.length) finalList.push(hindiList[hindiIndex++]);
-         else if (defaultNewsList.length > 0) finalList.push(defaultNewsList.shift());
- 
-         if (engIndex < engList.length) finalList.push(engList[engIndex++]);
-         else if (defaultNewsList.length > 0) finalList.push(defaultNewsList.shift());
- 
-         if (yesIndex < yesList.length) finalList.push(yesList[yesIndex++]);
-       }
- 
-       const updatePromises = finalList.map((itemData, index) => {
-         const key = index < keysList.length ? keysList[index] : reorderedNewsRef.doc().id;
-         return reorderedNewsRef.doc(key).set(itemData);
-       });
- 
-       await Promise.all(updatePromises);
-       console.log("Upload Complete");
-       res.status(200).send("Rearranged and uploaded news data.");
-     } catch (error) {
-       console.error("Error fetching data:", error.message);
-       res.status(500).send("Error fetching data.");
-     }
-   }  
    app.get('/rearrange', (req, res) => {
      rearrangeAndUploadNewsData(res);
    });
