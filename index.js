@@ -518,6 +518,8 @@ require('dotenv').config();
         await uploadStudy(sanitizedRow, category_bk, subject_bk, section_bk, chapter_bk);
       } else if (type === "study") {
         await uploadStudy(sanitizedRow, category_bk, subject_bk, section_bk, chapter_bk);
+      }else{
+        await uploadStudy(sanitizedRow, category_bk, subject_bk, section_bk, chapter_bk);
       }
     }
 
@@ -929,6 +931,7 @@ function cleanString(value) {
  
    res.send(htmlResponse);
  });
+
  
  
  ///const fixQuizes = async (req, res) => {  
