@@ -192,13 +192,24 @@ async function addNewsToGeneral(
       "Uploaded By": username,
       notification_id: childKey.toString(),
     };
+
+    // ✅ First add news to Firestore
     await newsRef.doc(childKey.toString()).set(newsData);
     console.log("News added to General:", childKey);
+
+    // ✅ Then send notification
+    await sendNotification(
+      title, // notification title
+      desc,  // notification body
+      childKey.toString() // unique notification_id
+    );
+
   } catch (error) {
     console.error("Error adding news to General:", error.message);
     throw error;
   }
 }
+
 
 async function addNewsToCategory(
   title,
@@ -343,6 +354,72 @@ app.post("/submit-news", async (req, res) => {
 });
 
 
+//// ROUTE FOR HTTP NOTIFICATIONS REQUEST////
+app.post("/notify", async (req, res) => {
+  const { title, fixed_desc, childKey, imagelink } = req.body;
+
+  if (!title || !fixed_desc || !childKey || !imagelink) {
+    return res.status(400).json({ error: "Missing required fields" });
+  }
+
+  try {
+    const result = await sendNotification(
+      title,
+      fixed_desc,
+      childKey,
+      imagelink
+    );
+    res.status(200).json({ message: "Notification sent successfully", result });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+const generateUniqueId = () => {
+  return uuidv4();
+};
+
+const sendNotification = async (title, fixed_desc, childKey, imagelink) => {
+  const uniqueNotificationId = generateUniqueId();
+  const groupKey = uuidv4();
+  const message = {
+    app_id: "b184d4f9-341c-46d8-8c8f-f5863faaf3f0",
+    included_segments: ["All"],
+    headings: { en: title },
+    contents: { en: fixed_desc },
+    big_picture: imagelink,
+    small_picture: imagelink,
+    data: {
+      child_key: childKey.toString(),
+    },
+    android: {
+      priority: "high",
+    },
+    android_group: uniqueNotificationId,
+  };
+
+  try {
+    const response = await axios.post(
+      "https://onesignal.com/api/v1/notifications",
+      message,
+      {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `ZjY3ZDExNjAtOGVkZC00NjFiLThmOTEtODU5YWIxY2I0NDUy`,
+        },
+      }
+    );
+    console.log("Notification sent successfully:", response.data);
+  } catch (error) {
+    if (error.response) {
+      console.error("Error response:", error.response.data);
+    } else if (error.request) {
+      console.error("Error request:", error.request);
+    } else {
+      console.error("Error message:", error.message);
+    }
+  }
+};
 ///////////////// QUIZ UPLOADS ////////////////
 async function getNextQuizChildKey() {
   try {
@@ -436,74 +513,6 @@ app.post("/submit-quiz", async (req, res) => {
     res.status(500).send("Error adding quiz: " + error.message);
   }
 });
-
-//// ROUTE FOR HTTP NOTIFICATIONS REQUEST////
-app.post("/notify", async (req, res) => {
-  const { title, fixed_desc, childKey, imagelink } = req.body;
-
-  if (!title || !fixed_desc || !childKey || !imagelink) {
-    return res.status(400).json({ error: "Missing required fields" });
-  }
-
-  try {
-    const result = await sendNotification(
-      title,
-      fixed_desc,
-      childKey,
-      imagelink
-    );
-    res.status(200).json({ message: "Notification sent successfully", result });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-const generateUniqueId = () => {
-  return uuidv4();
-};
-
-const sendNotification = async (title, fixed_desc, childKey, imagelink) => {
-  const uniqueNotificationId = generateUniqueId();
-  const groupKey = uuidv4();
-  const message = {
-    app_id: "b184d4f9-341c-46d8-8c8f-f5863faaf3f0",
-    included_segments: ["All"],
-    headings: { en: title },
-    contents: { en: fixed_desc },
-    big_picture: imagelink,
-    small_picture: imagelink,
-    data: {
-      child_key: childKey.toString(),
-    },
-    android: {
-      priority: "high",
-    },
-    android_group: uniqueNotificationId,
-  };
-
-  try {
-    const response = await axios.post(
-      "https://onesignal.com/api/v1/notifications",
-      message,
-      {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `ZjY3ZDExNjAtOGVkZC00NjFiLThmOTEtODU5YWIxY2I0NDUy`,
-        },
-      }
-    );
-    console.log("Notification sent successfully:", response.data);
-  } catch (error) {
-    if (error.response) {
-      console.error("Error response:", error.response.data);
-    } else if (error.request) {
-      console.error("Error request:", error.request);
-    } else {
-      console.error("Error message:", error.message);
-    }
-  }
-};
-
 ////////////BULK UPLOADS ///////////
 app.post("/uploadQuizBulk", async (req, res) => {
   if (!req.files || !req.files.file) {
