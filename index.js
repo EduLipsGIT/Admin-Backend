@@ -201,7 +201,8 @@ async function addNewsToGeneral(
     await sendNotification(
       title, // notification title
       desc,  // notification body
-      childKey.toString() // unique notification_id
+      childKey.toString(), // unique notification_id
+      imagelink
     );
 
   } catch (error) {
