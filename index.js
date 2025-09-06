@@ -129,132 +129,10 @@ async function checkTitleExistsLang(title, language) {
 }
 
 //////// UPLOAD NEWS
-async function addNewsToGeneral(
-  title,
-  desc,
-  newslink,
-  imagelink,
-  childKey,
-  currentDate,
-  username,
-  language,
-  category,
-  childkey
-) {
-  if (await checkTitleExists(title, username)) {
-    console.log("Title already exists, skipping addition.");
-    return;
-  }
 
-  const newsRef = firestore.collection("News");
-  try {
-    newsRef = firestore.collection("News");
-    const currentTime = getCurrentTime();
-    const newsData = {
-      title: title,
-      desc: desc,
-      newslink: newslink,
-      imagelink: imagelink,
-      date: currentDate,
-      time: currentTime,
-      lang: category,
-      "Uploaded By": username,
-      cat: language,
-      notification_id: childKey.toString(),
-    };
-    await newsRef.doc(childKey.toString()).set(newsData);
-    console.log(
-      "News added successfully with document ID:",
-      childKey.toString()
-    );
-    //  await postToInsta(title , desc , imagelink , newslink);
-  } catch (error) {
-    console.error("Error adding news:", error.message);
-    throw error;
-  }
-}
-async function addNewsToCategory(
-  title,
-  desc,
-  newslink,
-  imagelink,
-  category,
-  childKey,
-  currentDate,
-  username,
-  language,
-  childKey
-) {
-  if (await checkTitleExistsCATEGORY(title, category)) {
-    return;
-  }
-  const categoryRef = firestore.collection(category);
-
-  const pushId = await getNextChildKeySuperAdmin(categoryRef);
-
-  try {
-    const currentTime = getCurrentTime();
-    const newsData = {
-      title: title,
-      desc: desc,
-      newslink: newslink,
-      imagelink: imagelink,
-      date: currentDate,
-      time: currentTime,
-      lang: category,
-      "Uploaded By": username,
-      cat: language,
-      notification_id: childKey.toString(),
-    };
-    await categoryRef.doc(pushId.toString()).set(newsData);
-  } catch (error) {
-    console.error("Error adding news to category:", error.message);
-    throw error;
-  }
-}
-
-async function addNewsToLanguage(
-  title,
-  desc,
-  newslink,
-  imagelink,
-  language,
-  childKey,
-  currentDate,
-  username,
-  category,
-  childKey
-) {
-  if (await checkTitleExistsLang(title, language)) {
-    return;
-  }
-  const languageRef = firestore.collection(language);
-  const pushId = await getNextChildKeySuperAdmin();
-  try {
-    const currentTime = getCurrentTime();
-    const newsData = {
-      title: title,
-      desc: desc,
-      newslink: newslink,
-      imagelink: imagelink,
-      date: currentDate,
-      time: currentTime,
-      lang: category,
-      "Uploaded By": username,
-      cat: language,
-      notification_id: childKey.toString(),
-    };
-    await languageRef.doc(pushId.toString()).set(newsData);
-  } catch (error) {
-    console.error("Error adding news to language:", error.message);
-    throw error;
-  }
-}
 async function getNextChildKeySuperAdmin(ref_recd) {
-  const ref = ref_recd;
-  const snapshot = await ref.limit(1).get();
   try {
-    const snapshot = await ref.limit(1).get();
+    const snapshot = await ref_recd.limit(1).get();
     if (!snapshot.empty) {
       const firstDoc = snapshot.docs[0];
       const firstDocId = parseInt(firstDoc.id);
@@ -275,34 +153,164 @@ function getCurrentDate() {
   const day = String(today.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
 }
+
 function getCurrentTime() {
   const indiaTime = moment.tz("Asia/Kolkata").format("h:mm A");
   return indiaTime;
 }
 
+// ================= Add News Functions =================
+
+async function addNewsToGeneral(
+  title,
+  desc,
+  newslink,
+  imagelink,
+  childKey,
+  currentDate,
+  username,
+  language,
+  category
+) {
+  if (await checkTitleExists(title, username)) {
+    console.log("Title already exists in General, skipping.");
+    return;
+  }
+
+  const newsRef = firestore.collection("News");
+  try {
+    const currentTime = getCurrentTime();
+    const newsData = {
+      title,
+      desc,
+      newslink,
+      imagelink,
+      date: currentDate,
+      time: currentTime,
+      lang: language, // FIXED
+      cat: category,  // FIXED
+      "Uploaded By": username,
+      notification_id: childKey.toString(),
+    };
+    await newsRef.doc(childKey.toString()).set(newsData);
+    console.log("News added to General:", childKey);
+  } catch (error) {
+    console.error("Error adding news to General:", error.message);
+    throw error;
+  }
+}
+
+async function addNewsToCategory(
+  title,
+  desc,
+  newslink,
+  imagelink,
+  category,
+  currentDate,
+  username,
+  language,
+  childKey
+) {
+  if (await checkTitleExistsCATEGORY(title, category)) {
+    console.log("Title already exists in Category, skipping.");
+    return;
+  }
+
+  const categoryRef = firestore.collection(category);
+  const pushId = await getNextChildKeySuperAdmin(categoryRef);
+
+  try {
+    const currentTime = getCurrentTime();
+    const newsData = {
+      title,
+      desc,
+      newslink,
+      imagelink,
+      date: currentDate,
+      time: currentTime,
+      lang: language, // FIXED
+      cat: category,  // FIXED
+      "Uploaded By": username,
+      notification_id: childKey.toString(),
+    };
+    await categoryRef.doc(pushId.toString()).set(newsData);
+    console.log("News added to Category:", pushId);
+  } catch (error) {
+    console.error("Error adding news to Category:", error.message);
+    throw error;
+  }
+}
+
+async function addNewsToLanguage(
+  title,
+  desc,
+  newslink,
+  imagelink,
+  language,
+  currentDate,
+  username,
+  category,
+  childKey
+) {
+  if (await checkTitleExistsLang(title, language)) {
+    console.log("Title already exists in Language, skipping.");
+    return;
+  }
+
+  const languageRef = firestore.collection(language);
+  const pushId = await getNextChildKeySuperAdmin(languageRef);
+
+  try {
+    const currentTime = getCurrentTime();
+    const newsData = {
+      title,
+      desc,
+      newslink,
+      imagelink,
+      date: currentDate,
+      time: currentTime,
+      lang: language, // FIXED
+      cat: category,  // FIXED
+      "Uploaded By": username,
+      notification_id: childKey.toString(),
+    };
+    await languageRef.doc(pushId.toString()).set(newsData);
+    console.log("News added to Language:", pushId);
+  } catch (error) {
+    console.error("Error adding news to Language:", error.message);
+    throw error;
+  }
+}
+
+// ================= Express Route =================
+
 app.post("/submit-news", async (req, res) => {
   const { title, desc, newslink, imagelink, category, language, username } =
     req.body;
   const currentDate = getCurrentDate();
+
   try {
     const titleExists = await checkTitleExists(title, username);
     if (titleExists) {
       res.send("News Already Exists!");
       return;
     }
+
     const newsRef = firestore.collection("News");
     const childKey = await getNextChildKeySuperAdmin(newsRef);
+
     await addNewsToGeneral(
       title,
       desc,
       newslink,
       imagelink,
+      childKey,
       currentDate,
       username,
-      category,
       language,
-      childKey
+      category
     );
+
     await addNewsToCategory(
       title,
       desc,
@@ -311,10 +319,10 @@ app.post("/submit-news", async (req, res) => {
       category,
       currentDate,
       username,
-      category,
       language,
       childKey
     );
+
     await addNewsToLanguage(
       title,
       desc,
@@ -333,6 +341,7 @@ app.post("/submit-news", async (req, res) => {
     res.status(500).send("Error adding news: " + error.message);
   }
 });
+
 
 ///////////////// QUIZ UPLOADS ////////////////
 async function getNextQuizChildKey() {
@@ -730,7 +739,10 @@ async function rearrangeAndUploadNewsData(res) {
       console.log(`Processing collection: ${colName}`);
       const reorderedNewsRef = firestore.collection(colName);
 
-      const snapshot = await reorderedNewsRef.limit(500).get();
+      const snapshot = await reorderedNewsRef
+        .orderBy("date", "desc")
+        .limit(500)
+        .get();
       if (snapshot.empty) {
         console.log(`No documents found in ${colName}`);
         continue;
@@ -768,34 +780,54 @@ async function rearrangeAndUploadNewsData(res) {
       });
 
       const finalList = [];
-      let engIndex = 0,
-        hindiIndex = 0,
-        yesIndex = 0;
 
-      while (
-        engIndex < engList.length ||
-        hindiIndex < hindiList.length ||
-        yesIndex < yesList.length
-      ) {
-        if (hindiIndex < hindiList.length)
-          finalList.push(hindiList[hindiIndex++]);
-        else if (defaultNewsList.length > 0)
-          finalList.push(defaultNewsList.shift());
+      if (colName === "News") {
+        // ✅ Rearrange based on language + Yes logic
+        let engIndex = 0,
+          hindiIndex = 0,
+          yesIndex = 0;
 
-        if (engIndex < engList.length) finalList.push(engList[engIndex++]);
-        else if (defaultNewsList.length > 0)
-          finalList.push(defaultNewsList.shift());
+        while (
+          engIndex < engList.length ||
+          hindiIndex < hindiList.length ||
+          yesIndex < yesList.length
+        ) {
+          if (hindiIndex < hindiList.length)
+            finalList.push(hindiList[hindiIndex++]);
+          else if (defaultNewsList.length > 0)
+            finalList.push(defaultNewsList.shift());
 
-        if (hindiIndex < hindiList.length)
-          finalList.push(hindiList[hindiIndex++]);
-        else if (defaultNewsList.length > 0)
-          finalList.push(defaultNewsList.shift());
+          if (engIndex < engList.length) finalList.push(engList[engIndex++]);
+          else if (defaultNewsList.length > 0)
+            finalList.push(defaultNewsList.shift());
 
-        if (engIndex < engList.length) finalList.push(engList[engIndex++]);
-        else if (defaultNewsList.length > 0)
-          finalList.push(defaultNewsList.shift());
+          if (hindiIndex < hindiList.length)
+            finalList.push(hindiList[hindiIndex++]);
+          else if (defaultNewsList.length > 0)
+            finalList.push(defaultNewsList.shift());
 
-        if (yesIndex < yesList.length) finalList.push(yesList[yesIndex++]);
+          if (engIndex < engList.length) finalList.push(engList[engIndex++]);
+          else if (defaultNewsList.length > 0)
+            finalList.push(defaultNewsList.shift());
+
+          if (yesIndex < yesList.length) finalList.push(yesList[yesIndex++]);
+        }
+      } else {
+        // ✅ For News_Eng & News_Hindi → Keep latest first, then YesList inserted
+        let yesIndex = 0;
+        const nonYesList = [...engList, ...hindiList, ...defaultNewsList]; // already latest due to query ordering
+
+        for (let i = 0; i < nonYesList.length; i++) {
+          finalList.push(nonYesList[i]);
+          if (yesIndex < yesList.length) {
+            finalList.push(yesList[yesIndex++]);
+          }
+        }
+
+        // Add any remaining YesList
+        while (yesIndex < yesList.length) {
+          finalList.push(yesList[yesIndex++]);
+        }
       }
 
       // Upload the reordered docs back
