@@ -132,19 +132,20 @@ async function checkTitleExistsLang(title, language) {
 
 async function getNextChildKeySuperAdmin(ref_recd) {
   try {
-    const snapshot = await ref_recd.limit(1).get();
+    const snapshot = await ref_recd.limit(1).get(); // fetch 1 doc, arbitrary
     if (!snapshot.empty) {
-      const firstDoc = snapshot.docs[0];
-      const firstDocId = parseInt(firstDoc.id);
-      return firstDocId - 1;
+      const docId = snapshot.docs[0].id;
+      const nextKey = parseInt(docId, 10) - 1;
+      return nextKey;
     } else {
-      return 999;
+      return 999; // if collection empty
     }
   } catch (error) {
     console.error("Error fetching next child key:", error.message);
     throw error;
   }
 }
+
 
 function getCurrentDate() {
   const today = new Date();
@@ -742,120 +743,80 @@ function sanitizeKeys(obj) {
 /////////////// CRON JOBS //////////////////////
 async function rearrangeAndUploadNewsData(res) {
   try {
-    // Define the collections you want to process in order
     const collections = ["News", "News_Eng", "News_Hindi"];
 
     for (const colName of collections) {
       console.log(`Processing collection: ${colName}`);
-      const reorderedNewsRef = firestore.collection(colName);
+      const newsRef = firestore.collection(colName);
 
-      const snapshot = await reorderedNewsRef
-        .orderBy("date", "desc")
-        .limit(500)
-        .get();
+      const snapshot = await newsRef.limit(500).get();
       if (snapshot.empty) {
         console.log(`No documents found in ${colName}`);
         continue;
       }
 
-      const keysList = [];
-      const engList = [];
-      const hindiList = [];
+      // Separate Yes items and normal items
       const yesList = [];
-      const defaultNewsList = [];
+      const normalList = [];
 
       snapshot.forEach((doc) => {
-        const itemData = doc.data();
-        const quizEnabled = itemData.Ques_in_News_Enabled;
-        const lang = itemData.lang;
-        const key = doc.id;
+        const data = doc.data();
+        if (!data) return;
 
-        if (itemData) {
-          keysList.push(key);
-
-          if (quizEnabled === "Yes") {
-            yesList.push(itemData);
-          } else {
-            if (lang === "News_Eng") {
-              engList.push(itemData);
-            } else if (lang === "News_Hindi") {
-              hindiList.push(itemData);
-            } else {
-              defaultNewsList.push(itemData);
-            }
-          }
+        if (data.Ques_in_News_Enabled === "Yes") {
+          yesList.push(data);
         } else {
-          console.error("ItemData is null for document:", key);
+          normalList.push(data);
         }
       });
 
-      const finalList = [];
+      // Sort all items by code descending (latest first)
+      normalList.sort((a, b) => b.code - a.code); 
+      yesList.sort((a, b) => b.code - a.code); // optional, latest first
+
+      let finalList = [];
 
       if (colName === "News") {
-        // ✅ Rearrange based on language + Yes logic
-        let engIndex = 0,
-          hindiIndex = 0,
-          yesIndex = 0;
+        // Mix Hindi + English + default but keep chronological order
+        // Step 1: merge all normal items by chronological order
+        finalList = [...normalList];
 
-        while (
-          engIndex < engList.length ||
-          hindiIndex < hindiList.length ||
-          yesIndex < yesList.length
-        ) {
-          if (hindiIndex < hindiList.length)
-            finalList.push(hindiList[hindiIndex++]);
-          else if (defaultNewsList.length > 0)
-            finalList.push(defaultNewsList.shift());
+        // Step 2: Insert Yes items at their respective positions
+        // We'll insert them at top while maintaining order (latest first)
+        yesList.forEach((yesItem) => {
+          // Find index where its code fits in descending order
+          let insertIndex = finalList.findIndex((item) => item.code < yesItem.code);
+          if (insertIndex === -1) insertIndex = finalList.length; // put at end if older
+          finalList.splice(insertIndex, 0, yesItem);
+        });
 
-          if (engIndex < engList.length) finalList.push(engList[engIndex++]);
-          else if (defaultNewsList.length > 0)
-            finalList.push(defaultNewsList.shift());
-
-          if (hindiIndex < hindiList.length)
-            finalList.push(hindiList[hindiIndex++]);
-          else if (defaultNewsList.length > 0)
-            finalList.push(defaultNewsList.shift());
-
-          if (engIndex < engList.length) finalList.push(engList[engIndex++]);
-          else if (defaultNewsList.length > 0)
-            finalList.push(defaultNewsList.shift());
-
-          if (yesIndex < yesList.length) finalList.push(yesList[yesIndex++]);
-        }
       } else {
-        // ✅ For News_Eng & News_Hindi → Keep latest first, then YesList inserted
+        // For News_Eng & News_Hindi → latest first, interleave Yes items
+        finalList = [...normalList];
         let yesIndex = 0;
-        const nonYesList = [...engList, ...hindiList, ...defaultNewsList]; // already latest due to query ordering
-
-        for (let i = 0; i < nonYesList.length; i++) {
-          finalList.push(nonYesList[i]);
-          if (yesIndex < yesList.length) {
-            finalList.push(yesList[yesIndex++]);
-          }
+        const result = [];
+        for (let item of finalList) {
+          result.push(item);
+          if (yesIndex < yesList.length) result.push(yesList[yesIndex++]);
         }
-
-        // Add any remaining YesList
-        while (yesIndex < yesList.length) {
-          finalList.push(yesList[yesIndex++]);
-        }
+        while (yesIndex < yesList.length) result.push(yesList[yesIndex++]);
+        finalList = result;
       }
 
-      // Upload the reordered docs back
-      const updatePromises = finalList.map((itemData, index) => {
-        const key =
-          index < keysList.length ? keysList[index] : reorderedNewsRef.doc().id;
-        return reorderedNewsRef.doc(key).set(itemData);
+      // Upload reordered docs
+      const keysList = snapshot.docs.map((doc) => doc.id);
+      const updatePromises = finalList.map((item, index) => {
+        const key = index < keysList.length ? keysList[index] : newsRef.doc().id;
+        return newsRef.doc(key).set(item);
       });
 
       await Promise.all(updatePromises);
       console.log(`Upload complete for collection: ${colName}`);
     }
 
-    res
-      .status(200)
-      .send("Rearranged and uploaded news data for all collections.");
+    res.status(200).send("Rearranged and uploaded news data for all collections.");
   } catch (error) {
-    console.error("Error fetching data:", error.message);
+    console.error("Error fetching data:", error);
     res.status(500).send("Error fetching data.");
   }
 }
