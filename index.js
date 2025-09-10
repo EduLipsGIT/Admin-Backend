@@ -716,7 +716,7 @@ async function rearrangeAndUploadNewsData(res) {
       console.log(`Processing collection: ${colName}`);
       const newsRef = firestore.collection(colName);
 
-      const snapshot = await newsRef.limit(500).get();
+      const snapshot = await newsRef.limit(100).get();
       if (snapshot.empty) {
         console.log(`No documents found in ${colName}`);
         continue;
