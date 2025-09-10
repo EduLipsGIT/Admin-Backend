@@ -788,9 +788,9 @@ async function rearrangeAndUploadNewsData(res) {
   }
 }
 
-app.get("/rearrange", (req, res) => {
-  rearrangeAndUploadNewsData(res);
-});
+// app.get("/rearrange", (req, res) => {
+//   rearrangeAndUploadNewsData(res);
+// });
 
 const resetLeaderboard = async (req, res) => {
   try {

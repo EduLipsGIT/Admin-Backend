@@ -1,13 +1,13 @@
-name: Trigger News Data Rearrange
+# name: Trigger News Data Rearrange
 
-on:
-  schedule:
-    - cron: '*/60 * * * *'  # Every 60 minutes
+# on:
+#   schedule:
+#     - cron: '*/60 * * * *'  # Every 60 minutes
 
-jobs:
-  trigger:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Trigger Vercel API
-        run: |
-          curl --fail -X GET "https://author.edulips.com/rearrange"
+# jobs:
+#   trigger:
+#     runs-on: ubuntu-latest
+#     steps:
+#       - name: Trigger Vercel API
+#         run: |
+#           curl --fail -X GET "https://author.edulips.com/rearrange"
