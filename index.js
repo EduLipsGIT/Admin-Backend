@@ -199,7 +199,7 @@ async function addNewsToGeneral(
     console.log("News added to General:", childKey);
 
     // ✅ Then send notification
-    await sendNotification(
+     sendNotification(
       title, // notification title
       desc,  // notification body
       childKey.toString(), // unique notification_id
