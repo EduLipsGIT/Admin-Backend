@@ -298,55 +298,21 @@ async function addNewsToLanguage(
 // ================= Express Route =================
 
 app.post("/submit-news", async (req, res) => {
-  const { title, desc, newslink, imagelink, category, language, username } =
-    req.body;
+  const { title, desc, newslink, imagelink, category, language, username } = req.body;
   const currentDate = getCurrentDate();
 
   try {
-    const titleExists = await checkTitleExists(title, username);
-    if (titleExists) {
-      res.send("News Already Exists!");
-      return;
-    }
-
     const newsRef = firestore.collection("News");
     const childKey = await getNextChildKeySuperAdmin(newsRef);
 
-    await addNewsToGeneral(
-      title,
-      desc,
-      newslink,
-      imagelink,
-      childKey,
-      currentDate,
-      username,
-      language,
-      category
-    );
+    // Prepare promises (don’t await yet)
+    const promises = [
+      addNewsToGeneral(title, desc, newslink, imagelink, childKey, currentDate, username, language, category),
+      addNewsToCategory(title, desc, newslink, imagelink, category, currentDate, username, language, childKey),
+      addNewsToLanguage(title, desc, newslink, imagelink, language, currentDate, username, category, childKey)
+    ];
 
-    await addNewsToCategory(
-      title,
-      desc,
-      newslink,
-      imagelink,
-      category,
-      currentDate,
-      username,
-      language,
-      childKey
-    );
-
-    await addNewsToLanguage(
-      title,
-      desc,
-      newslink,
-      imagelink,
-      language,
-      currentDate,
-      username,
-      category,
-      childKey
-    );
+    await Promise.all(promises); // Run in parallel
 
     res.send("News added Successfully!");
   } catch (error) {
@@ -354,6 +320,7 @@ app.post("/submit-news", async (req, res) => {
     res.status(500).send("Error adding news: " + error.message);
   }
 });
+
 
 
 //// ROUTE FOR HTTP NOTIFICATIONS REQUEST////
