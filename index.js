@@ -858,7 +858,7 @@ const validCredentials = [
   { username: "Sonam Kumari", password: "Sonam_Pass2024" },
   { username: "Navjyoti Kumar", password: "Navjyoti_Pass" },
   { username: "Pramod Kumar", password: "pramod_edulips2024" },
-  { username: "Badal_Edulips2025", password: "badal_pass2025" },
+  { username: "Badal_Edulips2025", password: "badal_pass2025" }
 ];
 
 app.post("/validate_login", async (req, res) => {
