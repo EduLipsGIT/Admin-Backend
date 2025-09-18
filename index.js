@@ -2,6 +2,7 @@ require("dotenv").config();
 const express = require("express");
 const bodyParser = require("body-parser");
 const admin = require("firebase-admin");
+const { IgApiClient } = require("instagram-private-api");
 const { get } = require("request-promise");
 const fs = require("fs");
 const path = require("path");
@@ -131,21 +132,20 @@ async function checkTitleExistsLang(title, language) {
 
 async function getNextChildKeySuperAdmin(ref_recd) {
   try {
-    const snapshot = await ref_recd
-      .orderBy(firebase.firestore.FieldPath.documentId(), "desc")
-      .limit(1)
-      .get();
+    const snapshot = await ref_recd.limit(1).get(); // fetch 1 doc, arbitrary
     if (!snapshot.empty) {
-      const lastId = parseInt(snapshot.docs[0].id, 10);
-      return lastId - 1;
+      const docId = snapshot.docs[0].id;
+      const nextKey = parseInt(docId, 10) - 1;
+      return nextKey;
     } else {
-      return 999;
+      return 999; // if collection empty
     }
   } catch (error) {
     console.error("Error fetching next child key:", error.message);
     throw error;
   }
 }
+
 
 function getCurrentDate() {
   const today = new Date();
@@ -189,7 +189,7 @@ async function addNewsToGeneral(
       date: currentDate,
       time: currentTime,
       lang: language, // FIXED
-      cat: category, // FIXED
+      cat: category,  // FIXED
       "Uploaded By": username,
       notification_id: childKey.toString(),
     };
@@ -199,17 +199,19 @@ async function addNewsToGeneral(
     console.log("News added to General:", childKey);
 
     // ✅ Then send notification
-    sendNotification(
+     sendNotification(
       title, // notification title
-      desc, // notification body
+      desc,  // notification body
       childKey.toString(), // unique notification_id
       imagelink
     );
+
   } catch (error) {
     console.error("Error adding news to General:", error.message);
     throw error;
   }
 }
+
 
 async function addNewsToCategory(
   title,
@@ -240,7 +242,7 @@ async function addNewsToCategory(
       date: currentDate,
       time: currentTime,
       lang: language, // FIXED
-      cat: category, // FIXED
+      cat: category,  // FIXED
       "Uploaded By": username,
       notification_id: childKey.toString(),
     };
@@ -281,7 +283,7 @@ async function addNewsToLanguage(
       date: currentDate,
       time: currentTime,
       lang: language, // FIXED
-      cat: category, // FIXED
+      cat: category,  // FIXED
       "Uploaded By": username,
       notification_id: childKey.toString(),
     };
@@ -296,8 +298,7 @@ async function addNewsToLanguage(
 // ================= Express Route =================
 
 app.post("/submit-news", async (req, res) => {
-  const { title, desc, newslink, imagelink, category, language, username } =
-    req.body;
+  const { title, desc, newslink, imagelink, category, language, username } = req.body;
   const currentDate = getCurrentDate();
 
   try {
@@ -306,39 +307,9 @@ app.post("/submit-news", async (req, res) => {
 
     // Prepare promises (don’t await yet)
     const promises = [
-      addNewsToGeneral(
-        title,
-        desc,
-        newslink,
-        imagelink,
-        childKey,
-        currentDate,
-        username,
-        language,
-        category
-      ),
-      addNewsToCategory(
-        title,
-        desc,
-        newslink,
-        imagelink,
-        category,
-        currentDate,
-        username,
-        language,
-        childKey
-      ),
-      addNewsToLanguage(
-        title,
-        desc,
-        newslink,
-        imagelink,
-        language,
-        currentDate,
-        username,
-        category,
-        childKey
-      ),
+      addNewsToGeneral(title, desc, newslink, imagelink, childKey, currentDate, username, language, category),
+      addNewsToCategory(title, desc, newslink, imagelink, category, currentDate, username, language, childKey),
+      addNewsToLanguage(title, desc, newslink, imagelink, language, currentDate, username, category, childKey)
     ];
 
     await Promise.all(promises); // Run in parallel
@@ -349,6 +320,8 @@ app.post("/submit-news", async (req, res) => {
     res.status(500).send("Error adding news: " + error.message);
   }
 });
+
+
 
 //// ROUTE FOR HTTP NOTIFICATIONS REQUEST////
 app.post("/notify", async (req, res) => {
@@ -765,7 +738,7 @@ async function rearrangeAndUploadNewsData(res) {
       });
 
       // Sort all items by code descending (latest first)
-      normalList.sort((a, b) => b.code - a.code);
+      normalList.sort((a, b) => b.code - a.code); 
       yesList.sort((a, b) => b.code - a.code); // optional, latest first
 
       let finalList = [];
@@ -779,12 +752,11 @@ async function rearrangeAndUploadNewsData(res) {
         // We'll insert them at top while maintaining order (latest first)
         yesList.forEach((yesItem) => {
           // Find index where its code fits in descending order
-          let insertIndex = finalList.findIndex(
-            (item) => item.code < yesItem.code
-          );
+          let insertIndex = finalList.findIndex((item) => item.code < yesItem.code);
           if (insertIndex === -1) insertIndex = finalList.length; // put at end if older
           finalList.splice(insertIndex, 0, yesItem);
         });
+
       } else {
         // For News_Eng & News_Hindi → latest first, interleave Yes items
         finalList = [...normalList];
@@ -801,8 +773,7 @@ async function rearrangeAndUploadNewsData(res) {
       // Upload reordered docs
       const keysList = snapshot.docs.map((doc) => doc.id);
       const updatePromises = finalList.map((item, index) => {
-        const key =
-          index < keysList.length ? keysList[index] : newsRef.doc().id;
+        const key = index < keysList.length ? keysList[index] : newsRef.doc().id;
         return newsRef.doc(key).set(item);
       });
 
@@ -810,9 +781,7 @@ async function rearrangeAndUploadNewsData(res) {
       console.log(`Upload complete for collection: ${colName}`);
     }
 
-    res
-      .status(200)
-      .send("Rearranged and uploaded news data for all collections.");
+    res.status(200).send("Rearranged and uploaded news data for all collections.");
   } catch (error) {
     console.error("Error fetching data:", error);
     res.status(500).send("Error fetching data.");
@@ -858,7 +827,7 @@ const validCredentials = [
   { username: "Sonam Kumari", password: "Sonam_Pass2024" },
   { username: "Navjyoti Kumar", password: "Navjyoti_Pass" },
   { username: "Pramod Kumar", password: "pramod_edulips2024" },
-  { username: "Badal_Edulips2025", password: "badal_pass2025" },
+  { username: "Badal_Edulips2025", password: "badal_pass2025" }
 ];
 
 app.post("/validate_login", async (req, res) => {
