@@ -1,334 +1,520 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>EduLips Web Admin</title>
-    <link rel="icon" href="favicon.ico" type="image/png">
+    <link rel="icon" href="favicon.ico" type="image/png" />
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            padding: 20px;
-            background-color: #f0f0f0;
-            color: #333;
-            position: relative;
-            margin: 0;
-            padding-bottom: 60px;
+      body {
+        font-family: Arial, sans-serif;
+        padding: 20px;
+        background-color: #f0f0f0;
+        color: #333;
+        position: relative;
+        margin: 0;
+        padding-bottom: 60px;
+      }
+      form {
+        max-width: 600px;
+        margin: 0 auto;
+        background: #fff;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      }
+      label,
+      input,
+      textarea,
+      select {
+        display: block;
+        width: 100%;
+        margin-bottom: 10px;
+        color: #333;
+      }
+      textarea {
+        height: 100px;
+      }
+      input,
+      textarea,
+      select {
+        padding: 8px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        box-sizing: border-box;
+      }
+      input.error,
+      textarea.error {
+        border-color: red;
+      }
+      .word-count {
+        font-size: 0.9em;
+        color: #666;
+        margin-bottom: 10px;
+      }
+      button {
+        background-color: #4caf50;
+        color: white;
+        padding: 12px 20px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        display: block;
+        width: 100%;
+        margin-top: 20px;
+      }
+      button:hover {
+        background-color: #45a049;
+      }
+      .navigation-button {
+        background-color: #000000;
+        color: white;
+        text-align: center;
+        display: block;
+        margin-top: 20px;
+      }
+      .logout-button {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        padding: 10px;
+        background-color: #ff4d4d;
+        color: white;
+        border: none;
+        border-radius: 0;
+        cursor: pointer;
+        font-size: 16px;
+        text-align: center;
+      }
+      .logout-button:hover {
+        background-color: #e60000;
+      }
+      #responseText {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background-color: #333;
+        color: white;
+        padding: 10px;
+        border-radius: 5px;
+        max-width: 300px;
+        display: none;
+        font-size: 14px;
+        z-index: 1000;
+      }
+      #imagePreview {
+        display: none;
+        margin-top: 20px;
+        max-width: 100%;
+        border-radius: 8px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      }
+
+      /* Loader styling */
+      .loading-indicator {
+        font-size: 0.85em;
+        color: #007bff;
+        display: none;
+        margin-top: -5px;
+        margin-bottom: 10px;
+      }
+      .spinner {
+        display: inline-block;
+        width: 14px;
+        height: 14px;
+        border: 2px solid #ccc;
+        border-top: 2px solid #007bff;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-right: 5px;
+        vertical-align: middle;
+      }
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
         }
-        form {
-            max-width: 600px;
-            margin: 0 auto;
-            background: #fff;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        100% {
+          transform: rotate(360deg);
         }
-        label, input, textarea, select {
-            display: block;
-            width: 100%;
-            margin-bottom: 10px;
-            color: #333;
-        }
-        textarea {
-            height: 100px;
-        }
-        input, textarea, select {
-            padding: 8px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            box-sizing: border-box;
-        }
-        input.error, textarea.error {
-            border-color: red;
-        }
-        .word-count {
-            font-size: 0.9em;
-            color: #666;
-            margin-bottom: 10px;
-        }
-        button {
-            background-color: #4CAF50;
-            color: white;
-            padding: 12px 20px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            display: block;
-            width: 100%;
-            margin-top: 20px;
-        }
-        button:hover {
-            background-color: #45a049;
-        }
-        .navigation-button {
-            background-color: #000000;
-            color: white;
-            text-align: center;
-            display: block;
-            margin-top: 20px;
-        }
-        .logout-button {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            padding: 10px;
-            background-color: #ff4d4d;
-            color: white;
-            border: none;
-            border-radius: 0;
-            cursor: pointer;
-            font-size: 16px;
-            text-align: center;
-        }
-        .logout-button:hover {
-            background-color: #e60000;
-        }
-        #responseText {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background-color: #333;
-            color: white;
-            padding: 10px;
-            border-radius: 5px;
-            max-width: 300px;
-            display: none; /* Initially hidden */
-            font-size: 14px;
-            z-index: 1000;
-        }
-        /* Style for the image preview */
-        #imagePreview {
-            display: none;
-            margin-top: 20px;
-            max-width: 100%;
-            border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-        }
+      }
+      textarea[readonly] {
+        background-color: #f9f9f9;
+        cursor: not-allowed;
+      }
     </style>
+  </head>
+  <body>
+    <button class="logout-button" onclick="handleLogout()">Log Out</button>
+    <h1 style="text-align: center">Upload News</h1>
+
+    <form id="newsForm" onsubmit="return validateForm()">
+      <label for="title">English Title:</label>
+      <textarea id="title" name="title" required></textarea>
+      <span id="titleWordCount" class="word-count">0 words</span>
+
+      <label for="desc">English Description:</label>
+      <textarea id="desc" name="desc" required></textarea>
+      <span id="descWordCount" class="word-count">0 words</span>
+
+      <label for="hinTitle">Hindi Title:</label>
+      <textarea id="hinTitle" name="hinTitle"></textarea>
+      <span id="hinTitleWordCount" class="word-count">0 words</span>
+      <div id="hinTitleLoading" class="loading-indicator">
+        <span class="spinner"></span> Translating to Hindi...
+      </div>
+
+      <label for="hinDesc">Hindi Description:</label>
+      <textarea id="hinDesc" name="hinDesc"></textarea>
+      <span id="hinDescWordCount" class="word-count">0 words</span>
+      <div id="hinDescLoading" class="loading-indicator">
+        <span class="spinner"></span> Translating to Hindi...
+      </div>
+
+      <label for="newslink">News Link:</label>
+      <input type="url" id="newslink" name="newslink" required />
+
+      <label for="imagelink">Image Link:</label>
+      <input
+        type="url"
+        id="imagelink"
+        name="imagelink"
+        required
+        oninput="previewImage()"
+      />
+      <img id="imagePreview" alt="Image Preview" />
+
+      <label for="category">Category:</label>
+      <select id="category" name="category" required>
+        <option value="Select Category">Select Category</option>
+        <option value="News_Business|Finance">News_Business|Finance</option>
+        <option value="News_Sports">News_Sports</option>
+        <option value="News_State">News_State</option>
+        <option value="News_Environment">News_Environment</option>
+        <option value="News_Science|Technology">News_Science|Technology</option>
+        <option value="News_Health">News_Health</option>
+        <option value="News_Entertainment">News_Entertainment</option>
+        <option value="News_Job">News_Job</option>
+        <option value="News_Politics">News_Politics</option>
+        <option value="News_Motivation">News_Motivation</option>
+        <option value="News_International">News_International</option>
+        <option value="News_National">News_National</option>
+        <option value="News_Others">News_Others</option>
+        <option value="News_Education">News_Education</option>
+        <option value="News_Justice">News_Justice</option>
+      </select>
+
+      <button type="submit">Submit</button>
+      <button
+        type="button"
+        class="navigation-button"
+        onclick="window.location.href='quiz.html'"
+      >
+        Go to Quiz Page
+      </button>
+    </form>
+
     <script>
-  async function checkLogin() {
-    const username = localStorage.getItem('username');
-
-    if (!username) {
-        console.log('Username not found. Redirecting to login.');
-        if (window.location.pathname !== '/login.html') {
-            window.location.href = 'login.html';
+      async function checkLogin() {
+        const username = localStorage.getItem("username");
+        if (!username) {
+          if (window.location.pathname !== "/login.html") {
+            window.location.href = "login.html";
+          }
+          return;
         }
-        return;
-    }
-
-    try {
-        const response = await fetch('https://author.edulips.com/check_user', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ username }),
-        });
-
-        if (response.ok) {
+        try {
+          const response = await fetch(
+            "https://author.edulips.com/check_user",
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ username }),
+            }
+          );
+          if (response.ok) {
             const result = await response.json();
             if (result.success) {
-                console.log('Access allowed.');
-                if (window.location.pathname !== '/index.html') {
-                    window.location.href = 'index.html';
-                }
+              if (window.location.pathname !== "/index.html") {
+                window.location.href = "index.html";
+              }
             } else {
-                console.log('Access denied. Redirecting to login.');
-                localStorage.clear(); // Clear login state
-                if (window.location.pathname !== '/login.html') {
-                    window.location.href = 'login.html';
-                }
+              localStorage.clear();
+              if (window.location.pathname !== "/login.html") {
+                window.location.href = "login.html";
+              }
             }
-        } else {
-            console.log('Server responded with an error. Redirecting to login.');
+          } else {
             localStorage.clear();
-            if (window.location.pathname !== '/login.html') {
-                window.location.href = 'login.html';
+            if (window.location.pathname !== "/login.html") {
+              window.location.href = "login.html";
             }
+          }
+        } catch (error) {
+          localStorage.clear();
+          if (window.location.pathname !== "/login.html") {
+            window.location.href = "login.html";
+          }
         }
-    } catch (error) {
-        console.error('Error checking user access:', error);
-        localStorage.clear(); // Clear login state on error
-        if (window.location.pathname !== '/login.html') {
-            window.location.href = 'login.html';
+      }
+
+      function handleLogout() {
+        localStorage.removeItem("isLoggedIn");
+        window.location.href = "login.html";
+      }
+
+      window.onload = checkLogin;
+
+      function countWords(text) {
+        return text.trim().split(/\s+/).filter(Boolean).length;
+      }
+
+      function updateWordCount(element, display, limit) {
+        const wordCount = countWords(element.value);
+        display.textContent = `${wordCount} words`;
+        if (wordCount > limit) {
+          element.classList.add("error");
+          return false;
+        } else {
+          element.classList.remove("error");
+          return true;
         }
-    }
-}
+      }
 
-function handleLogout() {
-            localStorage.removeItem('isLoggedIn');
-            window.location.href = 'login.html';
+      function validateForm() {
+        const title = document.getElementById("title");
+        const desc = document.getElementById("desc");
+        const hinTitle = document.getElementById("hinTitle");
+        const hinDesc = document.getElementById("hinDesc");
+        const category = document.getElementById("category");
+
+        const isTitleValid = updateWordCount(
+          title,
+          document.getElementById("titleWordCount"),
+          20
+        );
+        const isDescValid = updateWordCount(
+          desc,
+          document.getElementById("descWordCount"),
+          75
+        );
+        const isHinTitleValid = updateWordCount(
+          hinTitle,
+          document.getElementById("hinTitleWordCount"),
+          20
+        );
+        const isHinDescValid = updateWordCount(
+          hinDesc,
+          document.getElementById("hinDescWordCount"),
+          75
+        );
+
+        if (
+          !isTitleValid ||
+          !isDescValid ||
+          !isHinTitleValid ||
+          !isHinDescValid
+        ) {
+          alert("Please follow word limits for both English and Hindi fields.");
+          return false;
         }
 
-        window.onload = checkLogin;
-
-        // Function to count words
-        function countWords(text) {
-            return text.trim().split(/\s+/).filter(Boolean).length;
+        if (category.value === "Select Category") {
+          alert("Please select a valid Category.");
+          return false;
         }
+        return true;
+      }
 
-        // Function to update word count display
-        function updateWordCount(element, display, limit) {
-            const wordCount = countWords(element.value);
-            display.textContent = `${wordCount} words`;
-            if (wordCount > limit) {
-                element.classList.add('error');
-                return false;
-            } else {
-                element.classList.remove('error');
-                return true;
+      function previewImage() {
+        const imageLink = document.getElementById("imagelink").value;
+        const imagePreview = document.getElementById("imagePreview");
+        if (imageLink) {
+          imagePreview.src = imageLink;
+          imagePreview.style.display = "block";
+          imagePreview.onerror = function () {
+            imagePreview.style.display = "none";
+            alert("Invalid image URL. Please provide a valid link.");
+          };
+        } else {
+          imagePreview.style.display = "none";
+        }
+      }
+
+      // Google Translate API
+      const GOOGLE_API_KEY = "AIzaSyA9KChURa7uBrCmyLVBilt4jYHWKjKuUUI";
+
+      async function translateText(text, sourceLang, targetLang, loadingId) {
+        const loader = document.getElementById(loadingId);
+        loader.style.display = "block";
+        try {
+          const response = await fetch(
+            `https://translation.googleapis.com/language/translate/v2?key=${GOOGLE_API_KEY}`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                q: text,
+                target: targetLang,
+                source: sourceLang,
+              }),
             }
+          );
+
+          if (!response.ok) {
+            throw new Error("Translation API error: " + response.statusText);
+          }
+
+          const result = await response.json();
+          return result.data.translations[0].translatedText;
+        } catch (error) {
+          console.error("Translation failed:", error);
+          return "";
+        } finally {
+          loader.style.display = "none";
         }
+      }
 
-        // Function to validate form
-        function validateForm() {
-            const title = document.getElementById('title');
-            const desc = document.getElementById('desc');
-            const category = document.getElementById('category');
-            const language = document.getElementById('language');
+      // Title: translate whichever side is filled
+      // Title: translate only if target is empty
+      document
+        .getElementById("title")
+        .addEventListener("blur", async function () {
+          const text = this.value.trim();
+          const hinTitleField = document.getElementById("hinTitle");
+          if (text && !hinTitleField.value.trim()) {
+            // only translate if empty
+            const hindiTitle = await translateText(
+              text,
+              "en",
+              "hi",
+              "hinTitleLoading"
+            );
+            hinTitleField.value = hindiTitle;
+            updateWordCount(
+              hinTitleField,
+              document.getElementById("hinTitleWordCount"),
+              20
+            );
+          }
+        });
 
-            const isTitleValid = updateWordCount(title, document.getElementById('titleWordCount'), 20);
-            const isDescValid = updateWordCount(desc, document.getElementById('descWordCount'), 75);
+      document
+        .getElementById("hinTitle")
+        .addEventListener("blur", async function () {
+          const text = this.value.trim();
+          const titleField = document.getElementById("title");
+          if (text && !titleField.value.trim()) {
+            // only translate if empty
+            const englishTitle = await translateText(
+              text,
+              "hi",
+              "en",
+              "hinTitleLoading"
+            );
+            titleField.value = englishTitle;
+            updateWordCount(
+              titleField,
+              document.getElementById("titleWordCount"),
+              20
+            );
+          }
+        });
 
-            if (!isTitleValid || !isDescValid) {
-                alert('Please ensure the title is 20 words or less and the description is 75 words or less.');
-                return false;
-            }
+      // Description: translate only if target is empty
+      document
+        .getElementById("desc")
+        .addEventListener("blur", async function () {
+          const text = this.value.trim();
+          const hinDescField = document.getElementById("hinDesc");
+          if (text && !hinDescField.value.trim()) {
+            // only translate if empty
+            const hindiDesc = await translateText(
+              text,
+              "en",
+              "hi",
+              "hinDescLoading"
+            );
+            hinDescField.value = hindiDesc;
+            updateWordCount(
+              hinDescField,
+              document.getElementById("hinDescWordCount"),
+              75
+            );
+          }
+        });
 
-            if (category.value === "Select Category" || language.value === "Select Language") {
-                alert('Please select a valid Language and Category.');
-                return false;
-            }
+      document
+        .getElementById("hinDesc")
+        .addEventListener("blur", async function () {
+          const text = this.value.trim();
+          const descField = document.getElementById("desc");
+          if (text && !descField.value.trim()) {
+            // only translate if empty
+            const englishDesc = await translateText(
+              text,
+              "hi",
+              "en",
+              "hinDescLoading"
+            );
+            descField.value = englishDesc;
+            updateWordCount(
+              descField,
+              document.getElementById("descWordCount"),
+              75
+            );
+          }
+        });
 
-            return true;
-        }
+      // Word count live updates
+      document.getElementById("title").addEventListener("input", function () {
+        updateWordCount(this, document.getElementById("titleWordCount"), 20);
+      });
+      document.getElementById("desc").addEventListener("input", function () {
+        updateWordCount(this, document.getElementById("descWordCount"), 75);
+      });
+      document
+        .getElementById("hinTitle")
+        .addEventListener("input", function () {
+          updateWordCount(
+            this,
+            document.getElementById("hinTitleWordCount"),
+            20
+          );
+        });
+      document.getElementById("hinDesc").addEventListener("input", function () {
+        updateWordCount(this, document.getElementById("hinDescWordCount"), 75);
+      });
 
-        // Function to preview image
-        function previewImage() {
-            const imageLink = document.getElementById('imagelink').value;
-            const imagePreview = document.getElementById('imagePreview');
+      // Submit
+      document
+        .getElementById("newsForm")
+        .addEventListener("submit", function (event) {
+          event.preventDefault();
+          if (!validateForm()) return;
 
-            if (imageLink) {
-                imagePreview.src = imageLink;
-                imagePreview.style.display = 'block';
+          const username = localStorage.getItem("username");
+          const formData = new FormData(this);
+          const data = Object.fromEntries(formData.entries());
+          data.username = username;
 
-                // Check if the image loads correctly
-                imagePreview.onerror = function() {
-                    imagePreview.style.display = 'none';
-                    alert('Invalid image URL. Please provide a valid link.');
-                };
-            } else {
-                imagePreview.style.display = 'none';
-            }
-        }
+          fetch("https://author.edulips.com/submit-news", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(data),
+          })
+            .then((response) => {
+              if (!response.ok)
+                throw new Error("Network error " + response.statusText);
+              return response.text();
+            })
+            .then((data) => {
+              alert(data);
+              document.getElementById("newsForm").reset();
+              document.getElementById("imagePreview").style.display = "none";
+            })
+            .catch((error) => console.error("Fetch error:", error));
+        });
     </script>
-</head>
-<body>
-    <button class="logout-button" onclick="handleLogout()">Log Out</button>
-    <h1 style="text-align: center;">Upload News</h1>    
-    
-    <form id="newsForm" onsubmit="return validateForm()">
-        <label for="title">Title:</label>
-        <textarea id="title" name="title" required style="width: 100%; height: 100px; margin-bottom: 0;"></textarea>
-        
-        <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 0; padding-top: 0;">
-            <!-- <button type="button" onclick="Rewrite_title()" style="width: 100px; padding: 5px;">Rewrite title</button> -->
-            <span id="titleWordCount" class="word-count">0 words</span>
-        </div>
-        
-        <label for="desc">Description:</label>
-        <textarea id="desc" name="desc" required style="width: 100%; height: 100px; margin-bottom: 0;"></textarea>
-        <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 0; padding-top: 0;">
-            <!-- <button type="button" onclick="Rewrite_desc()" style="width: 100px; padding: 5px;">Rewrite description</button> -->
-            <span id="descWordCount" class="word-count">0 words</span>
-        </div>
-        
-        <label for="newslink">News Link:</label>
-        <input type="url" id="newslink" name="newslink" required>
-
-        <label for="imagelink">Image Link:</label>
-        <input type="url" id="imagelink" name="imagelink" required oninput="previewImage()">
-
-        <!-- Image preview -->
-        <img id="imagePreview" alt="Image Preview">
-
-        <label for="category">Category:</label>
-        <select id="category" name="category" required>
-            <option value="Select Category">Select Category</option>
-            <option value="News_Business|Finance">News_Business|Finance</option>
-            <option value="News_Sports">News_Sports</option>
-            <option value="News_State">News_State</option>
-            <option value="News_Environment">News_Environment</option>
-            <option value="News_Science|Technology">News_Science|Technology</option>
-            <option value="News_Health">News_Health</option>
-            <option value="News_Entertainment">News_Entertainment</option>
-            <option value="News_Job">News_Job</option>
-            <option value="News_Politics">News_Politics</option>
-            <option value="News_Motivation">News_Motivation</option>
-            <option value="News_International">News_International</option>
-            <option value="News_National">News_National</option>
-            <option value="News_Others">News_Others</option>
-            <option value="News_Education">News_Education</option>
-            <option value="News_Justice">News_Justice</option>
-        </select>
-
-        <label for="language">Language:</label>
-        <select id="language" name="language" required>
-            <option value="Select Language">Select Language</option>
-            <option value="News_Hindi">Hindi News</option>
-            <option value="News_Eng">English News</option>
-        </select>
-        <button type="submit">Submit</button>
-        <!-- Button to Quiz Page -->
-        <button type="button" class="navigation-button" onclick="window.location.href='quiz.html'">Go to Quiz Page</button>
-    </form>
-    <script>
-
-        // Update word count on input event
-        document.getElementById('title').addEventListener('input', function() {
-            updateWordCount(this, document.getElementById('titleWordCount'), 20);
-        });
-
-        document.getElementById('desc').addEventListener('input', function() {
-            updateWordCount(this, document.getElementById('descWordCount'), 75);
-        });
-
-        document.getElementById('newsForm').addEventListener('submit', function(event) {
-            event.preventDefault();
-
-            if (!validateForm()) {
-                return;
-            }
-
-            const username = localStorage.getItem('username');
-            const formData = new FormData(this);
-            const data = Object.fromEntries(formData.entries());
-            data.username = username;
-
-            fetch('https://author.edulips.com/submit-news', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(data)
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Network response was not ok ' + response.statusText);
-                }
-                return response.text();
-            })
-            .then(data => {
-                alert(data);  // Show response message from server
-                document.getElementById('newsForm').reset();  // Reset form after successful submission
-                document.getElementById('imagePreview').style.display = 'none'; // Hide image preview after form submission
-            })
-            .catch(error => {
-                console.error('There was a problem with your fetch operation:', error);
-            });
-        });
-    </script>
-</body>
+  </body>
 </html>

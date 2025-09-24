@@ -146,7 +146,6 @@ async function getNextChildKeySuperAdmin(ref_recd) {
   }
 }
 
-
 function getCurrentDate() {
   const today = new Date();
   const year = today.getFullYear();
@@ -165,12 +164,13 @@ function getCurrentTime() {
 async function addNewsToGeneral(
   title,
   desc,
+  hinTitle,
+  hinDesc,
   newslink,
   imagelink,
   childKey,
   currentDate,
   username,
-  language,
   category
 ) {
   if (await checkTitleExists(title, username)) {
@@ -179,17 +179,20 @@ async function addNewsToGeneral(
   }
 
   const newsRef = firestore.collection("News");
+  const lang = "both";
   try {
     const currentTime = getCurrentTime();
     const newsData = {
       title,
       desc,
+      hinTitle,
+      hinDesc,
       newslink,
       imagelink,
       date: currentDate,
       time: currentTime,
-      lang: language, // FIXED
-      cat: category,  // FIXED
+      lang,
+      cat: category, // FIXED
       "Uploaded By": username,
       notification_id: childKey.toString(),
     };
@@ -199,29 +202,28 @@ async function addNewsToGeneral(
     console.log("News added to General:", childKey);
 
     // ✅ Then send notification
-     sendNotification(
+    sendNotification(
       title, // notification title
-      desc,  // notification body
+      desc, // notification body
       childKey.toString(), // unique notification_id
       imagelink
     );
-
   } catch (error) {
     console.error("Error adding news to General:", error.message);
     throw error;
   }
 }
 
-
 async function addNewsToCategory(
   title,
   desc,
+  hinTitle,
+  hinDesc,
   newslink,
   imagelink,
   category,
   currentDate,
   username,
-  language,
   childKey
 ) {
   if (await checkTitleExistsCATEGORY(title, category)) {
@@ -231,18 +233,21 @@ async function addNewsToCategory(
 
   const categoryRef = firestore.collection(category);
   const pushId = await getNextChildKeySuperAdmin(categoryRef);
+  const lang = "both";
 
   try {
     const currentTime = getCurrentTime();
     const newsData = {
       title,
       desc,
+      hinTitle,
+      hinDesc,
       newslink,
       imagelink,
       date: currentDate,
       time: currentTime,
-      lang: language, // FIXED
-      cat: category,  // FIXED
+      lang,
+      cat: category, // FIXED
       "Uploaded By": username,
       notification_id: childKey.toString(),
     };
@@ -257,48 +262,68 @@ async function addNewsToCategory(
 async function addNewsToLanguage(
   title,
   desc,
+  hinTitle,
+  hinDesc,
   newslink,
   imagelink,
-  language,
   currentDate,
   username,
   category,
   childKey
 ) {
-  if (await checkTitleExistsLang(title, language)) {
-    console.log("Title already exists in Language, skipping.");
-    return;
-  }
+  const languageVersions = [
+    { langCollection: "News_Eng", title: title, desc: desc },
+    { langCollection: "News_Hindi", title: hinTitle, desc: hinDesc },
+  ];
 
-  const languageRef = firestore.collection(language);
-  const pushId = await getNextChildKeySuperAdmin(languageRef);
+  for (const version of languageVersions) {
+    const { langCollection, title, desc } = version;
 
-  try {
-    const currentTime = getCurrentTime();
-    const newsData = {
-      title,
-      desc,
-      newslink,
-      imagelink,
-      date: currentDate,
-      time: currentTime,
-      lang: language, // FIXED
-      cat: category,  // FIXED
-      "Uploaded By": username,
-      notification_id: childKey.toString(),
-    };
-    await languageRef.doc(pushId.toString()).set(newsData);
-    console.log("News added to Language:", pushId);
-  } catch (error) {
-    console.error("Error adding news to Language:", error.message);
-    throw error;
+    if (await checkTitleExistsLang(title, langCollection)) {
+      console.log(`Title already exists in ${langCollection}, skipping.`);
+      continue;
+    }
+
+    const languageRef = firestore.collection(langCollection);
+    const pushId = await getNextChildKeySuperAdmin(languageRef);
+
+    try {
+      const currentTime = getCurrentTime();
+      const newsData = {
+        title,
+        desc,
+        newslink,
+        imagelink,
+        date: currentDate,
+        time: currentTime,
+        lang: langCollection,
+        cat: category,
+        "Uploaded By": username,
+        notification_id: childKey.toString(),
+      };
+
+      await languageRef.doc(pushId.toString()).set(newsData);
+      console.log(`News added to ${langCollection}:`, pushId);
+    } catch (error) {
+      console.error(`Error adding news to ${langCollection}:`, error.message);
+      throw error;
+    }
   }
 }
 
 // ================= Express Route =================
 
 app.post("/submit-news", async (req, res) => {
-  const { title, desc, newslink, imagelink, category, language, username } = req.body;
+  const {
+    title,
+    desc,
+    hinTitle,
+    hinDesc,
+    newslink,
+    imagelink,
+    category,
+    username,
+  } = req.body;
   const currentDate = getCurrentDate();
 
   try {
@@ -307,9 +332,42 @@ app.post("/submit-news", async (req, res) => {
 
     // Prepare promises (don’t await yet)
     const promises = [
-      addNewsToGeneral(title, desc, newslink, imagelink, childKey, currentDate, username, language, category),
-      addNewsToCategory(title, desc, newslink, imagelink, category, currentDate, username, language, childKey),
-      addNewsToLanguage(title, desc, newslink, imagelink, language, currentDate, username, category, childKey)
+      addNewsToGeneral(
+        title,
+        desc,
+        hinTitle,
+        hinDesc,
+        newslink,
+        imagelink,
+        childKey,
+        currentDate,
+        username,
+        category
+      ),
+      addNewsToCategory(
+        title,
+        desc,
+        hinTitle,
+        hinDesc,
+        newslink,
+        imagelink,
+        category,
+        currentDate,
+        username,
+        childKey
+      ),
+      addNewsToLanguage(
+        title,
+        desc,
+        hinTitle,
+        hinDesc,
+        newslink,
+        imagelink,
+        currentDate,
+        username,
+        category,
+        childKey
+      ),
     ];
 
     await Promise.all(promises); // Run in parallel
@@ -320,8 +378,6 @@ app.post("/submit-news", async (req, res) => {
     res.status(500).send("Error adding news: " + error.message);
   }
 });
-
-
 
 //// ROUTE FOR HTTP NOTIFICATIONS REQUEST////
 app.post("/notify", async (req, res) => {
@@ -608,25 +664,29 @@ async function uploadStudy(
 
 async function uploadBulkGeneralQuiz(item) {
   try {
-    let childkey;
     const quizzesRef = firestore.collection("News");
     const quizzesRef_eng = firestore.collection("News_Eng");
     const quizzesRef_hin = firestore.collection("News_Hindi");
+
+    // Generate key for "News"
+    let childkey = await getNextChildKeySuperAdmin(quizzesRef);
 
     // Add extra metadata fields
     item["Ques_in_News_Enabled"] = "Yes";
     item["notification_id"] = childkey.toString();
 
-    childkey = await getNextChildKeySuperAdmin(quizzesRef);
+    // Upload to News
     const newQuizRef = quizzesRef.doc(childkey.toString());
     await newQuizRef.set(item);
     console.log("General Quiz Data uploaded!");
 
+    // Generate key for English
     childkey = await getNextChildKeySuperAdmin(quizzesRef_eng);
     const newQuizRef_eng = quizzesRef_eng.doc(childkey.toString());
     await newQuizRef_eng.set(item);
     console.log("General Quiz for English Data uploaded!");
 
+    // Generate key for Hindi
     childkey = await getNextChildKeySuperAdmin(quizzesRef_hin);
     const newQuizRef_hin = quizzesRef_hin.doc(childkey.toString());
     await newQuizRef_hin.set(item);
@@ -738,7 +798,7 @@ async function rearrangeAndUploadNewsData(res) {
       });
 
       // Sort all items by code descending (latest first)
-      normalList.sort((a, b) => b.code - a.code); 
+      normalList.sort((a, b) => b.code - a.code);
       yesList.sort((a, b) => b.code - a.code); // optional, latest first
 
       let finalList = [];
@@ -752,11 +812,12 @@ async function rearrangeAndUploadNewsData(res) {
         // We'll insert them at top while maintaining order (latest first)
         yesList.forEach((yesItem) => {
           // Find index where its code fits in descending order
-          let insertIndex = finalList.findIndex((item) => item.code < yesItem.code);
+          let insertIndex = finalList.findIndex(
+            (item) => item.code < yesItem.code
+          );
           if (insertIndex === -1) insertIndex = finalList.length; // put at end if older
           finalList.splice(insertIndex, 0, yesItem);
         });
-
       } else {
         // For News_Eng & News_Hindi → latest first, interleave Yes items
         finalList = [...normalList];
@@ -773,7 +834,8 @@ async function rearrangeAndUploadNewsData(res) {
       // Upload reordered docs
       const keysList = snapshot.docs.map((doc) => doc.id);
       const updatePromises = finalList.map((item, index) => {
-        const key = index < keysList.length ? keysList[index] : newsRef.doc().id;
+        const key =
+          index < keysList.length ? keysList[index] : newsRef.doc().id;
         return newsRef.doc(key).set(item);
       });
 
@@ -781,7 +843,9 @@ async function rearrangeAndUploadNewsData(res) {
       console.log(`Upload complete for collection: ${colName}`);
     }
 
-    res.status(200).send("Rearranged and uploaded news data for all collections.");
+    res
+      .status(200)
+      .send("Rearranged and uploaded news data for all collections.");
   } catch (error) {
     console.error("Error fetching data:", error);
     res.status(500).send("Error fetching data.");
@@ -827,7 +891,7 @@ const validCredentials = [
   { username: "Sonam Kumari", password: "Sonam_Pass2024" },
   { username: "Navjyoti Kumar", password: "Navjyoti_Pass" },
   { username: "Pramod Kumar", password: "pramod_edulips2024" },
-  { username: "Badal_Edulips2025", password: "badal_pass2025" }
+  { username: "Badal_Edulips2025", password: "badal_pass2025" },
 ];
 
 app.post("/validate_login", async (req, res) => {
