@@ -1,321 +1,402 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Bulk Upload</title>
     <style>
-       body {
-    background-color: #f8f9fa;
-    color: #212529;
-    font-family: Arial, sans-serif;
-    display: flex;
-    justify-content: flex-start;
-    align-items: center;
-    flex-direction: column;
-    height: 100vh;
-    margin: 0;
-    text-align: center;
-}
+      body {
+        background-color: #f8f9fa;
+        color: #212529;
+        font-family: Arial, sans-serif;
+        display: flex;
+        justify-content: flex-start;
+        align-items: center;
+        flex-direction: column;
+        height: 100vh;
+        margin: 0;
+        text-align: center;
+      }
 
-h1 {
-    margin-bottom: 20px;
-    font-size: 2.5rem;
-    color: #333;
-}
+      h1 {
+        margin-bottom: 20px;
+        font-size: 2.5rem;
+        color: #333;
+      }
 
-form {
-    background-color: white;
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-    width: 300px;
-    margin-bottom: 20px;
-}
+      form {
+        background-color: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        width: 300px;
+        margin-bottom: 20px;
+      }
 
-input[type="file"], button {
-    width: 100%;
-}
+      input[type="file"],
+      button {
+        width: 100%;
+      }
 
-button {
-    margin-top: 10px;
-    padding: 10px;
-    border: none;
-    border-radius: 4px;
-    background-color: #007bff;
-    color: white;
-    font-size: 1rem;
-    cursor: pointer;
-    transition: background-color 0.3s;
-}
+      button {
+        margin-top: 10px;
+        padding: 10px;
+        border: none;
+        border-radius: 4px;
+        background-color: #007bff;
+        color: white;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: background-color 0.3s;
+      }
 
-button:hover {
-    background-color: #0056b3;
-}
+      button:hover {
+        background-color: #0056b3;
+      }
 
-#output {
-    margin-top: 10px;
-    white-space: pre-wrap;
-    background-color: #e9ecef;
-    padding: 10px;
-    border-radius: 4px;
-    text-align: left;
-    max-height: 300px;
-    overflow-y: auto;
-    width: 300px;
-}
+      #output {
+        margin-top: 10px;
+        white-space: pre-wrap;
+        background-color: #e9ecef;
+        padding: 10px;
+        border-radius: 4px;
+        text-align: left;
+        max-height: 300px;
+        overflow-y: auto;
+        width: 300px;
+      }
 
-/* Ensuring the excel data table stays in the scrollable container */
-#excelContainer {
-    margin-top: 20px;
-    width: 100%;
-    max-height: 400px;
-    overflow-y: auto;
-    border: 1px solid #ccc;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-    padding: 10px;
-    flex-grow: 1;  /* Allow excel container to expand but stay within available space */
-    display: flex;
-    justify-content: center;
-}
+      /* Ensuring the excel data table stays in the scrollable container */
+      #excelContainer {
+        margin-top: 20px;
+        width: 100%;
+        max-height: 400px;
+        overflow-y: auto;
+        border: 1px solid #ccc;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        padding: 10px;
+        flex-grow: 1; /* Allow excel container to expand but stay within available space */
+        display: flex;
+        justify-content: center;
+      }
 
-table {
-    margin-top: 20px;
-    margin-bottom: 20px; /* Additional margin from border */
-    border-collapse: collapse;
-    width: 100%;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-}
+      table {
+        margin-top: 20px;
+        margin-bottom: 20px; /* Additional margin from border */
+        border-collapse: collapse;
+        width: 100%;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+      }
 
-th, td {
-    border: 1px solid #ccc;
-    padding: 8px;
-    text-align: left;
-}
+      th,
+      td {
+        border: 1px solid #ccc;
+        padding: 8px;
+        text-align: left;
+      }
 
-th {
-    background-color: #007bff;
-    color: white;
-}
+      th {
+        background-color: #007bff;
+        color: white;
+      }
 
-td {
-    background-color: #fff;
-    cursor: pointer;
-}
+      td {
+        background-color: #fff;
+        cursor: pointer;
+      }
 
-td[contenteditable="true"]:focus {
-    outline: 2px solid #007bff;
-}
-
-
+      td[contenteditable="true"]:focus {
+        outline: 2px solid #007bff;
+      }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.5/xlsx.full.min.js"></script>
-</head>
-<body>
+  </head>
+  <body>
     <form id="uploadForm" enctype="multipart/form-data">
-        <h1>Upload Excel File</h1>
-        <input type="file" name="file" accept=".xlsx" required onchange="displayExcelData()" />
-        <button id="quizUploadButton" type="button">Upload</button>
-        <button type="button" onclick="downloadStoredExcel()">Download Format</button>
-        <div id="progressContainer" style="display: none; margin-top: 20px; text-align: center;">
-            <div style="margin-bottom: 10px; font-size: 1.1rem;">Uploading...</div>
-            <progress id="progressBar" value="0" max="100" style="width: 100%; height: 30px;"></progress>
-            <div id="progressText" style="margin-top: 5px; font-size: 1rem; color: #007bff;">0%</div>
+      <h1>Upload Excel File</h1>
+      <input
+        type="file"
+        name="file"
+        accept=".xlsx"
+        required
+        onchange="displayExcelData()"
+      />
+      <button id="quizUploadButton" type="button">Upload</button>
+      <button type="button" onclick="downloadStoredExcel()">
+        Download Format
+      </button>
+      <div
+        id="progressContainer"
+        style="display: none; margin-top: 20px; text-align: center"
+      >
+        <div style="margin-bottom: 10px; font-size: 1.1rem">Uploading...</div>
+        <progress
+          id="progressBar"
+          value="0"
+          max="100"
+          style="width: 100%; height: 30px"
+        ></progress>
+        <div
+          id="progressText"
+          style="margin-top: 5px; font-size: 1rem; color: #007bff"
+        >
+          0%
         </div>
+      </div>
+      <div style="margin-top: 20px; text-align: center">
+        <input
+          type="text"
+          id="formulaInput"
+          placeholder="Enter formula like 5×6÷8 of 2=?"
+          style="
+            width: 300px;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+          "
+        />
+        <button type="button" onclick="convertFormula()">
+          Convert to LaTeX
+        </button>
+        <div
+          id="latexOutput"
+          style="margin-top: 10px; font-size: 18px; color: #007bff"
+        ></div>
+      </div>
     </form>
     <div id="output"></div>
-    <table id="excelData" style="display: none;"></table>
+    <table id="excelData" style="display: none"></table>
 
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script>
-        function checkLogin() {
-            const isLoggedIn = localStorage.getItem('isLoggedIn');
-            if (!isLoggedIn) {
-                window.location.href = 'login.html';
-            }
+      function checkLogin() {
+        const isLoggedIn = localStorage.getItem("isLoggedIn");
+        if (!isLoggedIn) {
+          window.location.href = "login.html";
         }
+      }
 
-        function downloadStoredExcel() {
-    const fileUrl = "FinalFormatQuiz.xlsx";
-    console.log("Opening file:", fileUrl);
-    window.open(fileUrl, "_blank");
-}
+      function downloadStoredExcel() {
+        const fileUrl = "FinalFormatQuiz.xlsx";
+        console.log("Opening file:", fileUrl);
+        window.open(fileUrl, "_blank");
+      }
 
-        window.onload = checkLogin;
+      window.onload = checkLogin;
 
-        async function Upload_Quiz(batchSize = 5) {
-    const files = document.querySelector('input[type="file"]').files;
-    const totalFiles = files.length;
-    let filesUploaded = 0;
-    let filesFailed = 0;
+      async function Upload_Quiz(batchSize = 5) {
+        const files = document.querySelector('input[type="file"]').files;
+        const totalFiles = files.length;
+        let filesUploaded = 0;
+        let filesFailed = 0;
 
-    const progressContainer = document.getElementById('progressContainer');
-    const progressBar = document.getElementById('progressBar');
-    const progressText = document.getElementById('progressText');
-    const output = document.getElementById('output');
+        const progressContainer = document.getElementById("progressContainer");
+        const progressBar = document.getElementById("progressBar");
+        const progressText = document.getElementById("progressText");
+        const output = document.getElementById("output");
 
-    progressContainer.style.display = 'block';
-    progressBar.value = 0;
-    progressText.innerText = '0%';
-    progressBar.style.backgroundColor = '#4caf50'; // Green on start
+        progressContainer.style.display = "block";
+        progressBar.value = 0;
+        progressText.innerText = "0%";
+        progressBar.style.backgroundColor = "#4caf50"; // Green on start
 
-    // **Upload in Batches**
-    for (let i = 0; i < totalFiles; i += batchSize) {
-        const batch = Array.from(files).slice(i, i + batchSize);
-        const formData = new FormData();
-        batch.forEach(file => formData.append('file', file));
+        // **Upload in Batches**
+        for (let i = 0; i < totalFiles; i += batchSize) {
+          const batch = Array.from(files).slice(i, i + batchSize);
+          const formData = new FormData();
+          batch.forEach((file) => formData.append("file", file));
 
-        try {
+          try {
             await sendBatch(formData);
             filesUploaded += batch.length;
-        } catch (error) {
+          } catch (error) {
             filesFailed += batch.length;
             console.error("Batch upload failed:", error);
+          }
+
+          // **Update Progress Bar**
+          progressBar.value =
+            ((filesUploaded + filesFailed) * 100) / totalFiles;
+          progressText.innerText = `${Math.round(progressBar.value)}%`;
         }
 
-        // **Update Progress Bar**
-        progressBar.value = ((filesUploaded + filesFailed) * 100) / totalFiles;
-        progressText.innerText = `${Math.round(progressBar.value)}%`;
-    }
+        // **Show Final Result**
+        if (filesFailed > 0) {
+          progressBar.style.backgroundColor = "red";
+          output.innerText = `Upload Completed with ${filesFailed} failures.`;
+        } else {
+          output.innerText = "All files uploaded successfully!";
+        }
+      }
 
-    // **Show Final Result**
-    if (filesFailed > 0) {
-        progressBar.style.backgroundColor = 'red';
-        output.innerText = `Upload Completed with ${filesFailed} failures.`;
-    } else {
-        output.innerText = 'All files uploaded successfully!';
-    }
-}
+      // **Send a Batch Request**
+      async function sendBatch(formData) {
+        return new Promise((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
+          xhr.open("POST", "/uploadQuizBulk", true);
 
-// **Send a Batch Request**
-async function sendBatch(formData) {
-    return new Promise((resolve, reject) => {
-        const xhr = new XMLHttpRequest();
-        xhr.open('POST', '/uploadQuizBulk', true);
-
-        xhr.onload = function () {
+          xhr.onload = function () {
             if (xhr.status >= 200 && xhr.status < 300) {
-                resolve();
+              resolve();
             } else {
-                reject(xhr.statusText);
+              reject(xhr.statusText);
             }
-        };
+          };
 
-        xhr.onerror = function () {
-            reject('Network error');
-        };
+          xhr.onerror = function () {
+            reject("Network error");
+          };
 
-        xhr.send(formData);
-    });
+          xhr.send(formData);
+        });
 
-    function updateProgress() {
-        const completed = filesUploaded + filesFailed;
-        progressBar.value = (completed * 100) / totalFiles;
-        progressText.innerText = `${Math.round((completed * 100) / totalFiles)}%`;
+        function updateProgress() {
+          const completed = filesUploaded + filesFailed;
+          progressBar.value = (completed * 100) / totalFiles;
+          progressText.innerText = `${Math.round(
+            (completed * 100) / totalFiles
+          )}%`;
 
-        if (completed === totalFiles) {
+          if (completed === totalFiles) {
             if (filesFailed > 0) {
-                output.innerText = `${filesUploaded} files uploaded successfully, ${filesFailed} failed.`;
-                progressText.innerText = 'Upload completed with errors!';
-                progressBar.style.backgroundColor = 'red'; // Change bar to red if any error occurs
+              output.innerText = `${filesUploaded} files uploaded successfully, ${filesFailed} failed.`;
+              progressText.innerText = "Upload completed with errors!";
+              progressBar.style.backgroundColor = "red"; // Change bar to red if any error occurs
             } else {
-                output.innerText = 'All files uploaded successfully!';
-                progressText.innerText = 'Upload Complete!';
-                progressBar.style.backgroundColor = '#4caf50'; // Keep green on success
+              output.innerText = "All files uploaded successfully!";
+              progressText.innerText = "Upload Complete!";
+              progressBar.style.backgroundColor = "#4caf50"; // Keep green on success
             }
+          }
         }
-    }
-}
+      }
 
-  function displayExcelData() {
-    const fileInput = document.querySelector('input[type="file"]');
-    const file = fileInput.files[0];
+      function displayExcelData() {
+        const fileInput = document.querySelector('input[type="file"]');
+        const file = fileInput.files[0];
 
-    if (!file) {
-        alert('No file selected. Please select a valid file.');
-        return;
-    }
+        if (!file) {
+          alert("No file selected. Please select a valid file.");
+          return;
+        }
 
-    const reader = new FileReader();
+        const reader = new FileReader();
 
-    reader.onload = function (event) {
-        const data = new Uint8Array(event.target.result);
-        const workbook = XLSX.read(data, { type: 'array' });
-        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-        const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1, raw: true });
+        reader.onload = function (event) {
+          const data = new Uint8Array(event.target.result);
+          const workbook = XLSX.read(data, { type: "array" });
+          const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+          const jsonData = XLSX.utils.sheet_to_json(firstSheet, {
+            header: 1,
+            raw: true,
+          });
 
-        if (validateExcelDataRowWise(jsonData)) {
-            const table = document.getElementById('excelData');
-            table.innerHTML = '';
-            table.style.display = 'table';
+          if (validateExcelDataRowWise(jsonData)) {
+            const table = document.getElementById("excelData");
+            table.innerHTML = "";
+            table.style.display = "table";
 
-            const headerRow = document.createElement('tr');
+            const headerRow = document.createElement("tr");
             jsonData[0].forEach((header) => {
-                const th = document.createElement('th');
-                th.innerText = header;
-                headerRow.appendChild(th);
+              const th = document.createElement("th");
+              th.innerText = header;
+              headerRow.appendChild(th);
             });
             table.appendChild(headerRow);
 
             for (let i = 1; i < jsonData.length; i++) {
-                const row = document.createElement('tr');
-                jsonData[i].forEach((cell) => {
-                    const td = document.createElement('td');
-                    td.innerText = formatIfExcelDate(cell); // 🔁 Convert if needed
-                    td.contentEditable = 'true';
-                    row.appendChild(td);
-                });
-                table.appendChild(row);
+              const row = document.createElement("tr");
+              jsonData[i].forEach((cell) => {
+                const td = document.createElement("td");
+                td.innerText = formatIfExcelDate(cell); // 🔁 Convert if needed
+                td.contentEditable = "true";
+                row.appendChild(td);
+              });
+              table.appendChild(row);
             }
-        } else {
-            alert('The uploaded file contains empty rows or columns. Please correct it and try again.');
-            fileInput.value = '';
-        }
-    };
-
-    reader.readAsArrayBuffer(file);
-}
-
-// Converts Excel date serials to dd-mm-yyyy format
-function formatIfExcelDate(value) {
-    if (typeof value === 'number' && value > 25569 && value < 60000) {
-        const utc_days = Math.floor(value - 25569);
-        const utc_value = utc_days * 86400;
-        const date = new Date(utc_value * 1000);
-        const day = String(date.getDate()).padStart(2, '0');
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const year = date.getFullYear();
-        return `${day}-${month}-${year}`;
-    }
-    return value;
-}
-
-
- function validateExcelDataRowWise(jsonData) {
-    console.log("JSON Data:", jsonData);
-    return true;
-}
-        function convertTableToExcel() {
-            const table = document.getElementById('excelData');
-            const data = [];
-
-            for (let row of table.rows) {
-                const rowData = [];
-                for (let cell of row.cells) {
-                    rowData.push(cell.innerText);
-                }
-                data.push(rowData);
-            }
-
-            const worksheet = XLSX.utils.aoa_to_sheet(data);
-            const workbook = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(workbook, worksheet, 'Sheet1');
-            const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
-            return new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-        }
-
-        document.getElementById('quizUploadButton').onclick = async function () {
-            await Upload_Quiz();
+          } else {
+            alert(
+              "The uploaded file contains empty rows or columns. Please correct it and try again."
+            );
+            fileInput.value = "";
+          }
         };
+
+        reader.readAsArrayBuffer(file);
+      }
+
+      // Converts Excel date serials to dd-mm-yyyy format
+      function formatIfExcelDate(value) {
+        if (typeof value === "number" && value > 25569 && value < 60000) {
+          const utc_days = Math.floor(value - 25569);
+          const utc_value = utc_days * 86400;
+          const date = new Date(utc_value * 1000);
+          const day = String(date.getDate()).padStart(2, "0");
+          const month = String(date.getMonth() + 1).padStart(2, "0");
+          const year = date.getFullYear();
+          return `${day}-${month}-${year}`;
+        }
+        return value;
+      }
+
+      function validateExcelDataRowWise(jsonData) {
+        console.log("JSON Data:", jsonData);
+        return true;
+      }
+      function convertTableToExcel() {
+        const table = document.getElementById("excelData");
+        const data = [];
+
+        for (let row of table.rows) {
+          const rowData = [];
+          for (let cell of row.cells) {
+            rowData.push(cell.innerText);
+          }
+          data.push(rowData);
+        }
+
+        const worksheet = XLSX.utils.aoa_to_sheet(data);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Sheet1");
+        const excelBuffer = XLSX.write(workbook, {
+          bookType: "xlsx",
+          type: "array",
+        });
+        return new Blob([excelBuffer], {
+          type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        });
+      }
+
+      document.getElementById("quizUploadButton").onclick = async function () {
+        await Upload_Quiz();
+      };
+     function convertFormula() {
+  const input = document.getElementById("formulaInput").value.trim();
+  const outputDiv = document.getElementById("latexOutput");
+
+  if (!input) {
+    outputDiv.innerHTML =
+      "<span style='color:red;'>Please enter a formula</span>";
+    return;
+  }
+
+  let str = input
+    .replace(/×/g, "\\times ")
+    .replace(/÷/g, "\\div ")
+    .replace(/\bof\b/gi, "\\times ")
+    .replace(/\^/g, "^")
+    .replace(/=/g, "=");
+
+  // Fractions like 15/8 → \frac{15}{8}
+  str = str.replace(/(\d+)\/(\d+)/g, "\\frac{$1}{$2}");
+
+  // ✅ Wrap in inline math delimiters
+  const latexString = "\\(" + str + "\\)";
+
+  // ✅ Show ONLY LaTeX code (no rendering)
+  outputDiv.innerText = latexString;
+}
+
     </script>
-    </body>
+  </body>
 </html>
