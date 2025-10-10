@@ -12,6 +12,7 @@ const moment = require("moment-timezone");
 const cheerio = require("cheerio");
 const xlsx = require("xlsx");
 const fileUpload = require("express-fileupload");
+const katex = require("katex");
 
 admin.initializeApp({
   credential: admin.credential.cert({
@@ -1184,3 +1185,32 @@ app.get("/test/:testID", (req, res) => {
 
 // // Run function
 // renameNewsTempToNews();
+
+app.get("/api/renderLatex", (req, res) => {
+  const latex = req.query.latex || req.body?.latex;
+  if (!latex) return res.status(400).json({ error: "Missing LaTeX input" });
+
+  try {
+    const html = katex.renderToString(latex, {
+      throwOnError: false,
+      displayMode: true,
+    });
+
+    const svg = `
+      <svg xmlns="http://www.w3.org/2000/svg" width="800" height="200">
+        <foreignObject width="100%" height="100%">
+          <div xmlns="http://www.w3.org/1999/xhtml"
+               style="font-size:28px; color:black; background:white; display:flex; align-items:center; justify-content:center; height:100%;">
+            ${html}
+          </div>
+        </foreignObject>
+      </svg>
+    `;
+
+    const base64 = Buffer.from(svg).toString("base64");
+    res.json({ success: true, image: `data:image/svg+xml;base64,${base64}` });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to render LaTeX" });
+  }
+});
