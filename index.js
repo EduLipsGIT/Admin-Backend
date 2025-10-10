@@ -1187,8 +1187,14 @@ app.get("/test/:testID", (req, res) => {
 // renameNewsTempToNews();
 
 app.get("/api/renderLatex", (req, res) => {
-  const latex = req.query.latex || req.body?.latex;
+  let latex = req.query.latex || req.body?.latex;
   if (!latex) return res.status(400).json({ error: "Missing LaTeX input" });
+
+  // Remove surrounding dollar signs if present
+  latex = latex.trim();
+  if (latex.startsWith("$") && latex.endsWith("$")) {
+    latex = latex.slice(1, -1);
+  }
 
   try {
     const html = katex.renderToString(latex, {
@@ -1199,7 +1205,7 @@ app.get("/api/renderLatex", (req, res) => {
     const svg = `
       <svg xmlns="http://www.w3.org/2000/svg" width="800" height="200">
         <foreignObject width="100%" height="100%">
-          <div xmlns="http://www.w3.org/1999/xhtml"
+          <div xmlns="http://www.w3.org/1999/xhtml" 
                style="font-size:28px; color:black; background:white; display:flex; align-items:center; justify-content:center; height:100%;">
             ${html}
           </div>
