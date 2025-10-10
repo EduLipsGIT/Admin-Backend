@@ -1202,16 +1202,17 @@ app.get("/api/renderLatex", (req, res) => {
       displayMode: true,
     });
 
-    const svg = `
-      <svg xmlns="http://www.w3.org/2000/svg" width="800" height="200">
-        <foreignObject width="100%" height="100%">
-          <div xmlns="http://www.w3.org/1999/xhtml" 
-               style="font-size:28px; color:black; background:white; display:flex; align-items:center; justify-content:center; height:100%;">
-            ${html}
-          </div>
-        </foreignObject>
-      </svg>
-    `;
+   const svg = `
+  <svg xmlns="http://www.w3.org/2000/svg" width="800" height="200">
+    <foreignObject width="100%" height="100%">
+      <div xmlns="http://www.w3.org/1999/xhtml" 
+           style="font-size:28px; color:black; background:white; display:flex; align-items:center; justify-content:center; height:100%;">
+        ${html}
+      </div>
+    </foreignObject>
+  </svg>
+`;
+
 
     const base64 = Buffer.from(svg).toString("base64");
     res.json({ success: true, image: `data:image/svg+xml;base64,${base64}` });
