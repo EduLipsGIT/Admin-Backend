@@ -1186,25 +1186,35 @@ app.get("/test/:testID", (req, res) => {
 // // Run function
 // renameNewsTempToNews();
 
-app.post("/api/renderLatex", (req, res) => {
+app.post("/api/renderLatex", async (req, res) => {
+  console.log("📩 Incoming request to /api/renderLatex");
+
   let latex = req.body?.latex;
+  console.log("🧪 Raw LaTeX received:", latex);
 
   if (!latex) {
+    console.warn("⚠️ Missing LaTeX input");
     return res.status(400).json({ error: "Missing LaTeX input" });
   }
 
   // Trim and remove optional $ or $$ wrappers
   latex = latex.trim();
-  if ((latex.startsWith("$$") && latex.endsWith("$$")) ||
-      (latex.startsWith("$") && latex.endsWith("$"))) {
+  if (
+    (latex.startsWith("$$") && latex.endsWith("$$")) ||
+    (latex.startsWith("$") && latex.endsWith("$"))
+  ) {
+    console.log("💡 Stripping $ delimiters from LaTeX");
     latex = latex.replace(/^\$+|\$+$/g, "");
   }
 
   try {
+    console.log("🧮 Rendering LaTeX with KaTeX...");
     const html = katex.renderToString(latex, {
       throwOnError: false,
       displayMode: true,
     });
+
+    console.log("✅ KaTeX render success. HTML length:", html.length);
 
     const svg = `
       <svg xmlns="http://www.w3.org/2000/svg">
@@ -1220,9 +1230,12 @@ app.post("/api/renderLatex", (req, res) => {
     const cleanSvg = svg.replace(/\n/g, "").trim();
     const base64 = Buffer.from(cleanSvg, "utf8").toString("base64");
 
+    console.log("🖼️ SVG generated successfully. Base64 length:", base64.length);
+
     res.json({ success: true, image: `data:image/svg+xml;base64,${base64}` });
+    console.log("✅ Response sent successfully");
   } catch (err) {
-    console.error(err);
+    console.error("❌ Error rendering LaTeX:", err);
     res.status(500).json({ error: "Failed to render LaTeX" });
   }
 });
