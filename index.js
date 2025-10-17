@@ -856,35 +856,97 @@ async function rearrangeAndUploadNewsData(res) {
 // app.get("/rearrange", (req, res) => {
 //   rearrangeAndUploadNewsData(res);
 // });
-
 const resetLeaderboard = async (req, res) => {
   try {
     const leaderboardRef = db.ref("Live_Leaderboard");
+    const overallRef = db.ref("UserData");
 
-    // Fetch data once
+    console.log("🔹 Fetching Live_Leaderboard data...");
     const snapshot = await leaderboardRef.once("value");
 
     if (!snapshot.exists()) {
+      console.log("❌ No data found under Live_Leaderboard");
       return res.status(404).send("No data found under Live_Leaderboard");
     }
 
-    // Prepare updates for all players
-    const updates = {};
-    snapshot.forEach((childSnapshot) => {
-      const key = childSnapshot.key;
-      updates[`${key}/points`] = 0;
-      updates[`${key}/attempts`] = 0;
+    const leaderboard = [];
+    snapshot.forEach((child) => {
+      const data = child.val();
+      leaderboard.push({
+        id: child.key,
+        points: data.points || 0,
+        attempts: data.attempts || 0,
+      });
     });
 
-    // Update all children at once
+    leaderboard.sort((a, b) => b.points - a.points);
+    const top3 = leaderboard.slice(0, 3);
+    console.log("🏆 Top 3 Players:");
+    top3.forEach((p, i) => console.log(`${i + 1}. ${p.id} — ${p.points} pts`));
+
+    const rewards = [
+      { rank: 1, bonusPercent: 50 },
+      { rank: 2, bonusPercent: 30 },
+      { rank: 3, bonusPercent: 10 },
+    ];
+
+    const overallSnapshot = await overallRef.once("value");
+    const overallData = overallSnapshot.exists() ? overallSnapshot.val() : {};
+
+    console.log("📊 Applying rewards + sending notifications...");
+
+    for (let i = 0; i < top3.length; i++) {
+      const player = top3[i];
+      const bonus = Math.floor((player.points * rewards[i].bonusPercent) / 100);
+      const currentOverallPoints = Math.floor(overallData[player.id]?.points || 0);
+      const newTotal = currentOverallPoints + bonus;
+      const notificationId = overallData[player.id]?.notification_id;
+
+      console.log(
+        `⭐ Rank ${i + 1}: ${player.id}\n` +
+        `   Bonus: ${bonus}\n` +
+        `   Old Total: ${currentOverallPoints}\n` +
+        `   New Total: ${newTotal}\n`
+      );
+
+      // Update UserData with new points
+      await overallRef.child(player.id).update({ points: newTotal });
+
+      // Send push notification if ID exists
+      if (notificationId) {
+        const rankText = i === 0 ? "1st" : i === 1 ? "2nd" : "3rd";
+        const message_fixed = `🎉 Congrats! You ranked ${rankText} in today's leaderboard and earned a ${rewards[i].bonusPercent}% bonus!`;
+        await sendUserSpecificNotification(
+          "Daily Leaderboard",
+          "You are among top 3!",
+          "Daily Leaderboard Result",
+          message_fixed,
+          "leaderboard_reward",
+          player.id
+        );
+      } else {
+        console.warn(`⚠️ No notification_id for user ${player.id}`);
+      }
+    }
+
+    // Reset daily leaderboard
+    const updates = {};
+    leaderboard.forEach((player) => {
+      updates[`${player.id}/points`] = 0;
+      updates[`${player.id}/attempts`] = 0;
+    });
     await leaderboardRef.update(updates);
-    res.status(200).send("Reset complete successfully");
+
+    console.log("✅ Leaderboard reset complete.");
+    res.status(200).send("Top 3 rewarded, notified, and leaderboard reset successfully.");
   } catch (error) {
-    console.error("Error resetting leaderboard:", error);
+    console.error("🚨 Error resetting leaderboard:", error);
     res.status(500).send("Failed to reset leaderboard");
   }
 };
+
 app.get("/reset-leaderboard", resetLeaderboard);
+
 
 ////////////AUTHENTICATION
 const validCredentials = [
@@ -1239,3 +1301,23 @@ app.post("/api/renderLatex", async (req, res) => {
     res.status(500).json({ error: "Failed to render LaTeX" });
   }
 });
+
+// async function countDocsWithDate(targetDate) {
+//   try {
+//     const snapshot = await db_firestore
+//       .collection("News") // 👈 replace with your Firestore collection
+//       .where("date", "==", targetDate)
+//       .get();
+
+//     const count = snapshot.size;
+//     console.log(`Documents with date ${targetDate}: ${count}`);
+//     return count;
+
+//   } catch (error) {
+//     console.error("Error fetching documents:", error);
+//     return 0;
+//   }
+// }
+
+// // Example usage
+// countDocsWithDate("2025-10-15");
