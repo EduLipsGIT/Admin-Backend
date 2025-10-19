@@ -1,44 +1,49 @@
 const express = require("express");
 const admin = require("firebase-admin");
+
 const app = express();
-const port = process.env.PORT || 3000;
 
 // Initialize Firebase Admin
-admin.initializeApp({
-  credential: admin.credential.cert({
-    projectId: process.env.FIREBASE_PROJECT_ID,
-    privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n"),
-    clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-  }),
-  databaseURL: `https://${process.env.FIREBASE_PROJECT_ID}-default-rtdb.firebaseio.com/`,
-});
+if (!admin.apps.length) {
+  admin.initializeApp({
+    credential: admin.credential.cert({
+      projectId: process.env.FIREBASE_PROJECT_ID,
+      privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n"),
+      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+    }),
+    databaseURL: `https://${process.env.FIREBASE_PROJECT_ID}-default-rtdb.firebaseio.com/`,
+  });
+}
 
 const db_firestore = admin.firestore();
 
 // Middleware
 app.use(express.json());
 
-// Function to count documents by date
-async function countDocsWithDate(targetDate) {
+// Example GET API using app.get
+app.get("/count/:date", async (req, res) => {
+  const { date } = req.params;
+
   try {
     const snapshot = await db_firestore
-      .collection("News") // replace with your collection
-      .where("date", "==", targetDate)
+      .collection("News")
+      .where("date", "==", date)
       .get();
 
     const count = snapshot.size;
-    console.log(`Documents with date ${targetDate}: ${count}`);
-    return count;
-  } catch (error) {
-    console.error("Error fetching documents:", error);
-    return 0;
-  }
-}
+    console.log(`Count for date ${date}: ${count}`);
 
-// Example GET API to get count for a specific date
-app.get("/count/:date", async (req, res) => {
-  const { date } = req.params;
-  const count = await countDocsWithDate(date);
-  res.status(200).json({ date, count });
+    res.status(200).json({ date, count });
+  } catch (err) {
+    console.error("Error in /count/:date", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
 });
 
+// Optional root endpoint
+app.get("/", (req, res) => {
+  res.send("Express server running 🎯");
+});
+
+// ✅ Export app for Vercel serverless
+module.exports = app;
