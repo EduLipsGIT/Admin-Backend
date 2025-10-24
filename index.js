@@ -65,10 +65,6 @@ async function getAccessToken() {
   accessToken = accessTokenResponse.token;
 }
 
-app.listen(port, () => {
-  console.log(`Server is running on port ${port}`);
-});
-
 ///// CALCULATION OF CHILD KEYS /////
 
 async function getNextStudyChildKey() {
@@ -665,9 +661,8 @@ async function uploadStudy(
 
 async function uploadBulkGeneralQuiz(item) {
   try {
-    const quizzesRef = firestore.collection("News");
-    const quizzesRef_eng = firestore.collection("News_Eng");
-    const quizzesRef_hin = firestore.collection("News_Hindi");
+
+    const quizzesRef = firestore.collection("News_Quizzes");
 
     // Generate key for "News"
     let childkey = await getNextChildKeySuperAdmin(quizzesRef);
@@ -681,17 +676,6 @@ async function uploadBulkGeneralQuiz(item) {
     await newQuizRef.set(item);
     console.log("General Quiz Data uploaded!");
 
-    // Generate key for English
-    childkey = await getNextChildKeySuperAdmin(quizzesRef_eng);
-    const newQuizRef_eng = quizzesRef_eng.doc(childkey.toString());
-    await newQuizRef_eng.set(item);
-    console.log("General Quiz for English Data uploaded!");
-
-    // Generate key for Hindi
-    childkey = await getNextChildKeySuperAdmin(quizzesRef_hin);
-    const newQuizRef_hin = quizzesRef_hin.doc(childkey.toString());
-    await newQuizRef_hin.set(item);
-    console.log("General Quiz For Hindi Data uploaded!");
   } catch (error) {
     console.error("Error adding quiz to Firestore:", error.message);
     throw error;
@@ -769,89 +753,90 @@ function sanitizeKeys(obj) {
 }
 
 /////////////// CRON JOBS //////////////////////
-async function rearrangeAndUploadNewsData(res) {
-  try {
-    const collections = ["News", "News_Eng", "News_Hindi"];
 
-    for (const colName of collections) {
-      console.log(`Processing collection: ${colName}`);
-      const newsRef = firestore.collection(colName);
+// async function rearrangeAndUploadNewsData(res) {
+//   try {
+//     const collections = ["News", "News_Eng", "News_Hindi"];
 
-      const snapshot = await newsRef.limit(100).get();
-      if (snapshot.empty) {
-        console.log(`No documents found in ${colName}`);
-        continue;
-      }
+//     for (const colName of collections) {
+//       console.log(`Processing collection: ${colName}`);
+//       const newsRef = firestore.collection(colName);
 
-      // Separate Yes items and normal items
-      const yesList = [];
-      const normalList = [];
+//       const snapshot = await newsRef.limit(100).get();
+//       if (snapshot.empty) {
+//         console.log(`No documents found in ${colName}`);
+//         continue;
+//       }
 
-      snapshot.forEach((doc) => {
-        const data = doc.data();
-        if (!data) return;
+//       // Separate Yes items and normal items
+//       const yesList = [];
+//       const normalList = [];
 
-        if (data.Ques_in_News_Enabled === "Yes") {
-          yesList.push(data);
-        } else {
-          normalList.push(data);
-        }
-      });
+//       snapshot.forEach((doc) => {
+//         const data = doc.data();
+//         if (!data) return;
 
-      // Sort all items by code descending (latest first)
-      normalList.sort((a, b) => b.code - a.code);
-      yesList.sort((a, b) => b.code - a.code); // optional, latest first
+//         if (data.Ques_in_News_Enabled === "Yes") {
+//           yesList.push(data);
+//         } else {
+//           normalList.push(data);
+//         }
+//       });
 
-      let finalList = [];
+//       // Sort all items by code descending (latest first)
+//       normalList.sort((a, b) => b.code - a.code);
+//       yesList.sort((a, b) => b.code - a.code); // optional, latest first
 
-      if (colName === "News") {
-        // Mix Hindi + English + default but keep chronological order
-        // Step 1: merge all normal items by chronological order
-        finalList = [...normalList];
+//       let finalList = [];
 
-        // Step 2: Insert Yes items at their respective positions
-        // We'll insert them at top while maintaining order (latest first)
-        yesList.forEach((yesItem) => {
-          // Find index where its code fits in descending order
-          let insertIndex = finalList.findIndex(
-            (item) => item.code < yesItem.code
-          );
-          if (insertIndex === -1) insertIndex = finalList.length; // put at end if older
-          finalList.splice(insertIndex, 0, yesItem);
-        });
-      } else {
-        // For News_Eng & News_Hindi → latest first, interleave Yes items
-        finalList = [...normalList];
-        let yesIndex = 0;
-        const result = [];
-        for (let item of finalList) {
-          result.push(item);
-          if (yesIndex < yesList.length) result.push(yesList[yesIndex++]);
-        }
-        while (yesIndex < yesList.length) result.push(yesList[yesIndex++]);
-        finalList = result;
-      }
+//       if (colName === "News") {
+//         // Mix Hindi + English + default but keep chronological order
+//         // Step 1: merge all normal items by chronological order
+//         finalList = [...normalList];
 
-      // Upload reordered docs
-      const keysList = snapshot.docs.map((doc) => doc.id);
-      const updatePromises = finalList.map((item, index) => {
-        const key =
-          index < keysList.length ? keysList[index] : newsRef.doc().id;
-        return newsRef.doc(key).set(item);
-      });
+//         // Step 2: Insert Yes items at their respective positions
+//         // We'll insert them at top while maintaining order (latest first)
+//         yesList.forEach((yesItem) => {
+//           // Find index where its code fits in descending order
+//           let insertIndex = finalList.findIndex(
+//             (item) => item.code < yesItem.code
+//           );
+//           if (insertIndex === -1) insertIndex = finalList.length; // put at end if older
+//           finalList.splice(insertIndex, 0, yesItem);
+//         });
+//       } else {
+//         // For News_Eng & News_Hindi → latest first, interleave Yes items
+//         finalList = [...normalList];
+//         let yesIndex = 0;
+//         const result = [];
+//         for (let item of finalList) {
+//           result.push(item);
+//           if (yesIndex < yesList.length) result.push(yesList[yesIndex++]);
+//         }
+//         while (yesIndex < yesList.length) result.push(yesList[yesIndex++]);
+//         finalList = result;
+//       }
 
-      await Promise.all(updatePromises);
-      console.log(`Upload complete for collection: ${colName}`);
-    }
+//       // Upload reordered docs
+//       const keysList = snapshot.docs.map((doc) => doc.id);
+//       const updatePromises = finalList.map((item, index) => {
+//         const key =
+//           index < keysList.length ? keysList[index] : newsRef.doc().id;
+//         return newsRef.doc(key).set(item);
+//       });
 
-    res
-      .status(200)
-      .send("Rearranged and uploaded news data for all collections.");
-  } catch (error) {
-    console.error("Error fetching data:", error);
-    res.status(500).send("Error fetching data.");
-  }
-}
+//       await Promise.all(updatePromises);
+//       console.log(`Upload complete for collection: ${colName}`);
+//     }
+
+//     res
+//       .status(200)
+//       .send("Rearranged and uploaded news data for all collections.");
+//   } catch (error) {
+//     console.error("Error fetching data:", error);
+//     res.status(500).send("Error fetching data.");
+//   }
+// }
 
 // app.get("/rearrange", (req, res) => {
 //   rearrangeAndUploadNewsData(res);
@@ -1247,3 +1232,8 @@ app.get("/test/:testID", (req, res) => {
 
 // // Run function
 // renameNewsTempToNews();
+
+
+app.listen(port, () => {
+  console.log(`Server is running on port ${port}`);
+});
