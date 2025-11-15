@@ -143,25 +143,6 @@
           0%
         </div>
       </div>
-      <div style="margin-top: 20px; text-align: center">
-        <input
-          type="text"
-          id="formulaInput"
-          placeholder="Enter formula like 5×6÷8 of 2=?"
-          style="
-            width: 300px;
-            padding: 8px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-          "
-        />
-        <button type="button" onclick="convertFormula()">
-          Convert to LaTeX
-        </button>
-        <div
-          id="latexOutput"
-          style="margin-top: 10px; font-size: 18px; color: #007bff"
-        ></div>
       </div>
     </form>
     <div id="output"></div>
@@ -370,32 +351,6 @@
       document.getElementById("quizUploadButton").onclick = async function () {
         await Upload_Quiz();
       };
-     function convertFormula() {
-  const input = document.getElementById("formulaInput").value.trim();
-  const outputDiv = document.getElementById("latexOutput");
-
-  if (!input) {
-    outputDiv.innerHTML =
-      "<span style='color:red;'>Please enter a formula</span>";
-    return;
-  }
-
-  let str = input
-    .replace(/×/g, "\\times ")
-    .replace(/÷/g, "\\div ")
-    .replace(/\bof\b/gi, "\\times ")
-    .replace(/\^/g, "^")
-    .replace(/=/g, "=");
-
-  // Fractions like 15/8 → \frac{15}{8}
-  str = str.replace(/(\d+)\/(\d+)/g, "\\frac{$1}{$2}");
-
-  // ✅ Wrap in inline math delimiters
-  const latexString = "\\(" + str + "\\)";
-
-  // ✅ Show ONLY LaTeX code (no rendering)
-  outputDiv.innerText = latexString;
-}
 
     </script>
   </body>
