@@ -936,7 +936,7 @@ app.get("/reset-leaderboard", resetLeaderboard);
 ////////////AUTHENTICATION
 const validCredentials = [
   { username: "Kirtiman Nanda", password: "Kirtiman_Pass" },
-  { username: "Sonam Kumari", password: "Sonam_Pass2024" }, 
+  { username: "Sonam Kumari", password: "Sonam_Pass2024" },
   { username: "Navjyoti Kumar", password: "Navjyoti_Pass" },
   { username: "Pramod Kumar", password: "pramod_edulips2024" },
   { username: "Badal_Edulips2025", password: "badal_pass2025" },
@@ -1167,4 +1167,73 @@ app.get("/test/:testID", (req, res) => {
    `;
 
   res.send(htmlResponse);
+});
+
+// async function moveNewsLessOrEqual(limitId) {
+//   try {
+//     const snapshot = await db_firestore.collection("News")
+//       .where(admin.firestore.FieldPath.documentId(), "<=", limitId)
+//       .get();
+
+//     if (snapshot.empty) {
+//       console.log("No documents found to move.");
+//       return;
+//     }
+
+//     const batch = db_firestore.batch();
+//     snapshot.forEach(doc => {
+//       const data = doc.data();
+//       console.log(`Moving document: ${doc.id}`);
+
+//       // Copy to News_Temp
+//       const targetRef = db_firestore.collection("News_Temp").doc(doc.id);
+//       batch.set(targetRef, data);
+
+//     });
+
+//     await batch.commit();
+//     console.log("All matching documents moved successfully.");
+//   } catch (error) {
+//     console.error("Error moving documents:", error);
+//   }
+// }
+
+// // Run function with threshold 84950
+// moveNewsLessOrEqual("84950");
+
+// async function renameNewsTempToNews() {
+//   try {
+//     const snapshot = await db_firestore.collection("News_Temp").get();
+
+//     if (snapshot.empty) {
+//       console.log("No documents found in News_Temp.");
+//       return;
+//     }
+
+//     const batch = db_firestore.batch();
+//     snapshot.forEach(doc => {
+//       const data = doc.data();
+//       console.log(`Renaming document: ${doc.id}`);
+
+//       // Copy to News
+//       const targetRef = db_firestore.collection("News").doc(doc.id);
+//       batch.set(targetRef, data);
+
+//       // Delete from News_Temp
+//       batch.delete(doc.ref);
+//     });
+
+//     await batch.commit();
+//     console.log("Successfully renamed News_Temp to News.");
+//   } catch (error) {
+//     console.error("Error renaming collection:", error);
+//   }
+// }
+
+// // Run function
+// renameNewsTempToNews();
+
+
+app.listen(port, () => {
+  console.log(`Server is running on port ${port}`);
 });
