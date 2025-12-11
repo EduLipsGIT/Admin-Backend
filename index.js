@@ -1169,71 +1169,119 @@ app.get("/test/:testID", (req, res) => {
   res.send(htmlResponse);
 });
 
-// async function moveNewsLessOrEqual(limitId) {
-//   try {
-//     const snapshot = await db_firestore.collection("News")
-//       .where(admin.firestore.FieldPath.documentId(), "<=", limitId)
-//       .get();
-
-//     if (snapshot.empty) {
-//       console.log("No documents found to move.");
-//       return;
-//     }
-
-//     const batch = db_firestore.batch();
-//     snapshot.forEach(doc => {
-//       const data = doc.data();
-//       console.log(`Moving document: ${doc.id}`);
-
-//       // Copy to News_Temp
-//       const targetRef = db_firestore.collection("News_Temp").doc(doc.id);
-//       batch.set(targetRef, data);
-
-//     });
-
-//     await batch.commit();
-//     console.log("All matching documents moved successfully.");
-//   } catch (error) {
-//     console.error("Error moving documents:", error);
-//   }
-// }
-
-// // Run function with threshold 84950
-// moveNewsLessOrEqual("84950");
-
-// async function renameNewsTempToNews() {
-//   try {
-//     const snapshot = await db_firestore.collection("News_Temp").get();
-
-//     if (snapshot.empty) {
-//       console.log("No documents found in News_Temp.");
-//       return;
-//     }
-
-//     const batch = db_firestore.batch();
-//     snapshot.forEach(doc => {
-//       const data = doc.data();
-//       console.log(`Renaming document: ${doc.id}`);
-
-//       // Copy to News
-//       const targetRef = db_firestore.collection("News").doc(doc.id);
-//       batch.set(targetRef, data);
-
-//       // Delete from News_Temp
-//       batch.delete(doc.ref);
-//     });
-
-//     await batch.commit();
-//     console.log("Successfully renamed News_Temp to News.");
-//   } catch (error) {
-//     console.error("Error renaming collection:", error);
-//   }
-// }
-
-// // Run function
-// renameNewsTempToNews();
-
-
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
 });
+
+
+///AUTHOR
+
+// GET EXAMS
+// --- GET EXAMS ---
+app.get("/exams", async (req, res) => {
+  try {
+    const snap = await db.ref("Questions_Data").once("value");
+    res.json(Object.keys(snap.val() || {}));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --- GET SUBJECTS ---
+app.get("/subjects", async (req, res) => {
+  try {
+    const exam = req.query.exam;
+    const snap = await db.ref(`Questions_Data/${exam}`).once("value");
+    res.json(Object.keys(snap.val() || {}));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --- GET SECTIONS ---
+app.get("/sections", async (req, res) => {
+  try {
+    const { exam, subject } = req.query;
+    const snap = await db.ref(`Questions_Data/${exam}/${subject}`).once("value");
+    res.json(Object.keys(snap.val() || {}));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --- GET CHAPTERS ---
+app.get("/chapters", async (req, res) => {
+  try {
+    const { exam, subject, section } = req.query;
+    const snap = await db.ref(`Questions_Data/${exam}/${subject}/${section}`).once("value");
+    res.json(Object.keys(snap.val() || {}));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --- GET QUESTIONS ---
+app.get("/questions", async (req, res) => {
+  try {
+    const { exam, subject, section, chapters } = req.query;
+
+    if (!chapters) return res.json({});
+
+    const chapterList = chapters.split(",");
+    let questionIDs = [];
+
+    // Collect QIDs from Questions_Data
+    for (let chapter of chapterList) {
+      const snap = await db.ref(`Questions_Data/${exam}/${subject}/${section}/${chapter}`).once("value");
+      const obj = snap.val() || {};
+      questionIDs.push(...Object.keys(obj));
+    }
+
+    // Fetch full question data in parallel
+    let result = {};
+    await Promise.all(questionIDs.map(async (qid) => {
+      const snap = await db.ref(`Ques_Data/${qid}`).once("value");
+      if (snap.exists()) result[qid] = snap.val();
+    }));
+
+    res.json(result);
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+app.post("/update-question", async (req, res) => {
+    try {
+        const { qid, data } = req.body;
+
+        if (!qid || !data) return res.status(400).json({ success: false, error: "Missing qid or data" });
+
+        await db.ref(`Ques_Data/${qid}`).update(data);
+
+        console.log(`QID ${qid} updated successfully:`, data);
+        res.json({ success: true });
+
+    } catch (err) {
+        console.error("Error updating question:", err);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+app.post("/delete-question", async (req, res) => {
+    try {
+        const { qid } = req.body;
+
+        if (!qid) return res.status(400).json({ success: false, error: "Missing qid" });
+
+        await db.ref(`Ques_Data/${qid}`).remove();
+
+        console.log(`QID ${qid} deleted successfully`);
+        res.json({ success: true });
+
+    } catch (err) {
+        console.error("Error deleting question:", err);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+

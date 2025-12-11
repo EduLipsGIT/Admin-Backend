@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>EduLips Author</title>
+
+<style>
+    body {
+        margin: 0;
+        font-family: Inter, Segoe UI, sans-serif;
+        background: #f6f7f9;
+        color: #333;
+    }
+
+    .container {
+        display: flex;
+        height: 100vh;
+        transition: all 0.3s ease;
+    }
+
+    /* ------------ SIDEBAR ------------ */
+    .sidebar {
+        width: 260px;
+        background: #fff;
+        padding: 25px;
+        border-right: 1px solid #e5e7eb;
+        overflow-y: auto;
+        transition: width 0.3s ease;
+    }
+
+    .sidebar.hidden {
+        width: 0;
+        padding: 0;
+        opacity: 0;
+        overflow: hidden;
+    }
+
+    .sidebar h3 {
+        font-size: 15px;
+        margin-bottom: 10px;
+        font-weight: 600;
+    }
+
+    .filter-block {
+        margin-bottom: 28px;
+    }
+
+    select {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+        font-size: 14px;
+        height: 120px;
+        background: #fff;
+    }
+
+    .select-all {
+        background: none;
+        border: none;
+        font-size: 13px;
+        color: #2563eb;
+        cursor: pointer;
+        margin-bottom: 6px;
+    }
+
+    .apply-btn {
+        width: 100%;
+        background: #2563eb;
+        color: #fff;
+        padding: 10px;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 15px;
+    }
+
+    /* ------------ MAIN CONTENT ------------ */
+    .main {
+        flex: 1;
+        padding: 25px 35px;
+        overflow-y: auto;
+    }
+
+    /* Toggle Button */
+    .toggle-btn {
+        background: #2563eb;
+        color: #fff;
+        border: none;
+        padding: 10px 14px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 14px;
+        margin-bottom: 20px;
+    }
+
+    /* --------- STATS CARD --------- */
+    .stats-row {
+        display: flex;
+        gap: 20px;
+        margin-bottom: 25px;
+    }
+
+    .stat-card {
+        background: #fff;
+        padding: 18px 20px;
+        border-radius: 12px;
+        flex: 1;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+        font-size: 14px;
+        max-width: 220px;
+    }
+
+    .stat-title {
+        color: #6b7280;
+        margin-bottom: 6px;
+    }
+
+    .stat-value {
+        font-size: 22px;
+        font-weight: 700;
+    }
+
+    /* ------------ SEARCH BAR ------------ */
+    .top-toolbar {
+        margin-bottom: 15px;
+        display: flex;
+        align-items: center;
+        width: 100%;
+    }
+
+    .search-box {
+        flex: 1;
+    }
+
+    .search-box input {
+        width: 100%;
+        padding: 12px 14px;
+        border: 1px solid #d1d5db;
+        background: #fff;
+        border-radius: 10px;
+        font-size: 14px;
+    }
+
+    /* ------------ TABLE ------------ */
+    table {
+        width: 100%;
+        background: #fff;
+        border-collapse: collapse;
+        border-radius: 12px;
+        overflow: hidden;
+        font-size: 14px;
+    }
+
+    th {
+        background: #f9fafb;
+        text-align: left;
+        padding: 12px;
+        font-weight: 600;
+        border-bottom: 1px solid #e5e7eb;
+    }
+
+    td {
+        padding: 12px;
+        border-bottom: 1px solid #f3f4f6;
+        vertical-align: top;
+        color: #374151;
+    }
+
+    .edit-btn {
+        cursor: pointer;
+        color: #2563eb;
+        font-size: 14px;
+    }
+
+</style>
+</head>
+<!-- Loading Overlay -->
+<div id="loadingOverlay" style="
+    display:none;
+    position:fixed;
+    top:0;
+    left:0;
+    width:100%;
+    height:100%;
+    background: rgba(0,0,0,0.2);
+    z-index:9999;
+    justify-content:center;
+    align-items:center;
+">
+    <div style="
+        width:60px;
+        height:60px;
+        border:6px solid #f3f3f3;
+        border-top:6px solid #2563eb;
+        border-radius:50%;
+        animation: spin 1s linear infinite;
+    "></div>
+</div>
+
+<style>
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+</style>
+
+<body>
+
+<div class="container">
+
+    <!-- ============ SIDEBAR ============ -->
+    <div class="sidebar" id="sidebar">
+
+        <div class="filter-block">
+            <h3>Select Exams</h3>
+            <select id="examDropdown" multiple></select>
+        </div>
+
+        <div class="filter-block">
+            <h3>Select Subjects</h3>
+            <select id="subjectDropdown" multiple></select>
+        </div>
+
+        <div class="filter-block">
+            <h3>Select Sections</h3>
+            <button class="select-all" onclick="selectAll('sectionDropdown')">Select All</button>
+            <select id="sectionDropdown" multiple></select>
+        </div>
+
+        <div class="filter-block">
+            <h3>Select Chapters</h3>
+            <button class="select-all" onclick="selectAll('chapterDropdown')">Select All</button>
+            <select id="chapterDropdown" multiple></select>
+        </div>
+
+        <button class="apply-btn">Apply Filters</button>
+    </div>
+
+    <!-- ============ MAIN PANEL ============ -->
+<div class="main">
+
+    <!-- Sidebar Toggle + Total Questions -->
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:20px;">
+        <button class="toggle-btn" onclick="toggleSidebar()">☰ Hide / Show</button>
+        <div class="stat-card" style="max-width:150px; text-align:center;">
+            <div class="stat-title">TOTAL QUESTIONS</div>
+            <div id="totalQuestions" class="stat-value">0</div>
+        </div>
+    </div>
+
+    <!-- SEARCH -->
+    <div class="top-toolbar">
+        <div class="search-box">
+            <input id="searchInput" type="text" placeholder="Search questions by keyword or ID…">
+        </div>
+    </div>
+
+    <!-- TABLE -->
+    <table id="excelTable"></table>
+</div>
+
+</div>
+
+
+<script>
+       function checkLogin() {
+        const isLoggedIn = localStorage.getItem("isLoggedIn");
+        if (!isLoggedIn) {
+          window.location.href = "login.html";
+        }
+      }
+window.onload = checkLogin;
+const API = "https://author.edulips.com";
+
+/* ----------------- Loader ----------------- */
+function showLoader() {
+    document.getElementById("loadingOverlay").style.display = "flex";
+}
+function hideLoader() {
+    document.getElementById("loadingOverlay").style.display = "none";
+}
+
+/* ----------------- Sidebar ----------------- */
+function toggleSidebar() {
+    document.getElementById("sidebar").classList.toggle("hidden");
+}
+
+function getSelectedValues(selectEl) {
+    return Array.from(selectEl.selectedOptions).map(o => o.value);
+}
+
+function selectAll(id) {
+    const el = document.getElementById(id);
+    for (let opt of el.options) opt.selected = true;
+    el.dispatchEvent(new Event('change'));
+}
+
+/* ----------------- Load Exams ----------------- */
+async function loadExams() {
+    try {
+        showLoader();
+        const exams = await fetch(`${API}/exams`).then(r => r.json());
+        document.getElementById("examDropdown").innerHTML = exams
+            .map(e => `<option value="${e}">${e}</option>`).join("");
+    } finally {
+        hideLoader();
+    }
+}
+loadExams();
+
+/* ----------------- Subjects ----------------- */
+document.getElementById("examDropdown").addEventListener("change", async function () {
+    showLoader();
+    try {
+        const exams = getSelectedValues(this);
+        const subjectsEl = document.getElementById("subjectDropdown");
+        subjectsEl.innerHTML = "";
+
+        let all = new Set();
+        for (let e of exams) {
+            const subs = await fetch(`${API}/subjects?exam=${e}`).then(r => r.json());
+            subs.forEach(s => all.add(`${e}|${s}`));
+        }
+
+        subjectsEl.innerHTML = [...all].map(s => `<option value="${s}">${s.split("|")[1]}</option>`).join("");
+    } finally {
+        hideLoader();
+    }
+});
+
+/* ----------------- Sections ----------------- */
+document.getElementById("subjectDropdown").addEventListener("change", async function () {
+    showLoader();
+    try {
+        const selected = getSelectedValues(this);
+        const secEl = document.getElementById("sectionDropdown");
+        secEl.innerHTML = "";
+
+        let all = new Set();
+        for (let v of selected) {
+            const [exam, subject] = v.split("|");
+            const secs = await fetch(`${API}/sections?exam=${exam}&subject=${subject}`).then(r => r.json());
+            secs.forEach(s => all.add(`${exam}|${subject}|${s}`));
+        }
+
+        secEl.innerHTML = [...all].map(v => `<option value="${v}">${v.split("|")[2]}</option>`).join("");
+    } finally {
+        hideLoader();
+    }
+});
+
+/* ----------------- Chapters ----------------- */
+document.getElementById("sectionDropdown").addEventListener("change", async function () {
+    showLoader();
+    try {
+        const selected = getSelectedValues(this);
+        const chEl = document.getElementById("chapterDropdown");
+        chEl.innerHTML = "";
+
+        let all = new Set();
+        for (let v of selected) {
+            const [exam, subject, section] = v.split("|");
+            const chs = await fetch(`${API}/chapters?exam=${exam}&subject=${subject}&section=${section}`).then(r => r.json());
+            chs.forEach(c => all.add(`${exam}|${subject}|${section}|${c}`));
+        }
+
+        chEl.innerHTML = [...all].map(v => `<option value="${v}">${v.split("|")[3]}</option>`).join("");
+    } finally {
+        hideLoader();
+    }
+});
+
+/* ----------------- Load Questions ----------------- */
+document.getElementById("chapterDropdown").addEventListener("change", async function () {
+    showLoader();
+    try {
+        const selected = getSelectedValues(this);
+        if (!selected.length) return renderTable({});
+
+        const [exam, subject, section] = selected[0].split("|");
+        const chapters = selected.map(c => c.split("|")[3]).join(",");
+
+        const questions = await fetch(`${API}/questions?exam=${exam}&subject=${subject}&section=${section}&chapters=${chapters}`)
+            .then(r => r.json());
+
+        renderTable(questions);
+        document.getElementById("totalQuestions").innerText = Object.keys(questions).length;
+    } finally {
+        hideLoader();
+    }
+});
+
+/* ----------------- Table Renderer ----------------- */
+function renderTable(data) {
+    const table = document.getElementById("excelTable");
+    table.innerHTML = "";
+
+    const keys = Object.keys(data);
+    if (!keys.length) {
+        table.innerHTML = "<tr><td>No Questions Found</td></tr>";
+        return;
+    }
+
+    const cols = ["QID", ...Object.keys(data[keys[0]]), "Actions"];
+    table.innerHTML = `<tr>${cols.map(c => `<th>${c}</th>`).join("")}</tr>`;
+
+    keys.forEach(qid => {
+        const row = `<tr>
+            <td>${qid}</td>
+            ${cols.slice(1, -1).map(col =>
+                `<td contenteditable="true" data-col="${col}">${data[qid][col] || ""}</td>`
+            ).join("")}
+            <td>
+                <span class="edit-btn" onclick="updateQuestion('${qid}', this)">Update</span><br>
+                <span class="edit-btn" style="color:red; margin-top:4px;" onclick="deleteQuestion('${qid}', this)">Delete</span>
+            </td>
+        </tr>`;
+        table.innerHTML += row;
+    });
+}
+
+/* ----------------- Search ----------------- */
+document.getElementById("searchInput").addEventListener("keyup", function () {
+    const q = this.value.toLowerCase();
+    const rows = document.querySelectorAll("#excelTable tr");
+
+    rows.forEach((row, i) => {
+        if (i === 0) return;
+        row.style.display = row.innerText.toLowerCase().includes(q) ? "" : "none";
+    });
+});
+
+/* ----------------- Update Question ----------------- */
+async function updateQuestion(qid, btn) {
+    showLoader();
+    try {
+        const row = btn.closest("tr");
+        const cells = row.querySelectorAll("td[contenteditable]");
+
+        let updated = {};
+        cells.forEach(c => updated[c.dataset.col] = c.innerText.trim());
+
+        const r = await fetch(`${API}/update-question`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ qid, data: updated })
+        }).then(r => r.json());
+
+        btn.textContent = r.success ? "Updated ✓" : "Error ✗";
+        setTimeout(() => btn.textContent = "Update", 1200);
+    } finally {
+        hideLoader();
+    }
+}
+
+/* ----------------- Delete Question ----------------- */
+async function deleteQuestion(qid, btn) {
+    if (!confirm("Are you sure you want to delete this question?")) return;
+    showLoader();
+    try {
+        const r = await fetch(`${API}/delete-question`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ qid })
+        }).then(r => r.json());
+
+        if (r.success) {
+            btn.closest("tr").remove();
+            const totalEl = document.getElementById("totalQuestions");
+            totalEl.innerText = parseInt(totalEl.innerText) - 1;
+        } else {
+            alert("Failed to delete question.");
+        }
+    } finally {
+        hideLoader();
+    }
+}
+</script>
+
+</body>
+</html>
