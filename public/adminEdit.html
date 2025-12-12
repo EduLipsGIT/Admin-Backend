@@ -111,12 +111,13 @@
     }
 
     /* ------------ SEARCH BAR ------------ */
-    .top-toolbar {
-        margin-bottom: 15px;
-        display: flex;
-        align-items: center;
-        width: 100%;
-    }
+   .top-toolbar {
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    gap: 20px; 
+    width: 100%;
+}
 
     .search-box {
         flex: 1;
@@ -164,6 +165,7 @@
 
 </style>
 </head>
+
 <!-- Loading Overlay -->
 <div id="loadingOverlay" style="
     display:none;
@@ -236,11 +238,18 @@
         </div>
     </div>
 
-    <!-- SEARCH -->
+    <!-- SEARCH + DOWNLOAD BUTTON -->
     <div class="top-toolbar">
         <div class="search-box">
             <input id="searchInput" type="text" placeholder="Search questions by keyword or ID…">
         </div>
+
+        <!-- DOWNLOAD BUTTON -->
+        <button onclick="downloadExcel()" 
+            style="margin-left:15px; padding:10px 14px; background:#059669; color:#fff;
+                   border:none; border-radius:8px; cursor:pointer;">
+            ⬇ Download Excel
+        </button>
     </div>
 
     <!-- TABLE -->
@@ -249,15 +258,19 @@
 
 </div>
 
+<!-- SheetJS Library -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 
 <script>
-       function checkLogin() {
-        const isLoggedIn = localStorage.getItem("isLoggedIn");
-        if (!isLoggedIn) {
-          window.location.href = "login.html";
-        }
-      }
+/* ----------------- LOGIN CHECK ----------------- */
+function checkLogin() {
+    const isLoggedIn = localStorage.getItem("isLoggedIn");
+    if (!isLoggedIn) {
+      window.location.href = "login.html";
+    }
+}
 window.onload = checkLogin;
+
 const API = "https://author.edulips.com";
 
 /* ----------------- Loader ----------------- */
@@ -462,6 +475,22 @@ async function deleteQuestion(qid, btn) {
     } finally {
         hideLoader();
     }
+}
+
+/* ----------------- Download Excel ----------------- */
+function downloadExcel() {
+    const table = document.getElementById("excelTable");
+
+    if (!table || table.rows.length <= 1) {
+        alert("No data available to download.");
+        return;
+    }
+
+    const ws = XLSX.utils.table_to_sheet(table);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Questions");
+
+    XLSX.writeFile(wb, "questions.xlsx");
 }
 </script>
 
