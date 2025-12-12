@@ -224,6 +224,14 @@
             <button class="select-all" onclick="selectAll('chapterDropdown')">Select All</button>
             <select id="chapterDropdown" multiple></select>
         </div>
+
+        <div class="filter-block">
+    <h3>Select Level</h3>
+    <button class="select-all" onclick="selectAll('levelDropdown')">Select All</button>
+    <select id="levelDropdown" multiple></select>
+</div>
+
+
     </div>
 
     <!-- ============ MAIN PANEL ============ -->
@@ -371,6 +379,9 @@ document.getElementById("sectionDropdown").addEventListener("change", async func
     }
 });
 
+/* ----------------- GLOBAL QUESTIONS STORE (New) ----------------- */
+let ALL_QUESTIONS = {}; // ⭐ NEW
+
 /* ----------------- Load Questions ----------------- */
 document.getElementById("chapterDropdown").addEventListener("change", async function () {
     showLoader();
@@ -384,12 +395,54 @@ document.getElementById("chapterDropdown").addEventListener("change", async func
         const questions = await fetch(`${API}/questions?exam=${exam}&subject=${subject}&section=${section}&chapters=${chapters}`)
             .then(r => r.json());
 
-        renderTable(questions);
+        ALL_QUESTIONS = questions;      // ⭐ SAVE FULL LIST
+        loadLevels(questions);          // ⭐ AUTO-LOAD LEVELS
+        applyFilters();                 // ⭐ APPLY LEVEL FILTER
+
         document.getElementById("totalQuestions").innerText = Object.keys(questions).length;
     } finally {
         hideLoader();
     }
 });
+
+/* ----------------- Auto-Load Levels (New) ----------------- */
+function loadLevels(data) {
+    const levelEl = document.getElementById("levelDropdown");
+    levelEl.innerHTML = "";
+
+    const levels = new Set();
+
+    Object.values(data).forEach(q => {
+        if (q.level) levels.add(q.level.trim());
+    });
+
+    levelEl.innerHTML = [...levels]
+        .map(l => `<option value="${l}">${l}</option>`)
+        .join("");
+}
+
+/* ----------------- LEVEL FILTER (New) ----------------- */
+document.getElementById("levelDropdown").addEventListener("change", function () {
+    applyFilters();
+});
+
+/* ----------------- APPLY ALL CLIENT-SIDE FILTERS (New) ----------------- */
+function applyFilters() {
+    const selectedLevels = getSelectedValues(document.getElementById("levelDropdown"));
+
+    let filtered = {};
+
+    Object.keys(ALL_QUESTIONS).forEach(id => {
+        const q = ALL_QUESTIONS[id];
+
+        // LEVEL filter
+        if (selectedLevels.length && !selectedLevels.includes(q.level)) return;
+
+        filtered[id] = q;
+    });
+
+    renderTable(filtered);
+}
 
 /* ----------------- Table Renderer ----------------- */
 function renderTable(data) {
@@ -420,24 +473,22 @@ function renderTable(data) {
         "desc_quiz_hin",
         "Exam/Category",
         "Subject",
-        "Section"
+        "Section",
+        "level" // ⭐ Include Level Column in Table
     ];
 
     // ---------- FIND EXTRA COLUMNS AUTOMATICALLY ----------
-    const sample = data[keys[0]]; // first row
+    const sample = data[keys[0]]; 
     const allCols = Object.keys(sample);
 
     const extraCols = allCols.filter(c => !FIXED_COLUMNS.includes(c));
 
-    // ---------- FINAL COLUMN ORDER ----------
     const FINAL_COLUMNS = [...FIXED_COLUMNS, ...extraCols];
 
     const cols = ["QID", ...FINAL_COLUMNS, "Actions"];
 
-    // ---------- HEADER ----------
     table.innerHTML = `<tr>${cols.map(c => `<th>${c}</th>`).join("")}</tr>`;
 
-    // ---------- ROWS ----------
     keys.forEach(qid => {
         const row = `<tr>
             <td>${qid}</td>
@@ -454,7 +505,6 @@ function renderTable(data) {
         table.innerHTML += row;
     });
 }
-
 
 /* ----------------- Search ----------------- */
 document.getElementById("searchInput").addEventListener("keyup", function () {
@@ -529,6 +579,7 @@ function downloadExcel() {
     XLSX.writeFile(wb, "questions.xlsx");
 }
 </script>
+
 
 </body>
 </html>
