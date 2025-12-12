@@ -402,23 +402,59 @@ function renderTable(data) {
         return;
     }
 
-    const cols = ["QID", ...Object.keys(data[keys[0]]), "Actions"];
+    // ---------- FIXED ORDERED COLUMNS ----------
+    const FIXED_COLUMNS = [
+        "ques",
+        "opt1",
+        "opt2",
+        "opt3",
+        "opt4",
+        "CorrectAns",
+        "desc_quiz",
+        "ques_hin",
+        "opt1_hin",
+        "opt2_hin",
+        "opt3_hin",
+        "opt4_hin",
+        "CorrectAns_hin",
+        "desc_quiz_hin",
+        "Exam/Category",
+        "Subject",
+        "Section"
+    ];
+
+    // ---------- FIND EXTRA COLUMNS AUTOMATICALLY ----------
+    const sample = data[keys[0]]; // first row
+    const allCols = Object.keys(sample);
+
+    const extraCols = allCols.filter(c => !FIXED_COLUMNS.includes(c));
+
+    // ---------- FINAL COLUMN ORDER ----------
+    const FINAL_COLUMNS = [...FIXED_COLUMNS, ...extraCols];
+
+    const cols = ["QID", ...FINAL_COLUMNS, "Actions"];
+
+    // ---------- HEADER ----------
     table.innerHTML = `<tr>${cols.map(c => `<th>${c}</th>`).join("")}</tr>`;
 
+    // ---------- ROWS ----------
     keys.forEach(qid => {
         const row = `<tr>
             <td>${qid}</td>
-            ${cols.slice(1, -1).map(col =>
-                `<td contenteditable="true" data-col="${col}">${data[qid][col] || ""}</td>`
+            ${FINAL_COLUMNS.map(col =>
+                `<td contenteditable="true" data-col="${col}">
+                    ${data[qid][col] || ""}
+                </td>`
             ).join("")}
             <td>
                 <span class="edit-btn" onclick="updateQuestion('${qid}', this)">Update</span><br>
-                <span class="edit-btn" style="color:red; margin-top:4px;" onclick="deleteQuestion('${qid}', this)">Delete</span>
+                <span class="edit-btn" style="color:red;" onclick="deleteQuestion('${qid}', this)">Delete</span>
             </td>
         </tr>`;
         table.innerHTML += row;
     });
 }
+
 
 /* ----------------- Search ----------------- */
 document.getElementById("searchInput").addEventListener("keyup", function () {
