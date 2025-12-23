@@ -1372,23 +1372,46 @@ app.post("/report-question", async (req, res) => {
       });
     }
 
-    const reportRef = db.ref("ReportedItems_Study").push();
+    // Use qid as the key
+    const reportRef = db.ref(`ReportedItems_Study/${qid}`);
 
-    const reportData = {
-      qid,
-      message,
-      reported_by: username,
-      role, // admin | super_admin
-      status: "OPEN",
-      created_at: Date.now()
-    };
+    // Check if a report already exists for this qid
+    const snapshot = await reportRef.once("value");
+    let reportData;
+
+    if (snapshot.exists()) {
+      // If exists, append new report to "reports" array
+      const existing = snapshot.val();
+      const reportsArray = existing.reports || [];
+      reportsArray.push({
+        message,
+        reported_by: username,
+        role,
+        created_at: Date.now()
+      });
+
+      reportData = { ...existing, reports: reportsArray, status: "OPEN" };
+    } else {
+      // First report for this question
+      reportData = {
+        reports: [
+          {
+            message,
+            reported_by: username,
+            role,
+            created_at: Date.now()
+          }
+        ],
+        status: "OPEN"
+      };
+    }
 
     await reportRef.set(reportData);
 
     return res.status(200).json({
       success: true,
-      report_id: reportRef.key,
-      message: "Report submitted successfully"
+      message: "Report submitted successfully",
+      qid
     });
 
   } catch (error) {
@@ -1399,3 +1422,47 @@ app.post("/report-question", async (req, res) => {
     });
   }
 });
+
+app.get("/reported-questions", async (req, res) => {
+    try {
+        // 1️⃣ Load reported items
+        const reportSnap = await db.ref("ReportedItems_Study").once("value");
+        const reports = reportSnap.val();
+
+        if (!reports) {
+            return res.json({ success: true, data: {} });
+        }
+
+        // 2️⃣ Map reported question IDs and include reason
+        const questionIDs = Object.keys(reports);
+        let result = {};
+
+        await Promise.all(
+            questionIDs.map(async (qid) => {
+                const snap = await db.ref(`Ques_Data/${qid}`).once("value");
+                if (snap.exists()) {
+                    result[qid] = {
+                        ...snap.val(),
+                        reported_reason: reports[qid].message,
+                        reported_by: reports[qid].reported_by,
+                    };
+                }
+            })
+        );
+
+        // 3️⃣ Send response
+        res.json({
+            success: true,
+            count: Object.keys(result).length,
+            data: result
+        });
+
+    } catch (error) {
+        console.error("Reported questions API error:", error);
+        res.status(500).json({
+            success: false,
+            message: "Server error while loading reported questions"
+        });
+    }
+});
+

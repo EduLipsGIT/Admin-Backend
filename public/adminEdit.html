@@ -111,6 +111,7 @@
     }
 
     /* ------------ SEARCH BAR ------------ */
+    
    .top-toolbar {
     margin-bottom: 15px;
     display: flex;
@@ -244,7 +245,17 @@
             <div class="stat-title">TOTAL QUESTIONS</div>
             <div id="totalQuestions" class="stat-value">0</div>
         </div>
+        <button
+    id="loadReportedBtn"
+    style="display:none; padding:10px 14px; background:#dc2626; color:#fff;
+           border:none; border-radius:8px; cursor:pointer;"
+    onclick="loadReportedQuestions()">
+    🚩 Load Reported Questions
+</button>
+
     </div>
+    
+
 
     <!-- SEARCH + DOWNLOAD BUTTON -->
     <div class="top-toolbar">
@@ -302,6 +313,10 @@ async function checkLogin() {
         }
 
         USER_ROLE = data.role; // "super_admin" | "admin"
+
+        if (USER_ROLE === "super_admin") {
+    document.getElementById("loadReportedBtn").style.display = "inline-block";
+}
 
     } catch (error) {
         console.error("Role resolve failed:", error);
@@ -700,6 +715,37 @@ async function reportQuestion(qid, btn) {
     } catch (error) {
         console.error("Network error while reporting:", error);
         alert("Network error. Please try again.");
+    } finally {
+        hideLoader();
+    }
+}
+async function loadReportedQuestions() {
+    if (USER_ROLE !== "super_admin") return;
+
+    toggleSidebar();
+    showLoader();
+
+    try {
+        const res = await fetch(`${API}/reported-questions`);
+        const json = await res.json();
+
+        if (!json.success) {
+            alert("Failed to load reported questions");
+            return;
+        }
+
+        // Reset global store
+        ALL_QUESTIONS = json.data || {};
+
+        // Clear filters & stats
+        document.getElementById("totalQuestions").innerText =
+            Object.keys(ALL_QUESTIONS).length;
+
+        renderTable(ALL_QUESTIONS);
+
+    } catch (error) {
+        console.error("Load reported questions failed:", error);
+        alert("Error loading reported questions");
     } finally {
         hideLoader();
     }
