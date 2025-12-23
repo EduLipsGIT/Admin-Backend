@@ -270,16 +270,45 @@
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 
 <script>
+ let USER_ROLE = "admin"; 
+// const API = "http://localhost:3000";
+const API = "https://author.edulips.com";
+
 /* ----------------- LOGIN CHECK ----------------- */
-function checkLogin() {
+async function checkLogin() {
     const isLoggedIn = localStorage.getItem("isLoggedIn");
-    if (!isLoggedIn) {
-      window.location.href = "login.html";
+    const username = localStorage.getItem("username");
+
+    if (!isLoggedIn || !username) {
+        window.location.href = "login.html";
+        return;
+    }
+
+    try {
+        const res = await fetch(`${API}/auth/resolve-role`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ username })
+        });
+
+        const data = await res.json();
+
+        if (!data.success) {
+            alert("Access denied");
+            window.location.href = "login.html";
+            return;
+        }
+
+        USER_ROLE = data.role; // "super_admin" | "admin"
+
+    } catch (error) {
+        console.error("Role resolve failed:", error);
+        USER_ROLE = "admin"; // safe fallback
     }
 }
 window.onload = checkLogin;
-
-const API = "https://author.edulips.com";
 
 /* ----------------- Loader ----------------- */
 function showLoader() {
@@ -446,7 +475,7 @@ function applyFilters() {
 
 /* ----------------- Table Renderer ----------------- */
 function renderTable(data) {
-    const table = document.getElementById("excelTable");
+      const table = document.getElementById("excelTable");
     table.innerHTML = "";
 
     const keys = Object.keys(data);
@@ -471,37 +500,69 @@ function renderTable(data) {
         "opt4_hin",
         "CorrectAns_hin",
         "desc_quiz_hin",
-        "Exam/Category",
-        "Subject",
-        "Section",
-        "level" // ⭐ Include Level Column in Table
+        // ❌ REMOVED
+        // "Exam/Category",
+        // "Subject",
+        // "Section",
+        "level"
     ];
 
     // ---------- FIND EXTRA COLUMNS AUTOMATICALLY ----------
-    const sample = data[keys[0]]; 
+    const sample = data[keys[0]];
     const allCols = Object.keys(sample);
 
-    const extraCols = allCols.filter(c => !FIXED_COLUMNS.includes(c));
+    // ⛔ Also prevent them from coming back as extra columns
+    const BLOCKED_COLS = ["Exam/Category", "Subject", "Section" , "Chapter" , "Exam_Category" , "Study"];
+
+    const extraCols = allCols.filter(
+        c => !FIXED_COLUMNS.includes(c) && !BLOCKED_COLS.includes(c)
+    );
 
     const FINAL_COLUMNS = [...FIXED_COLUMNS, ...extraCols];
 
-    const cols = ["QID", ...FINAL_COLUMNS, "Actions"];
+    const cols = [
+        "QID",
+        ...FINAL_COLUMNS,
+        USER_ROLE === "super_admin" ? "Actions" : "Feedback"
+    ];
 
-    table.innerHTML = `<tr>${cols.map(c => `<th>${c}</th>`).join("")}</tr>`;
+    // ---------- HEADER ----------
+    table.innerHTML = `
+        <tr>
+            ${cols.map(c => `<th>${c}</th>`).join("")}
+        </tr>
+    `;
 
+    // ---------- ROWS ----------
     keys.forEach(qid => {
-        const row = `<tr>
-            <td>${qid}</td>
-            ${FINAL_COLUMNS.map(col =>
-                `<td contenteditable="true" data-col="${col}">
-                    ${data[qid][col] || ""}
-                </td>`
-            ).join("")}
-            <td>
-                <span class="edit-btn" onclick="updateQuestion('${qid}', this)">Update</span><br>
-                <span class="edit-btn" style="color:red;" onclick="deleteQuestion('${qid}', this)">Delete</span>
-            </td>
-        </tr>`;
+
+        const actionCell =
+            USER_ROLE === "super_admin"
+                ? `
+                    <span class="edit-btn" onclick="updateQuestion('${qid}', this)">Update</span><br>
+                    <span class="edit-btn" style="color:red;" onclick="deleteQuestion('${qid}', this)">Delete</span>
+                  `
+                : `
+                    <textarea placeholder="Suggestion / Issue"
+                        style="width:100%; min-height:50px; font-size:13px;"></textarea>
+                    <br>
+                    <span class="edit-btn" onclick="reportQuestion('${qid}', this)">🚩 Report</span>
+                  `;
+
+        const row = `
+            <tr>
+                <td>${qid}</td>
+
+                ${FINAL_COLUMNS.map(col => `
+                    <td contenteditable="${USER_ROLE === 'super_admin'}" data-col="${col}">
+                        ${data[qid][col] || ""}
+                    </td>
+                `).join("")}
+
+                <td>${actionCell}</td>
+            </tr>
+        `;
+
         table.innerHTML += row;
     });
 }
@@ -578,6 +639,73 @@ function downloadExcel() {
 
     XLSX.writeFile(wb, "questions.xlsx");
 }
+
+async function reportQuestion(qid, btn) {
+    const row = btn.closest("tr");
+    const textarea = row.querySelector("textarea");
+    const message = textarea.value.trim();
+    const username = localStorage.getItem("username");
+
+    if (!message) {
+        alert("Please enter a suggestion or issue.");
+        return;
+    }
+
+    if (!username) {
+        alert("Session expired. Please login again.");
+        window.location.href = "login.html";
+        return;
+    }
+
+    showLoader();
+
+    try {
+        const response = await fetch(`${API}/report-question`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                qid,
+                message,
+                username
+            })
+        });
+
+        if (!response.ok) {
+            console.error(
+                "Report API failed:",
+                response.status,
+                response.statusText
+            );
+            alert("Failed to submit report.");
+            return;
+        }
+
+        const res = await response.json();
+
+        if (res.success) {
+            textarea.value = "";
+            btn.textContent = "Reported ✓";
+            btn.style.pointerEvents = "none";
+            setTimeout(() => {
+                btn.textContent = "🚩 Report";
+                btn.style.pointerEvents = "auto";
+            }, 1500);
+        } else {
+            console.error("Report rejected:", res);
+            alert(res.message || "Report failed.");
+        }
+
+    } catch (error) {
+        console.error("Network error while reporting:", error);
+        alert("Network error. Please try again.");
+    } finally {
+        hideLoader();
+    }
+}
+
+
 </script>
 
 

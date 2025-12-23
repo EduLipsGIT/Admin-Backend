@@ -1059,6 +1059,73 @@ app.post("/check_user", async (req, res) => {
   }
 });
 
+// NEW ROLE RESOLVER API (FOR NEW WORK)
+app.post("/auth/resolve-role", async (req, res) => {
+  const { username } = req.body;
+
+  if (!username) {
+    return res.status(400).json({
+      success: false,
+      message: "Username is required"
+    });
+  }
+
+  try {
+    const adminRef = db.ref("Admin_Data");
+    const snapshot = await adminRef.once("value");
+    const adminData = snapshot.val();
+
+    if (!adminData) {
+      return res.status(403).json({
+        success: false,
+        role: null,
+        message: "No admin data found"
+      });
+    }
+
+    for (const key in adminData) {
+      const admin = adminData[key];
+
+      if (admin.ADMIN_NAME === username) {
+        if (admin.ADMIN_STATUS === "SUPER_ALLOWED") {
+          return res.status(200).json({
+            success: true,
+            role: "super_admin"
+          });
+        }
+
+        if (admin.ADMIN_STATUS === "ALLOWED") {
+          return res.status(200).json({
+            success: true,
+            role: "admin"
+          });
+        }
+
+        return res.status(403).json({
+          success: false,
+          role: null,
+          message: "User exists but not allowed"
+        });
+      }
+    }
+
+    return res.status(403).json({
+      success: false,
+      role: null,
+      message: "User not found"
+    });
+
+  } catch (error) {
+    console.error("resolve-role error:", error);
+    return res.status(500).json({
+      success: false,
+      role: null,
+      message: "Server error"
+    });
+  }
+});
+
+
 //// ROUTE FOR HTTP NOTIFICATION REQUESTS////
 app.post("/notifyUser", async (req, res) => {
   const { title, fixed_desc, message_fixed, notificationType, childCode } =
@@ -1283,5 +1350,52 @@ app.post("/delete-question", async (req, res) => {
         res.status(500).json({ success: false, error: err.message });
     }
 });
+// CREATE QUESTION REPORT (NEW WORK)
+app.post("/report-question", async (req, res) => {
+  const { qid, message, username } = req.body;
 
+  if (!qid || !message || !username) {
+    return res.status(400).json({
+      success: false,
+      message: "qid, message and username are required"
+    });
+  }
 
+  try {
+    // 🔍 Resolve role (reuse your existing helper)
+    const role = await checkUserCondition(username);
+
+    if (!role) {
+      return res.status(403).json({
+        success: false,
+        message: "User not allowed to report"
+      });
+    }
+
+    const reportRef = db.ref("ReportedItems_Study").push();
+
+    const reportData = {
+      qid,
+      message,
+      reported_by: username,
+      role, // admin | super_admin
+      status: "OPEN",
+      created_at: Date.now()
+    };
+
+    await reportRef.set(reportData);
+
+    return res.status(200).json({
+      success: true,
+      report_id: reportRef.key,
+      message: "Report submitted successfully"
+    });
+
+  } catch (error) {
+    console.error("Report create error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error"
+    });
+  }
+});
