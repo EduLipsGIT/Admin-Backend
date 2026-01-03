@@ -1350,7 +1350,7 @@ app.post("/delete-question", async (req, res) => {
         res.status(500).json({ success: false, error: err.message });
     }
 });
-// CREATE QUESTION REPORT (NEW WORK)
+// CREATE QUESTION REPORT (FINAL & SAFE)
 app.post("/report-question", async (req, res) => {
   const { qid, message, username } = req.body;
 
@@ -1380,46 +1380,23 @@ app.post("/report-question", async (req, res) => {
     };
 
     /* ===============================
-       1️⃣ ReportedItems_Study
+       1️⃣ CENTRAL REPORT COLLECTION
+       ReportedItems_Study/{qid}
     =============================== */
-    const reportRef = db.ref(`ReportedItems_Study/${qid}`);
-    const snapshot = await reportRef.once("value");
 
-    let reportData;
+    // Push report safely (no overwrite)
+    await db
+      .ref(`ReportedItems_Study/${qid}/reports`)
+      .push(reportObj);
 
-    if (snapshot.exists()) {
-      const existing = snapshot.val();
-      const reportsArray = existing.reports || [];
-      reportsArray.push(reportObj);
-
-      reportData = {
-        ...existing,
-        reports: reportsArray,
-        status: "OPEN"
-      };
-    } else {
-      reportData = {
-        reports: [reportObj],
-        status: "OPEN"
-      };
-    }
-
-    await reportRef.set(reportData);
-
-    /* ===============================
-       2️⃣ ALSO add reason in Ques_Data
-    =============================== */
-    const quesReportRef = db.ref(`Ques_Data/${qid}`);
-    const quesSnap = await quesReportRef.once("value");
-
-    let quesReports = [];
-
-    if (quesSnap.exists()) {
-      quesReports = quesSnap.val();
-    }
-
-    quesReports.push(reportObj);
-    await quesReportRef.set(quesReports);
+    // Always keep status OPEN
+    await db
+      .ref(`ReportedItems_Study/${qid}/status`)
+      .set("OPEN");
+      
+    await db
+      .ref(`Ques_Data/${qid}/report_reason`)
+      .push(reportObj);
 
     return res.status(200).json({
       success: true,
@@ -1435,6 +1412,7 @@ app.post("/report-question", async (req, res) => {
     });
   }
 });
+
 
 
 app.get("/reported-questions", async (req, res) => {
