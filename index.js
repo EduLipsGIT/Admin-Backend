@@ -1350,7 +1350,7 @@ app.post("/delete-question", async (req, res) => {
         res.status(500).json({ success: false, error: err.message });
     }
 });
-// CREATE QUESTION REPORT (FINAL & SAFE)
+// CREATE QUESTION REPORT (STRING REASON)
 app.post("/report-question", async (req, res) => {
   const { qid, message, username } = req.body;
 
@@ -1380,23 +1380,23 @@ app.post("/report-question", async (req, res) => {
     };
 
     /* ===============================
-       1️⃣ CENTRAL REPORT COLLECTION
-       ReportedItems_Study/{qid}
+       1️⃣ CENTRAL REPORT STORAGE
     =============================== */
-
-    // Push report safely (no overwrite)
     await db
       .ref(`ReportedItems_Study/${qid}/reports`)
       .push(reportObj);
 
-    // Always keep status OPEN
     await db
       .ref(`ReportedItems_Study/${qid}/status`)
       .set("OPEN");
-      
+
+    /* ===============================
+       2️⃣ STORE STRING REASON IN QUESTION
+       (NO OVERWRITE)
+    =============================== */
     await db
-      .ref(`Ques_Data/${qid}/report_reason`)
-      .push(reportObj);
+      .ref(`Ques_Data/${qid}/reason`)
+      .set(message); // ✅ string only
 
     return res.status(200).json({
       success: true,
