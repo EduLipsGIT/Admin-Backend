@@ -1362,7 +1362,7 @@ app.post("/report-question", async (req, res) => {
   }
 
   try {
-    // 🔍 Resolve role (reuse your existing helper)
+    // 🔍 Resolve role
     const role = await checkUserCondition(username);
 
     if (!role) {
@@ -1372,41 +1372,54 @@ app.post("/report-question", async (req, res) => {
       });
     }
 
-    // Use qid as the key
-    const reportRef = db.ref(`ReportedItems_Study/${qid}`);
+    const reportObj = {
+      message,
+      reported_by: username,
+      role,
+      created_at: Date.now()
+    };
 
-    // Check if a report already exists for this qid
+    /* ===============================
+       1️⃣ ReportedItems_Study
+    =============================== */
+    const reportRef = db.ref(`ReportedItems_Study/${qid}`);
     const snapshot = await reportRef.once("value");
+
     let reportData;
 
     if (snapshot.exists()) {
-      // If exists, append new report to "reports" array
       const existing = snapshot.val();
       const reportsArray = existing.reports || [];
-      reportsArray.push({
-        message,
-        reported_by: username,
-        role,
-        created_at: Date.now()
-      });
+      reportsArray.push(reportObj);
 
-      reportData = { ...existing, reports: reportsArray, status: "OPEN" };
-    } else {
-      // First report for this question
       reportData = {
-        reports: [
-          {
-            message,
-            reported_by: username,
-            role,
-            created_at: Date.now()
-          }
-        ],
+        ...existing,
+        reports: reportsArray,
+        status: "OPEN"
+      };
+    } else {
+      reportData = {
+        reports: [reportObj],
         status: "OPEN"
       };
     }
 
     await reportRef.set(reportData);
+
+    /* ===============================
+       2️⃣ ALSO add reason in Ques_Data
+    =============================== */
+    const quesReportRef = db.ref(`Ques_Data/${qid}`);
+    const quesSnap = await quesReportRef.once("value");
+
+    let quesReports = [];
+
+    if (quesSnap.exists()) {
+      quesReports = quesSnap.val();
+    }
+
+    quesReports.push(reportObj);
+    await quesReportRef.set(quesReports);
 
     return res.status(200).json({
       success: true,
@@ -1422,6 +1435,7 @@ app.post("/report-question", async (req, res) => {
     });
   }
 });
+
 
 app.get("/reported-questions", async (req, res) => {
     try {
