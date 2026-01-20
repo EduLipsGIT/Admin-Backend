@@ -2,17 +2,12 @@ require("dotenv").config();
 const express = require("express");
 const bodyParser = require("body-parser");
 const admin = require("firebase-admin");
-const { IgApiClient } = require("instagram-private-api");
-const { get } = require("request-promise");
-const fs = require("fs");
 const path = require("path");
 const cors = require("cors");
 const axios = require("axios");
 const moment = require("moment-timezone");
-const cheerio = require("cheerio");
 const xlsx = require("xlsx");
 const fileUpload = require("express-fileupload");
-const katex = require("katex");
 
 admin.initializeApp({
   credential: admin.credential.cert({
@@ -21,15 +16,14 @@ admin.initializeApp({
     clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
   }),
   databaseURL: `https://${process.env.FIREBASE_PROJECT_ID}-default-rtdb.firebaseio.com/`,
+  storageBucket: process.env.FIREBASE_STORAGE_URL // ✅ CORRECT
 });
+
 const db = admin.database();
-const db_firestore = admin.firestore();
-const sessionRef = db_firestore.collection("instagram").doc("session");
 const firestore = admin.firestore();
+const bucket = admin.storage().bucket();
 const port = process.env.PORT || 3000;
-const fixed_desc = "Click to know more";
 const { v4: uuidv4 } = require("uuid");
-const { time } = require("console");
 const app = express();
 app.use(cors());
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -61,7 +55,6 @@ async function getAccessToken() {
 
   const client = await auth.getClient();
   const accessTokenResponse = await client.getAccessToken();
-  const accessToken = accessTokenResponse.token;
   accessToken = accessTokenResponse.token;
 }
 
@@ -661,7 +654,6 @@ async function uploadStudy(
 
 async function uploadBulkGeneralQuiz(item) {
   try {
-
     const quizzesRef = firestore.collection("News_Quizzes");
 
     // Generate key for "News"
@@ -675,7 +667,6 @@ async function uploadBulkGeneralQuiz(item) {
     const newQuizRef = quizzesRef.doc(childkey.toString());
     await newQuizRef.set(item);
     console.log("General Quiz Data uploaded!");
-
   } catch (error) {
     console.error("Error adding quiz to Firestore:", error.message);
     throw error;
@@ -883,15 +874,17 @@ const resetLeaderboard = async (req, res) => {
     for (let i = 0; i < top3.length; i++) {
       const player = top3[i];
       const bonus = Math.floor((player.points * rewards[i].bonusPercent) / 100);
-      const currentOverallPoints = Math.floor(overallData[player.id]?.points || 0);
+      const currentOverallPoints = Math.floor(
+        overallData[player.id]?.points || 0
+      );
       const newTotal = currentOverallPoints + bonus;
       const notificationId = overallData[player.id]?.notification_id;
 
       console.log(
         `⭐ Rank ${i + 1}: ${player.id}\n` +
-        `   Bonus: ${bonus}\n` +
-        `   Old Total: ${currentOverallPoints}\n` +
-        `   New Total: ${newTotal}\n`
+          `   Bonus: ${bonus}\n` +
+          `   Old Total: ${currentOverallPoints}\n` +
+          `   New Total: ${newTotal}\n`
       );
 
       // Update UserData with new points
@@ -923,7 +916,9 @@ const resetLeaderboard = async (req, res) => {
     await leaderboardRef.update(updates);
 
     console.log("✅ Leaderboard reset complete.");
-    res.status(200).send("Top 3 rewarded, notified, and leaderboard reset successfully.");
+    res
+      .status(200)
+      .send("Top 3 rewarded, notified, and leaderboard reset successfully.");
   } catch (error) {
     console.error("🚨 Error resetting leaderboard:", error);
     res.status(500).send("Failed to reset leaderboard");
@@ -931,7 +926,6 @@ const resetLeaderboard = async (req, res) => {
 };
 
 app.get("/reset-leaderboard", resetLeaderboard);
-
 
 ////////////AUTHENTICATION
 const validCredentials = [
@@ -1066,7 +1060,7 @@ app.post("/auth/resolve-role", async (req, res) => {
   if (!username) {
     return res.status(400).json({
       success: false,
-      message: "Username is required"
+      message: "Username is required",
     });
   }
 
@@ -1079,7 +1073,7 @@ app.post("/auth/resolve-role", async (req, res) => {
       return res.status(403).json({
         success: false,
         role: null,
-        message: "No admin data found"
+        message: "No admin data found",
       });
     }
 
@@ -1090,21 +1084,21 @@ app.post("/auth/resolve-role", async (req, res) => {
         if (admin.ADMIN_STATUS === "SUPER_ALLOWED") {
           return res.status(200).json({
             success: true,
-            role: "super_admin"
+            role: "super_admin",
           });
         }
 
         if (admin.ADMIN_STATUS === "ALLOWED") {
           return res.status(200).json({
             success: true,
-            role: "admin"
+            role: "admin",
           });
         }
 
         return res.status(403).json({
           success: false,
           role: null,
-          message: "User exists but not allowed"
+          message: "User exists but not allowed",
         });
       }
     }
@@ -1112,19 +1106,17 @@ app.post("/auth/resolve-role", async (req, res) => {
     return res.status(403).json({
       success: false,
       role: null,
-      message: "User not found"
+      message: "User not found",
     });
-
   } catch (error) {
     console.error("resolve-role error:", error);
     return res.status(500).json({
       success: false,
       role: null,
-      message: "Server error"
+      message: "Server error",
     });
   }
 });
-
 
 //// ROUTE FOR HTTP NOTIFICATION REQUESTS////
 app.post("/notifyUser", async (req, res) => {
@@ -1240,7 +1232,6 @@ app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
 });
 
-
 ///AUTHOR
 
 // GET EXAMS
@@ -1269,7 +1260,9 @@ app.get("/subjects", async (req, res) => {
 app.get("/sections", async (req, res) => {
   try {
     const { exam, subject } = req.query;
-    const snap = await db.ref(`Questions_Data/${exam}/${subject}`).once("value");
+    const snap = await db
+      .ref(`Questions_Data/${exam}/${subject}`)
+      .once("value");
     res.json(Object.keys(snap.val() || {}));
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -1280,7 +1273,9 @@ app.get("/sections", async (req, res) => {
 app.get("/chapters", async (req, res) => {
   try {
     const { exam, subject, section } = req.query;
-    const snap = await db.ref(`Questions_Data/${exam}/${subject}/${section}`).once("value");
+    const snap = await db
+      .ref(`Questions_Data/${exam}/${subject}/${section}`)
+      .once("value");
     res.json(Object.keys(snap.val() || {}));
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -1299,56 +1294,61 @@ app.get("/questions", async (req, res) => {
 
     // Collect QIDs from Questions_Data
     for (let chapter of chapterList) {
-      const snap = await db.ref(`Questions_Data/${exam}/${subject}/${section}/${chapter}`).once("value");
+      const snap = await db
+        .ref(`Questions_Data/${exam}/${subject}/${section}/${chapter}`)
+        .once("value");
       const obj = snap.val() || {};
       questionIDs.push(...Object.keys(obj));
     }
 
     // Fetch full question data in parallel
     let result = {};
-    await Promise.all(questionIDs.map(async (qid) => {
-      const snap = await db.ref(`Ques_Data/${qid}`).once("value");
-      if (snap.exists()) result[qid] = snap.val();
-    }));
+    await Promise.all(
+      questionIDs.map(async (qid) => {
+        const snap = await db.ref(`Ques_Data/${qid}`).once("value");
+        if (snap.exists()) result[qid] = snap.val();
+      })
+    );
 
     res.json(result);
-
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: err.message });
   }
 });
 app.post("/update-question", async (req, res) => {
-    try {
-        const { qid, data } = req.body;
+  try {
+    const { qid, data } = req.body;
 
-        if (!qid || !data) return res.status(400).json({ success: false, error: "Missing qid or data" });
+    if (!qid || !data)
+      return res
+        .status(400)
+        .json({ success: false, error: "Missing qid or data" });
 
-        await db.ref(`Ques_Data/${qid}`).update(data);
+    await db.ref(`Ques_Data/${qid}`).update(data);
 
-        console.log(`QID ${qid} updated successfully:`, data);
-        res.json({ success: true });
-
-    } catch (err) {
-        console.error("Error updating question:", err);
-        res.status(500).json({ success: false, error: err.message });
-    }
+    console.log(`QID ${qid} updated successfully:`, data);
+    res.json({ success: true });
+  } catch (err) {
+    console.error("Error updating question:", err);
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 app.post("/delete-question", async (req, res) => {
-    try {
-        const { qid } = req.body;
+  try {
+    const { qid } = req.body;
 
-        if (!qid) return res.status(400).json({ success: false, error: "Missing qid" });
+    if (!qid)
+      return res.status(400).json({ success: false, error: "Missing qid" });
 
-        await db.ref(`Ques_Data/${qid}`).remove();
+    await db.ref(`Ques_Data/${qid}`).remove();
 
-        console.log(`QID ${qid} deleted successfully`);
-        res.json({ success: true });
-
-    } catch (err) {
-        console.error("Error deleting question:", err);
-        res.status(500).json({ success: false, error: err.message });
-    }
+    console.log(`QID ${qid} deleted successfully`);
+    res.json({ success: true });
+  } catch (err) {
+    console.error("Error deleting question:", err);
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 // CREATE QUESTION REPORT (STRING REASON)
 app.post("/report-question", async (req, res) => {
@@ -1357,7 +1357,7 @@ app.post("/report-question", async (req, res) => {
   if (!qid || !message || !username) {
     return res.status(400).json({
       success: false,
-      message: "qid, message and username are required"
+      message: "qid, message and username are required",
     });
   }
 
@@ -1368,7 +1368,7 @@ app.post("/report-question", async (req, res) => {
     if (!role) {
       return res.status(403).json({
         success: false,
-        message: "User not allowed to report"
+        message: "User not allowed to report",
       });
     }
 
@@ -1376,85 +1376,130 @@ app.post("/report-question", async (req, res) => {
       message,
       reported_by: username,
       role,
-      created_at: Date.now()
+      created_at: Date.now(),
     };
 
     /* ===============================
        1️⃣ CENTRAL REPORT STORAGE
     =============================== */
-    await db
-      .ref(`ReportedItems_Study/${qid}/reports`)
-      .push(reportObj);
+    await db.ref(`ReportedItems_Study/${qid}/reports`).push(reportObj);
 
-    await db
-      .ref(`ReportedItems_Study/${qid}/status`)
-      .set("OPEN");
+    await db.ref(`ReportedItems_Study/${qid}/status`).set("OPEN");
 
     /* ===============================
        2️⃣ STORE STRING REASON IN QUESTION
        (NO OVERWRITE)
     =============================== */
-    await db
-      .ref(`Ques_Data/${qid}/reason`)
-      .set(message); // ✅ string only
+    await db.ref(`Ques_Data/${qid}/reason`).set(message); // ✅ string only
 
     return res.status(200).json({
       success: true,
       message: "Report submitted successfully",
-      qid
+      qid,
     });
-
   } catch (error) {
     console.error("Report create error:", error);
     return res.status(500).json({
       success: false,
-      message: "Server error"
+      message: "Server error",
     });
   }
 });
 
-
-
 app.get("/reported-questions", async (req, res) => {
-    try {
-        // 1️⃣ Load reported items
-        const reportSnap = await db.ref("ReportedItems_Study").once("value");
-        const reports = reportSnap.val();
+  try {
+    // 1️⃣ Load reported items
+    const reportSnap = await db.ref("ReportedItems_Study").once("value");
+    const reports = reportSnap.val();
 
-        if (!reports) {
-            return res.json({ success: true, data: {} });
-        }
-
-        // 2️⃣ Map reported question IDs and include reason
-        const questionIDs = Object.keys(reports);
-        let result = {};
-
-        await Promise.all(
-            questionIDs.map(async (qid) => {
-                const snap = await db.ref(`Ques_Data/${qid}`).once("value");
-                if (snap.exists()) {
-                    result[qid] = {
-                        ...snap.val(),
-                        reported_reason: reports[qid].message,
-                        reported_by: reports[qid].reported_by,
-                    };
-                }
-            })
-        );
-
-        // 3️⃣ Send response
-        res.json({
-            success: true,
-            count: Object.keys(result).length,
-            data: result
-        });
-
-    } catch (error) {
-        console.error("Reported questions API error:", error);
-        res.status(500).json({
-            success: false,
-            message: "Server error while loading reported questions"
-        });
+    if (!reports) {
+      return res.json({ success: true, data: {} });
     }
+
+    // 2️⃣ Map reported question IDs and include reason
+    const questionIDs = Object.keys(reports);
+    let result = {};
+
+    await Promise.all(
+      questionIDs.map(async (qid) => {
+        const snap = await db.ref(`Ques_Data/${qid}`).once("value");
+        if (snap.exists()) {
+          result[qid] = {
+            ...snap.val(),
+            reported_reason: reports[qid].message,
+            reported_by: reports[qid].reported_by,
+          };
+        }
+      })
+    );
+
+    // 3️⃣ Send response
+    res.json({
+      success: true,
+      count: Object.keys(result).length,
+      data: result,
+    });
+  } catch (error) {
+    console.error("Reported questions API error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error while loading reported questions",
+    });
+  }
+});
+
+///upload image
+app.post("/upload-question-image", async (req, res) => {
+  try {
+    const { qid } = req.body;
+
+    if (!qid || !req.files || !req.files.image) {
+      return res.status(400).json({
+        success: false,
+        message: "qid and image are required",
+      });
+    }
+
+    const image = req.files.image;
+
+    if (!image.mimetype.startsWith("image/")) {
+      return res.status(400).json({
+        success: false,
+        message: "Only image files allowed",
+      });
+    }
+
+    // 🔹 Remove extension from original filename
+    const baseName = path.parse(image.name).name;
+
+    // 🔹 Store image WITHOUT extension
+    const filePath = `questionImages/${qid}/${baseName}`;
+    const bucketFile = bucket.file(filePath);
+
+    await bucketFile.save(image.data, {
+      metadata: { contentType: image.mimetype },
+    });
+
+    await bucketFile.makePublic();
+
+    const imageUrl = `https://storage.googleapis.com/${bucket.name}/${filePath}`;
+
+    // 🔹 Save URL in Realtime Database
+    await admin.database().ref(`Ques_Data/${qid}`).update({
+      imgUrl: imageUrl,
+    });
+
+    return res.json({
+      success: true,
+      message: "Image uploaded & URL saved",
+      imgUrl: imageUrl,
+    });
+  } catch (err) {
+    console.error("Image upload error:", err);
+    res.status(500).json({
+      success: false,
+      message: "Upload failed",
+    });
+  }
 });
 
