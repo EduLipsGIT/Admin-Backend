@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -103,7 +103,7 @@
     <button class="logout-button" onclick="handleLogout()">Log Out</button>
     <h1 style="text-align: center">Upload News</h1>
 
-    <form id="newsForm" onsubmit="return validateForm()">
+    <form id="newsForm" onsubmit="return validateForm();">
       <label for="title">English Title:</label>
       <textarea id="title" name="title" required></textarea>
       <span id="titleWordCount" class="word-count">0 words</span>
@@ -113,18 +113,24 @@
       <span id="descWordCount" class="word-count">0 words</span>
 
       <label for="hinTitle">Hindi Title:</label>
-      <textarea id="hinTitle" name="hinTitle"></textarea>
+      <textarea id="hinTitle" name="hinTitle" required></textarea>
       <span id="hinTitleWordCount" class="word-count">0 words</span>
 
       <label for="hinDesc">Hindi Description:</label>
-      <textarea id="hinDesc" name="hinDesc"></textarea>
+      <textarea id="hinDesc" name="hinDesc" required></textarea>
       <span id="hinDescWordCount" class="word-count">0 words</span>
 
       <label for="newslink">News Link:</label>
       <input type="url" id="newslink" name="newslink" required />
 
       <label for="imagelink">Image Link:</label>
-      <input type="url" id="imagelink" name="imagelink" required oninput="previewImage()" />
+      <input
+        type="url"
+        id="imagelink"
+        name="imagelink"
+        required
+        oninput="previewImage()"
+      />
       <img id="imagePreview" alt="Image Preview" />
 
       <label for="category">Category:</label>
@@ -148,7 +154,13 @@
       </select>
 
       <button type="submit">Submit</button>
-      <button type="button" class="navigation-button" onclick="window.location.href='quiz.html'">Go to Quiz Page</button>
+      <button
+        type="button"
+        class="navigation-button"
+        onclick="window.location.href = 'quiz.html'"
+      >
+        Go to Quiz Page
+      </button>
     </form>
 
     <script>
@@ -161,11 +173,14 @@
           return;
         }
         try {
-          const response = await fetch("https://author.edulips.com/check_user", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ username }),
-          });
+          const response = await fetch(
+            "https://author.edulips.com/check_user",
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ username }),
+            },
+          );
           if (response.ok) {
             const result = await response.json();
             if (result.success) {
@@ -222,20 +237,55 @@
         const hinDesc = document.getElementById("hinDesc");
         const category = document.getElementById("category");
 
-        const isTitleValid = updateWordCount(title, document.getElementById("titleWordCount"), 20);
-        const isDescValid = updateWordCount(desc, document.getElementById("descWordCount"), 80);
-        const isHinTitleValid = updateWordCount(hinTitle, document.getElementById("hinTitleWordCount"), 20);
-        const isHinDescValid = updateWordCount(hinDesc, document.getElementById("hinDescWordCount"), 80);
+        // 🚫 Block empty or spaces-only input
+        if (
+          !title.value.trim() ||
+          !desc.value.trim() ||
+          !hinTitle.value.trim() ||
+          !hinDesc.value.trim()
+        ) {
+          alert("Title and Description fields cannot be empty or spaces.");
+          return false;
+        }
 
-        if (!isTitleValid || !isDescValid || !isHinTitleValid || !isHinDescValid) {
+        // 🔢 Word limit validation
+        const isTitleValid = updateWordCount(
+          title,
+          document.getElementById("titleWordCount"),
+          20,
+        );
+        const isDescValid = updateWordCount(
+          desc,
+          document.getElementById("descWordCount"),
+          80,
+        );
+        const isHinTitleValid = updateWordCount(
+          hinTitle,
+          document.getElementById("hinTitleWordCount"),
+          20,
+        );
+        const isHinDescValid = updateWordCount(
+          hinDesc,
+          document.getElementById("hinDescWordCount"),
+          80,
+        );
+
+        if (
+          !isTitleValid ||
+          !isDescValid ||
+          !isHinTitleValid ||
+          !isHinDescValid
+        ) {
           alert("Please follow word limits for both English and Hindi fields.");
           return false;
         }
 
+        // 📂 Category check
         if (category.value === "Select Category") {
           alert("Please select a valid Category.");
           return false;
         }
+
         return true;
       }
 
@@ -261,39 +311,48 @@
       document.getElementById("desc").addEventListener("input", function () {
         updateWordCount(this, document.getElementById("descWordCount"), 80);
       });
-      document.getElementById("hinTitle").addEventListener("input", function () {
-        updateWordCount(this, document.getElementById("hinTitleWordCount"), 20);
-      });
+      document
+        .getElementById("hinTitle")
+        .addEventListener("input", function () {
+          updateWordCount(
+            this,
+            document.getElementById("hinTitleWordCount"),
+            20,
+          );
+        });
       document.getElementById("hinDesc").addEventListener("input", function () {
         updateWordCount(this, document.getElementById("hinDescWordCount"), 80);
       });
 
       // Submit
-      document.getElementById("newsForm").addEventListener("submit", function (event) {
-        event.preventDefault();
-        if (!validateForm()) return;
+      document
+        .getElementById("newsForm")
+        .addEventListener("submit", function (event) {
+          event.preventDefault();
+          if (!validateForm()) return;
 
-        const username = localStorage.getItem("username");
-        const formData = new FormData(this);
-        const data = Object.fromEntries(formData.entries());
-        data.username = username;
+          const username = localStorage.getItem("username");
+          const formData = new FormData(this);
+          const data = Object.fromEntries(formData.entries());
+          data.username = username;
 
-        fetch("https://author.edulips.com/submit-news", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(data),
-        })
-          .then((response) => {
-            if (!response.ok) throw new Error("Network error " + response.statusText);
-            return response.text();
+          fetch("https://author.edulips.com/submit-news", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(data),
           })
-          .then((data) => {
-            alert(data);
-            document.getElementById("newsForm").reset();
-            document.getElementById("imagePreview").style.display = "none";
-          })
-          .catch((error) => console.error("Fetch error:", error));
-      });
+            .then((response) => {
+              if (!response.ok)
+                throw new Error("Network error " + response.statusText);
+              return response.text();
+            })
+            .then((data) => {
+              alert(data);
+              document.getElementById("newsForm").reset();
+              document.getElementById("imagePreview").style.display = "none";
+            })
+            .catch((error) => console.error("Fetch error:", error));
+        });
     </script>
   </body>
 </html>
