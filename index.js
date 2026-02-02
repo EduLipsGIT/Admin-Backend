@@ -16,7 +16,7 @@ admin.initializeApp({
     clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
   }),
   databaseURL: `https://${process.env.FIREBASE_PROJECT_ID}-default-rtdb.firebaseio.com/`,
-  storageBucket: process.env.FIREBASE_STORAGE_URL // ✅ CORRECT
+  storageBucket: process.env.FIREBASE_STORAGE_URL, // ✅ CORRECT
 });
 
 const db = admin.database();
@@ -161,7 +161,7 @@ async function addNewsToGeneral(
   childKey,
   currentDate,
   username,
-  category
+  category,
 ) {
   if (await checkTitleExists(title, username)) {
     console.log("Title already exists in General, skipping.");
@@ -192,11 +192,13 @@ async function addNewsToGeneral(
     console.log("News added to General:", childKey);
 
     // ✅ Then send notification
-    sendNotification(
-      title, // notification title
-      desc, // notification body
-      childKey.toString(), // unique notification_id
-      imagelink
+    await sendNotification(
+      title, // English title
+      hinTitle, // Hindi title
+      desc, // English desc
+      hinDesc, // Hindi desc
+      childKey.toString(),
+      imagelink,
     );
   } catch (error) {
     console.error("Error adding news to General:", error.message);
@@ -214,7 +216,7 @@ async function addNewsToCategory(
   category,
   currentDate,
   username,
-  childKey
+  childKey,
 ) {
   if (await checkTitleExistsCATEGORY(title, category)) {
     console.log("Title already exists in Category, skipping.");
@@ -259,7 +261,7 @@ async function addNewsToLanguage(
   currentDate,
   username,
   category,
-  childKey
+  childKey,
 ) {
   const languageVersions = [
     { langCollection: "News_Eng", title: title, desc: desc },
@@ -332,7 +334,7 @@ app.post("/submit-news", async (req, res) => {
         childKey,
         currentDate,
         username,
-        category
+        category,
       ),
       addNewsToCategory(
         title,
@@ -344,7 +346,7 @@ app.post("/submit-news", async (req, res) => {
         category,
         currentDate,
         username,
-        childKey
+        childKey,
       ),
       addNewsToLanguage(
         title,
@@ -356,7 +358,7 @@ app.post("/submit-news", async (req, res) => {
         currentDate,
         username,
         category,
-        childKey
+        childKey,
       ),
     ];
 
@@ -371,20 +373,34 @@ app.post("/submit-news", async (req, res) => {
 
 //// ROUTE FOR HTTP NOTIFICATIONS REQUEST////
 app.post("/notify", async (req, res) => {
-  const { title, fixed_desc, childKey, imagelink } = req.body;
+  const {
+    title_en,
+    title_hi,
+    fixed_desc_en,
+    fixed_desc_hi,
+    childKey,
+    imagelink,
+  } = req.body;
 
-  if (!title || !fixed_desc || !childKey || !imagelink) {
+  // English is mandatory as fallback
+  if (!title_en || !fixed_desc_en || !childKey || !imagelink) {
     return res.status(400).json({ error: "Missing required fields" });
   }
 
   try {
     const result = await sendNotification(
-      title,
-      fixed_desc,
+      title_en,
+      title_hi,
+      fixed_desc_en,
+      fixed_desc_hi,
       childKey,
-      imagelink
+      imagelink,
     );
-    res.status(200).json({ message: "Notification sent successfully", result });
+
+    res.status(200).json({
+      message: "Notification sent successfully",
+      result,
+    });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -394,22 +410,44 @@ const generateUniqueId = () => {
   return uuidv4();
 };
 
-const sendNotification = async (title, fixed_desc, childKey, imagelink) => {
+const sendNotification = async (
+  title_en,
+  title_hi,
+  fixed_desc_en,
+  fixed_desc_hi,
+  childKey,
+  imagelink,
+) => {
   const uniqueNotificationId = generateUniqueId();
-  const groupKey = uuidv4();
+
   const message = {
     app_id: "b184d4f9-341c-46d8-8c8f-f5863faaf3f0",
+
+    // 🔔 Send to all users
     included_segments: ["All"],
-    headings: { en: title },
-    contents: { en: fixed_desc },
+
+    // 🔹 Fallback (system tray)
+    headings: { en: title_en },
+    contents: { en: fixed_desc_en },
+
+    // 🖼 Image support
     big_picture: imagelink,
     small_picture: imagelink,
+
+    // 📦 Send both languages to app
     data: {
       child_key: childKey.toString(),
+      title_en: title_en,
+      title_hi: title_hi,
+      body_en: fixed_desc_en,
+      body_hi: fixed_desc_hi,
+      image: imagelink,
     },
+
     android: {
       priority: "high",
     },
+
     android_group: uniqueNotificationId,
   };
 
@@ -420,21 +458,25 @@ const sendNotification = async (title, fixed_desc, childKey, imagelink) => {
       {
         headers: {
           "Content-Type": "application/json",
-          Authorization: `ZjY3ZDExNjAtOGVkZC00NjFiLThmOTEtODU5YWIxY2I0NDUy`,
+          Authorization: `Basic ZjY3ZDExNjAtOGVkZC00NjFiLThmOTEtODU5YWIxY2I0NDUy`,
         },
-      }
+      },
     );
+
     console.log("Notification sent successfully:", response.data);
+    return response.data;
   } catch (error) {
     if (error.response) {
-      console.error("Error response:", error.response.data);
+      console.error("OneSignal Error:", error.response.data);
     } else if (error.request) {
-      console.error("Error request:", error.request);
+      console.error("No response:", error.request);
     } else {
-      console.error("Error message:", error.message);
+      console.error("Error:", error.message);
     }
+    throw error;
   }
 };
+
 ///////////////// QUIZ UPLOADS ////////////////
 async function getNextQuizChildKey() {
   try {
@@ -463,7 +505,7 @@ async function addQuizToGeneral(
   description,
   childKey,
   currentDate,
-  username
+  username,
 ) {
   try {
     const quizzesRef = firestore.collection("News");
@@ -520,7 +562,7 @@ app.post("/submit-quiz", async (req, res) => {
       description,
       childKey,
       currentDate,
-      username
+      username,
     );
     res.send("Quiz added successfully");
   } catch (error) {
@@ -592,7 +634,7 @@ app.post("/uploadQuizBulk", async (req, res) => {
           category_bk,
           subject_bk,
           section_bk,
-          chapter_bk
+          chapter_bk,
         );
       } else if (type === "study") {
         await uploadStudy(
@@ -600,7 +642,7 @@ app.post("/uploadQuizBulk", async (req, res) => {
           category_bk,
           subject_bk,
           section_bk,
-          chapter_bk
+          chapter_bk,
         );
       } else {
         await uploadStudy(
@@ -608,7 +650,7 @@ app.post("/uploadQuizBulk", async (req, res) => {
           category_bk,
           subject_bk,
           section_bk,
-          chapter_bk
+          chapter_bk,
         );
       }
     }
@@ -631,7 +673,7 @@ async function uploadStudy(
   category_bk,
   subject_bk,
   section_bk,
-  chapter_bk
+  chapter_bk,
 ) {
   const childkey = await getNextStudyChildKey();
   const bulkRef = db.ref("Ques_Data");
@@ -644,7 +686,7 @@ async function uploadStudy(
       subject_bk,
       section_bk,
       chapter_bk,
-      childkey
+      childkey,
     );
   } else {
     console.warn("Invalid child key for item:", item);
@@ -679,7 +721,7 @@ async function RegisterKeys(
   subject_bk,
   section_bk,
   chapter_bk,
-  childkey
+  childkey,
 ) {
   const bulkRef = db
     .ref("Questions_Data")
@@ -875,7 +917,7 @@ const resetLeaderboard = async (req, res) => {
       const player = top3[i];
       const bonus = Math.floor((player.points * rewards[i].bonusPercent) / 100);
       const currentOverallPoints = Math.floor(
-        overallData[player.id]?.points || 0
+        overallData[player.id]?.points || 0,
       );
       const newTotal = currentOverallPoints + bonus;
       const notificationId = overallData[player.id]?.notification_id;
@@ -884,7 +926,7 @@ const resetLeaderboard = async (req, res) => {
         `⭐ Rank ${i + 1}: ${player.id}\n` +
           `   Bonus: ${bonus}\n` +
           `   Old Total: ${currentOverallPoints}\n` +
-          `   New Total: ${newTotal}\n`
+          `   New Total: ${newTotal}\n`,
       );
 
       // Update UserData with new points
@@ -900,7 +942,7 @@ const resetLeaderboard = async (req, res) => {
           "Daily Leaderboard Result",
           message_fixed,
           "leaderboard_reward",
-          player.id
+          player.id,
         );
       } else {
         console.warn(`⚠️ No notification_id for user ${player.id}`);
@@ -940,7 +982,7 @@ app.post("/validate_login", async (req, res) => {
   const { username, password } = req.body;
 
   const user = validCredentials.find(
-    (cred) => cred.username === username && cred.password === password
+    (cred) => cred.username === username && cred.password === password,
   );
 
   if (user) {
@@ -1024,14 +1066,14 @@ app.post("/check_user", async (req, res) => {
             childData.ADMIN_STATUS === "SUPER_ALLOWED"
           ) {
             console.log(
-              `Access allowed for username: ${username} with status: ${childData.ADMIN_STATUS}`
+              `Access allowed for username: ${username} with status: ${childData.ADMIN_STATUS}`,
             );
             return res
               .status(200)
               .json({ success: true, message: "Access allowed." });
           } else {
             console.log(
-              `Access denied for username: ${username} with status: ${childData.ADMIN_STATUS}`
+              `Access denied for username: ${username} with status: ${childData.ADMIN_STATUS}`,
             );
             return res.status(403).json({
               success: false,
@@ -1133,7 +1175,7 @@ app.post("/notifyUser", async (req, res) => {
       fixed_desc,
       message_fixed,
       notificationType,
-      childCode
+      childCode,
     );
     res.status(200).json({ message: "Notification sent successfully", result });
   } catch (error) {
@@ -1146,7 +1188,7 @@ const sendUserSpecificNotification = async (
   fixed_desc,
   message_fixed,
   notificationType,
-  childCode
+  childCode,
 ) => {
   const uniqueNotificationId = generateUniqueId();
   const groupKey = uuidv4();
@@ -1174,7 +1216,7 @@ const sendUserSpecificNotification = async (
           "Content-Type": "application/json",
           Authorization: `ZjY3ZDExNjAtOGVkZC00NjFiLThmOTEtODU5YWIxY2I0NDUy`,
         },
-      }
+      },
     );
     console.log("Notification sent successfully:", response.data);
   } catch (error) {
@@ -1307,7 +1349,7 @@ app.get("/questions", async (req, res) => {
       questionIDs.map(async (qid) => {
         const snap = await db.ref(`Ques_Data/${qid}`).once("value");
         if (snap.exists()) result[qid] = snap.val();
-      })
+      }),
     );
 
     res.json(result);
@@ -1430,7 +1472,7 @@ app.get("/reported-questions", async (req, res) => {
             reported_by: reports[qid].reported_by,
           };
         }
-      })
+      }),
     );
 
     // 3️⃣ Send response
@@ -1502,4 +1544,3 @@ app.post("/upload-question-image", async (req, res) => {
     });
   }
 });
-
