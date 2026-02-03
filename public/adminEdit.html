@@ -343,7 +343,9 @@
         <div class="top-header">
           <!-- Left -->
           <div class="header-left">
-            <button class="btn" onclick="toggleSidebar()">☰ Show/Hide</button>
+            <button class="btn btn-outline" onclick="toggleSidebar()">
+              ☰ Show/Hide
+            </button>
             <div class="stat-card stat-compact">
               <div class="stat-title">QUES LOADED</div>
               <div id="totalQuestions" class="stat-value">0</div>
@@ -361,21 +363,31 @@
 
           <!-- Right -->
           <div class="header-right">
-            <button class="btn" onclick="openBulkModal()">
+            <button class="btn btn-outline" onclick="openBulkModal()">
               Bulk Images Upload
             </button>
 
             <button
               id="loadReportedBtn"
-              class="btn btn-red"
+              class="btn btn-outline"
               style="display: none"
               onclick="loadReportedQuestions()"
             >
               Load Reported Ques
             </button>
 
-            <button class="btn btn-green" onclick="downloadExcel()">
-              Standard Format Excel
+            <button class="btn btn-outline" onclick="downloadExcel()">
+              Standard Format
+            </button>
+            <button class="btn btn-outline" onclick="downloadFilteredExcel()">
+              Download
+            </button>
+            <button
+              id="uploadExcelBtn"
+              class="btn btn-outline"
+              onclick="selectExcelFile()"
+            >
+              Upload XLSX
             </button>
 
             <button class="btn btn-gray" onclick="handleLogout()">
@@ -428,6 +440,8 @@
 
           if (USER_ROLE === "super_admin") {
             document.getElementById("loadReportedBtn").style.display =
+              "inline-block";
+            document.getElementById("uploadExcelBtn").style.display =
               "inline-block";
           }
         } catch (error) {
@@ -1110,6 +1124,122 @@
 
         closeBulkModal();
       }
+      function downloadFilteredExcel() {
+        const table = document.getElementById("excelTable");
+
+        if (!table || table.rows.length <= 1) {
+          alert("No filtered data available to download.");
+          return;
+        }
+
+        // Clone table to avoid modifying UI
+        const cloneTable = table.cloneNode(true);
+
+        // 🔎 Apply search filter (only visible rows)
+        const rows = cloneTable.querySelectorAll("tr");
+        rows.forEach((row, index) => {
+          if (index === 0) return; // header
+
+          const originalRow = table.rows[index];
+          if (originalRow && originalRow.style.display === "none") {
+            row.remove();
+          }
+        });
+
+        if (cloneTable.rows.length <= 1) {
+          alert("No visible rows after filtering.");
+          return;
+        }
+
+        /* ❌ REMOVE ACTIONS COLUMN (LAST COLUMN) */
+        const actionColIndex = cloneTable.rows[0].cells.length - 1;
+        Array.from(cloneTable.rows).forEach((row) => {
+          row.deleteCell(actionColIndex);
+        });
+
+        /* ❌ REMOVE `reason` COLUMN IF EXISTS */
+        const headers = Array.from(cloneTable.rows[0].cells).map((c) =>
+          c.innerText.trim(),
+        );
+        const reasonIndex = headers.indexOf("reason");
+
+        if (reasonIndex !== -1) {
+          Array.from(cloneTable.rows).forEach((row) => {
+            row.deleteCell(reasonIndex);
+          });
+        }
+
+        // Convert to Excel
+        const ws = XLSX.utils.table_to_sheet(cloneTable);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Filtered Questions");
+
+        XLSX.writeFile(wb, "selected_questions.xlsx");
+      }
+
+      ///bulk excel upload
+      function selectExcelFile() {
+        document.getElementById("excelUploadInput").click();
+      }
+      async function handleExcelUpload(input) {
+        const file = input.files[0];
+        if (!file) return;
+
+        showLoader();
+
+        try {
+          const data = await file.arrayBuffer();
+          const workbook = XLSX.read(data, { type: "array" });
+          const sheet = workbook.Sheets[workbook.SheetNames[0]];
+          const rows = XLSX.utils.sheet_to_json(sheet);
+
+          if (!rows.length || !rows[0].QID) {
+            alert("❌ Excel must contain a QID column");
+            return;
+          }
+
+          let updated = 0;
+          let skipped = 0;
+
+          for (let i = 0; i < rows.length; i++) {
+            const row = rows[i];
+            const qid = String(row.QID || "").trim();
+
+            if (!qid) {
+              skipped++;
+              continue;
+            }
+
+            const { QID, ...data } = row;
+
+            try {
+              const res = await fetch(`${API}/update-question`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ qid, data }),
+              });
+
+              const json = await res.json();
+
+              if (json.updated) updated++;
+              else skipped++;
+            } catch (e) {
+              console.error("Failed QID:", qid, e);
+              skipped++;
+            }
+          }
+
+          alert(
+            `✅ Excel Upload Complete\n\nUpdated: ${updated}\nSkipped: ${skipped}`,
+          );
+        } catch (err) {
+          console.error(err);
+          alert("❌ Failed to process Excel");
+        } finally {
+          hideLoader();
+          input.value = "";
+        }
+      }
     </script>
     <!-- ============ BULK IMAGE UPLOAD MODAL ============ -->
     <div
@@ -1196,6 +1326,13 @@
       multiple
       style="display: none"
       onchange="handleBulkPreview(this)"
+    />
+    <input
+      id="excelUploadInput"
+      type="file"
+      accept=".xlsx"
+      style="display: none"
+      onchange="handleExcelUpload(this)"
     />
   </body>
 </html>

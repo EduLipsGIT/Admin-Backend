@@ -1581,3 +1581,24 @@ app.post("/upload-question-image", async (req, res) => {
     });
   }
 });
+///bulk ques edit fix
+app.post("/update-question", async (req, res) => {
+  const { qid, data } = req.body;
+
+  if (!qid || !data) {
+    return res.json({ updated: false });
+  }
+
+  const ref = admin.database().ref("Ques_Data").child(qid);
+  const snap = await ref.once("value");
+
+  // ❌ QID not found → skip
+  if (!snap.exists()) {
+    return res.json({ updated: false });
+  }
+
+  // ✅ Update only
+  await ref.update(data);
+
+  return res.json({ updated: true });
+});
