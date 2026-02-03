@@ -410,6 +410,37 @@ const generateUniqueId = () => {
   return uuidv4();
 };
 
+// ✅ POST route to test notification
+app.post("/test-notification", async (req, res) => {
+  const { title_en, title_hi, body_en, body_hi, childKey, imagelink } =
+    req.body;
+
+  if (
+    !title_en ||
+    !title_hi ||
+    !body_en ||
+    !body_hi ||
+    !childKey ||
+    !imagelink
+  ) {
+    return res.status(400).json({ error: "Missing required fields" });
+  }
+
+  try {
+    const result = await sendNotification(
+      title_en,
+      title_hi,
+      body_en,
+      body_hi,
+      childKey,
+      imagelink,
+    );
+    res.status(200).json({ message: "Notification sent successfully", result });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 const sendNotification = async (
   title_en,
   title_hi,
@@ -427,8 +458,14 @@ const sendNotification = async (
     included_segments: ["All"],
 
     // 🔹 Fallback (system tray)
-    headings: { en: title_en },
-    contents: { en: fixed_desc_en },
+    headings: {
+      en: title_en,
+      hi: title_hi,
+    },
+    contents: {
+      en: fixed_desc_en,
+      hi: fixed_desc_hi,
+    },
 
     // 🖼 Image support
     big_picture: imagelink,
