@@ -669,10 +669,6 @@
           "opt4_hin",
           "CorrectAns_hin",
           "desc_quiz_hin",
-          // ❌ REMOVED
-          // "Exam/Category",
-          // "Subject",
-          // "Section",
           "level",
         ];
 
@@ -680,7 +676,6 @@
         const sample = data[keys[0]];
         const allCols = Object.keys(sample);
 
-        // ⛔ Also prevent them from coming back as extra columns
         const BLOCKED_COLS = [
           "Exam/Category",
           "Subject",
@@ -704,18 +699,20 @@
 
         // ---------- HEADER ----------
         table.innerHTML = `
-        <tr>
-            ${cols.map((c) => `<th>${c}</th>`).join("")}
-        </tr>
-    `;
+    <tr>
+      ${cols.map((c) => `<th>${c}</th>`).join("")}
+    </tr>
+  `;
 
         // ---------- ROWS ----------
         keys.forEach((qid) => {
           const hasImage = data[qid].img && data[qid].img.trim() !== "";
 
-          const actionCell =
-            USER_ROLE === "super_admin"
-              ? `
+          let actionCell = "";
+
+          // ⭐ SUPER ADMIN OPTIONS
+          if (USER_ROLE === "super_admin") {
+            actionCell += `
         <span class="edit-btn" onclick="updateQuestion('${qid}', this)">
           Update
         </span><br>
@@ -723,64 +720,63 @@
         <span class="edit-btn" style="color:red;" onclick="deleteQuestion('${qid}', this)">
           Delete
         </span><br><br>
-
-        ${
-          hasImage
-            ? `
-             <!-- expected file name -->
-<div style="font-size:12px; color:#6b7280; margin-bottom:4px;">
-  Expected: <b>${data[qid].img}</b>
-</div>
-
-<!-- hidden file input -->
-<input
-    type="file"
-    accept="image/*"
-    style="display:none"
-    onchange="handleImageSelect('${qid}', this)"
-/>
-
-<!-- upload button -->
-<span class="edit-btn" onclick="triggerImageUpload(this)">
-    📷 Upload Image
-</span>
-
-            `
-            : `
-              <span style="color:#9ca3af; font-size:12px;">
-                No image reference
-              </span>
-            `
-        }
-      `
-              : `
-        <textarea
-          placeholder="Suggestion / Issue"
-          style="width:100%; min-height:50px; font-size:13px;">
-        </textarea>
-        <br>
-        <span class="edit-btn" onclick="reportQuestion('${qid}', this)">
-          🚩 Report
-        </span>
       `;
 
+            if (hasImage) {
+              actionCell += `
+          <div style="font-size:12px; color:#6b7280; margin-bottom:4px;">
+            Expected: <b>${data[qid].img}</b>
+          </div>
+
+          <input
+            type="file"
+            accept="image/*"
+            style="display:none"
+            onchange="handleImageSelect('${qid}', this)"
+          />
+
+          <span class="edit-btn" onclick="triggerImageUpload(this)">
+            📷 Upload Image
+          </span>
+          <br><br>
+        `;
+            } else {
+              actionCell += `
+          <span style="color:#9ca3af; font-size:12px;">
+            No image reference
+          </span>
+          <br><br>
+        `;
+            }
+          }
+
+          // ⭐ REPORT OPTION FOR BOTH (super_admin + normal users)
+          actionCell += `
+      <textarea
+        placeholder="Suggestion / Issue"
+        style="width:100%; min-height:50px; font-size:13px;">
+      </textarea>
+      <br>
+      <span class="edit-btn" onclick="reportQuestion('${qid}', this)">
+        🚩 Report
+      </span>
+    `;
+
           const row = `
-    <tr>
-      <td>${qid}</td>
+      <tr>
+        <td>${qid}</td>
 
-      ${FINAL_COLUMNS.map(
-        (col) => `
-          <td contenteditable="${
-            USER_ROLE === "super_admin"
-          }" data-col="${col}">
-            ${data[qid][col] || ""}
-          </td>
-        `,
-      ).join("")}
+        ${FINAL_COLUMNS.map(
+          (col) => `
+            <td contenteditable="${USER_ROLE === "super_admin"}" data-col="${col}">
+              ${data[qid][col] || ""}
+            </td>
+          `,
+        ).join("")}
 
-      <td>${actionCell}</td>
-    </tr>
-  `;
+        <td>${actionCell}</td>
+      </tr>
+    `;
 
           table.innerHTML += row;
         });
