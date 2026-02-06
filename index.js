@@ -1564,9 +1564,7 @@ app.post("/upload-question-image", async (req, res) => {
     const imageUrl = `https://storage.googleapis.com/${bucket.name}/${filePath}`;
 
     // 🔹 Save URL in Realtime Database
-    await admin.database().ref(`Ques_Data/${qid}`).update({
-      imgUrl: imageUrl,
-    });
+    await admin.database().ref(`Ques_Data/${qid}/imgUrl`).push(imageUrl);
 
     return res.json({
       success: true,
