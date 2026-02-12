@@ -165,50 +165,78 @@
 
       window.onload = checkLogin;
 
-      async function Upload_Quiz(batchSize = 5) {
-        const files = document.querySelector('input[type="file"]').files;
-        const totalFiles = files.length;
-        let filesUploaded = 0;
-        let filesFailed = 0;
+ async function Upload_Quiz() {
 
-        const progressContainer = document.getElementById("progressContainer");
-        const progressBar = document.getElementById("progressBar");
-        const progressText = document.getElementById("progressText");
-        const output = document.getElementById("output");
+  const files = document.querySelector('input[type="file"]').files;
 
-        progressContainer.style.display = "block";
-        progressBar.value = 0;
-        progressText.innerText = "0%";
-        progressBar.style.backgroundColor = "#4caf50"; // Green on start
+  const totalFiles = files.length;
+  let filesUploaded = 0;
+  let filesFailed = 0;
 
-        // **Upload in Batches**
-        for (let i = 0; i < totalFiles; i += batchSize) {
-          const batch = Array.from(files).slice(i, i + batchSize);
-          const formData = new FormData();
-          batch.forEach((file) => formData.append("file", file));
+  // ✅ store failed items
+  const failedFiles = [];
 
-          try {
-            await sendBatch(formData);
-            filesUploaded += batch.length;
-          } catch (error) {
-            filesFailed += batch.length;
-            console.error("Batch upload failed:", error);
-          }
+  const progressContainer = document.getElementById("progressContainer");
+  const progressBar = document.getElementById("progressBar");
+  const progressText = document.getElementById("progressText");
+  const output = document.getElementById("output");
 
-          // **Update Progress Bar**
-          progressBar.value =
-            ((filesUploaded + filesFailed) * 100) / totalFiles;
-          progressText.innerText = `${Math.round(progressBar.value)}%`;
-        }
+  progressContainer.style.display = "block";
+  progressBar.value = 0;
+  progressText.innerText = "0%";
 
-        // **Show Final Result**
-        if (filesFailed > 0) {
-          progressBar.style.backgroundColor = "red";
-          output.innerText = `Upload Completed with ${filesFailed} failures.`;
-        } else {
-          output.innerText = "All files uploaded successfully!";
-        }
-      }
+  for (let i = 0; i < totalFiles; i++) {
+
+    const file = files[i];
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      await sendBatch(formData);
+      filesUploaded++;
+
+      output.innerText += `✅ Uploaded: ${file.name}\n`;
+    } 
+    catch (error) {
+
+      filesFailed++;
+
+      // ✅ Save failed item
+      failedFiles.push(file.name);
+
+      output.innerText += `❌ Failed: ${file.name}\n`;
+    }
+
+    // Update progress
+    const completed = filesUploaded + filesFailed;
+    progressBar.value = (completed * 100) / totalFiles;
+    progressText.innerText = `${Math.round(progressBar.value)}%`;
+  }
+
+  // ✅ Show summary
+  output.innerText += "\n===== Upload Summary =====\n";
+  output.innerText += `Success: ${filesUploaded}\n`;
+  output.innerText += `Failed: ${filesFailed}\n`;
+
+  // Show failed items list
+  if (failedFiles.length > 0) {
+
+    progressBar.style.backgroundColor = "red";
+
+    output.innerText += "\nFailed Files:\n";
+
+    failedFiles.forEach(f => {
+      output.innerText += `- ${f}\n`;
+    });
+
+    // OPTIONAL: store in localStorage
+    localStorage.setItem("failedUploads", JSON.stringify(failedFiles));
+  }
+  else {
+    output.innerText += "All files uploaded successfully!";
+  }
+}
 
       // **Send a Batch Request**
       async function sendBatch(formData) {

@@ -702,8 +702,13 @@ app.post("/uploadQuizBulk", async (req, res) => {
 });
 
 function cleanString(value) {
-  return value != null ? String(value).trim().replace(/[\/]/g, "_") : "";
+  if (value == null) return null;
+
+  const cleaned = String(value).trim().replace(/[\/]/g, "_");
+
+  return cleaned === "" ? null : cleaned;
 }
+
 ////FOR UPLOADING STUDY QUESTIONS
 async function uploadStudy(
   item,

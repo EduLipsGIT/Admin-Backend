@@ -500,9 +500,9 @@
 
             let all = new Set();
             for (let e of exams) {
-              const subs = await fetch(`${API}/subjects?exam=${e}`).then((r) =>
-                r.json(),
-              );
+              const subs = await fetch(
+                `${API}/subjects?exam=${encodeURIComponent(e)}`,
+              ).then((r) => r.json());
               subs.forEach((s) => all.add(`${e}|${s}`));
             }
 
@@ -528,7 +528,7 @@
             for (let v of selected) {
               const [exam, subject] = v.split("|");
               const secs = await fetch(
-                `${API}/sections?exam=${exam}&subject=${subject}`,
+                `${API}/sections?exam=${encodeURIComponent(exam)}&subject=${encodeURIComponent(subject)}`,
               ).then((r) => r.json());
               secs.forEach((s) => all.add(`${exam}|${subject}|${s}`));
             }
@@ -555,7 +555,7 @@
             for (let v of selected) {
               const [exam, subject, section] = v.split("|");
               const chs = await fetch(
-                `${API}/chapters?exam=${exam}&subject=${subject}&section=${section}`,
+                `${API}/chapters?exam=${encodeURIComponent(exam)}&subject=${encodeURIComponent(subject)}&section=${encodeURIComponent(section)}`,
               ).then((r) => r.json());
               chs.forEach((c) => all.add(`${exam}|${subject}|${section}|${c}`));
             }
@@ -584,7 +584,10 @@
             const chapters = selected.map((c) => c.split("|")[3]).join(",");
 
             const questions = await fetch(
-              `${API}/questions?exam=${exam}&subject=${subject}&section=${section}&chapters=${chapters}`,
+              `${API}/questions?exam=${encodeURIComponent(exam)}
+&subject=${encodeURIComponent(subject)}
+&section=${encodeURIComponent(section)}
+&chapters=${encodeURIComponent(chapters)}`,
             ).then((r) => r.json());
 
             ALL_QUESTIONS = questions; // ⭐ SAVE FULL LIST
