@@ -1081,14 +1081,11 @@
           const qid = imageMap[base];
           const isMatched = !!qid;
 
-          console.log({
-            image: file.name,
-            baseName: base,
-            matched: isMatched,
-            qid: qid || null,
-          });
-
           if (isMatched) matched++;
+
+          console.log(
+            `${isMatched ? "✔ MATCHED" : "✖ NOT MATCHED"} | Image: ${file.name} | QID: ${qid || "None"}`,
+          );
 
           BULK_FILES.push({ file, qid, matched: isMatched });
 
