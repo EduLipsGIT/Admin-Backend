@@ -1081,6 +1081,13 @@
           const qid = imageMap[base];
           const isMatched = !!qid;
 
+          console.log({
+            image: file.name,
+            baseName: base,
+            matched: isMatched,
+            qid: qid || null,
+          });
+
           if (isMatched) matched++;
 
           BULK_FILES.push({ file, qid, matched: isMatched });
