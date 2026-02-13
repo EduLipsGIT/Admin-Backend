@@ -1054,21 +1054,26 @@
 
         // Build map: expectedBaseName -> qid
         const imageMap = {};
-        ALL_QUESTIONS.forEach((q) => {
-          const qid = q.id || q.qid || q.QID || q.questionId;
 
-          if (!qid) return;
+        Object.entries(ALL_QUESTIONS || {}).forEach(([qid, q]) => {
+          if (!q) return;
 
-          // ✅ read img + IMG both
-          const allImages = [
-            ...(q.img ? q.img.split(",") : []),
-            ...(q.IMG ? q.IMG.split(",") : []),
-          ];
+          // ✅ Collect possible image fields safely
+          const imageFields = [q.img, q.IMG];
+
+          // ✅ Merge all image lists
+          const allImages = imageFields
+            .filter(Boolean) // remove null/undefined
+            .flatMap((val) => (typeof val === "string" ? val.split(",") : []));
+
+          if (!allImages.length) return;
 
           allImages.forEach((img) => {
             const base = normalizeName(img);
 
-            imageMap[base] = qid;
+            if (base) {
+              imageMap[base] = qid;
+            }
           });
         });
 
