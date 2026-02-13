@@ -1062,7 +1062,7 @@
           const images = q.img.split(",");
 
           images.forEach((img) => {
-            const base = removeExtension(img.trim());
+            const base = normalizeName(img);
 
             if (base) {
               imageMap[base] = qid;
@@ -1077,7 +1077,7 @@
         let matched = 0;
 
         files.forEach((file) => {
-          const base = removeExtension(file.name);
+          const base = normalizeName(file.name);
           const qid = imageMap[base];
           const isMatched = !!qid;
 
@@ -1137,6 +1137,10 @@
 
         closeBulkModal();
       }
+      function normalizeName(name) {
+        return removeExtension(name).trim().toLowerCase().replace(/\s+/g, " "); // normalize spaces
+      }
+
       function downloadFilteredExcel() {
         const table = document.getElementById("excelTable");
 
