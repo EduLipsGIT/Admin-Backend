@@ -1054,10 +1054,20 @@
 
         // Build map: expectedBaseName -> qid
         const imageMap = {};
+
         Object.entries(ALL_QUESTIONS).forEach(([qid, q]) => {
-          if (q.img && q.img.trim()) {
-            imageMap[removeExtension(q.img.trim())] = qid;
-          }
+          if (!q.img) return;
+
+          // split comma separated images
+          const images = q.img.split(",");
+
+          images.forEach((img) => {
+            const base = removeExtension(img.trim());
+
+            if (base) {
+              imageMap[base] = qid;
+            }
+          });
         });
 
         BULK_FILES = [];
